@@ -33,12 +33,16 @@
 - All ordering channels will use one shared server-side order creation service.
 - Supabase browser and server clients use the public anon key; privileged server-only work uses a separate admin client.
 - Session refresh runs in root middleware. Route protection and role routing are deferred to Phase 3.
-- Database schema and generated database types are deferred to Phase 2.
+- Database integrity and totals are enforced with PostgreSQL constraints and triggers.
+- Role-specific RLS policies use security-definer helpers to compare proposed updates with stored rows, preventing unauthorized column changes.
+- Customer-created orders use the service-role-only `create_customer_order(jsonb)` RPC.
+- Database types live in `src/types/database.types.ts` and must be regenerated after schema changes.
 
 ## Current Phase
 
-- Phase 1: complete locally; awaiting user confirmation.
-- Next phase: Phase 2 (only after the user replies `CONFIRMED`).
+- Phase 1: complete.
+- Phase 2: complete locally; awaiting user confirmation and migration execution in Supabase.
+- Next phase: Phase 3 (only after the user replies `CONFIRMED`).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
