@@ -1,15 +1,17 @@
-import { LayoutGrid } from "lucide-react";
+import { TableGrid } from "@/features/tables/table-grid";
+import { createClient } from "@/utils/supabase/server";
 
-import { DashboardPlaceholder } from "@/features/auth/dashboard-placeholder";
+export default async function WaiterDashboard() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tables")
+    .select("id, table_number, capacity, status")
+    .order("table_number");
 
-export default function WaiterDashboard() {
   return (
-    <DashboardPlaceholder
-      eyebrow="Painel do garçom"
-      title="Salão sob controle"
-      description="Acompanhe mesas e pedidos em um só lugar durante todo o atendimento."
-      icon={LayoutGrid}
-      nextStep="O mapa de mesas será disponibilizado na Fase 4."
+    <TableGrid
+      initialTables={data ?? []}
+      initialLoadError={error ? "Não foi possível carregar as mesas." : null}
     />
   );
 }

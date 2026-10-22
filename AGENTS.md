@@ -42,8 +42,9 @@
 
 - Phase 1: complete.
 - Phase 2: complete; migration execution in Supabase remains a manual environment step.
-- Phase 3: complete locally; awaiting user confirmation.
-- Next phase: Phase 4 (only after the user replies `CONFIRMED`).
+- Phase 3: complete.
+- Phase 4: complete locally; awaiting user confirmation.
+- Next phase: Phase 5 (only after the user replies `CONFIRMED`).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
