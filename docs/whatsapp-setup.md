@@ -14,7 +14,7 @@
 | `WHATSAPP_APP_SECRET` | App Secret usado no HMAC dos POSTs |
 | `WHATSAPP_API_VERSION` | Versão suportada escolhida no painel Meta, no formato `vNN.0` |
 | `WHATSAPP_WORKER_SECRET` | Segredo aleatório forte para a rotina de fila e o simulador |
-| `WHATSAPP_MOCK` | `true` somente com `npm run dev`; `false` na implantação real |
+| `WHATSAPP_MOCK` | `true` em desenvolvimento ou com `APP_MODE=local`; `false` na implantação real |
 
 Mantenha tokens, App Secret, worker secret e a chave service-role fora do navegador e do Git. Os valores de exemplo dos testes HTTP são fictícios e não devem ser reutilizados na implantação.
 
@@ -81,7 +81,7 @@ O quinto modelo cobre conclusão fora da janela. Dentro de 24 horas da última m
 
 ## Simular sem conta Meta
 
-É necessário um Supabase configurado; o modo mock substitui a Meta, não o banco. Em `.env.local`, defina `WHATSAPP_MOCK=true` e um `WHATSAPP_WORKER_SECRET` de desenvolvimento. Habilite WhatsApp nas configurações e execute `npm run dev`. `npm run start` é produção e não permite o mock.
+É necessário um Supabase configurado; o modo mock substitui a Meta, não o banco. O comando `npm run local:env` configura `APP_MODE=local`, `WHATSAPP_MOCK=true` e gera um `WHATSAPP_WORKER_SECRET` aleatório. Depois de `npm run local:start`, abra `/dev/whatsapp` para usar a interface de conversa. O simulador também funciona com `npm run dev` quando o mock está habilitado. Fora desses dois modos ele responde como rota inexistente.
 
 Exemplo PowerShell em outro terminal, com o mesmo segredo no ambiente desse terminal:
 
@@ -95,7 +95,11 @@ Leia `replies[].payload`. Para tocar em um botão/linha, envie seu `id` no próx
 
 Sequência de retirada: `menu`, `pickup`, `category:UUID`, `product:UUID`, `2`, `skip`, `finish`, nome se solicitado, `pix`, `confirm`. Para entrega, escolha `delivery`, depois endereço salvo ou `new_address`, preencha os campos solicitados, selecione pagamento/troco e confirme. Para Local, use `dine_in` e uma mesa livre ou envie `MESA-TOKEN`. Use os IDs reais retornados pelo catálogo.
 
-Saídas mock aparecem no console com `[WhatsApp mock]` e ficam no banco com `provider_id` iniciado por `mock:`. Aceite os pedidos na central e movimente-os na cozinha/caixa para conferir notificações. Se houver fila acumulada, chame a rotina autenticada de processamento. Nada é enviado à Meta no mock.
+Saídas mock aparecem no console com `[WhatsApp mock]` e ficam no banco com `provider_id` iniciado por `mock:`. Aceite os pedidos na central e movimente-os na cozinha/caixa para conferir notificações. `local:start` mantém um worker chamando a rotina autenticada a cada 30 segundos, com recuo automático em falhas; sem esse worker, notificações podem permanecer na fila. Nada é enviado à Meta no mock.
+
+## Uso local e WhatsApp real opcional
+
+O restaurante pode operar integralmente com o simulador, sem conta Meta e sem internet. Para usar um número real, defina `APP_MODE=production`, `WHATSAPP_MOCK=false` e as credenciais oficiais. A Meta precisa alcançar somente `/api/whatsapp/webhook` por HTTPS público; use, se necessário, um túnel como Cloudflare Tunnel ou ngrok e não exponha Studio, PostgreSQL nem os demais serviços locais. Um túnel é dependência apenas da integração real, não da operação local do restaurante.
 
 ## Produção e dados pessoais
 

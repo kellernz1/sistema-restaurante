@@ -1,12 +1,15 @@
 import "server-only";
 
 import { messagePayload } from "./protocol";
+import { mockAllowed } from "./security";
 import type { Reply } from "./types";
 
 export async function sendWhatsApp(phone: string, reply: Reply): Promise<string> {
   const payload = messagePayload(phone, reply);
   if (process.env.WHATSAPP_MOCK === "true") {
-    if (process.env.NODE_ENV !== "development") throw new Error("WhatsApp mock is only allowed in development");
+    if (!mockAllowed(process.env.NODE_ENV, process.env.WHATSAPP_MOCK, process.env.APP_MODE)) {
+      throw new Error("WhatsApp mock is allowed only in development or local application mode");
+    }
     console.info("[WhatsApp mock]", JSON.stringify(payload));
     return `mock:${crypto.randomUUID()}`;
   }

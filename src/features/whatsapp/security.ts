@@ -9,6 +9,6 @@ export function secretMatches(value: string | null, secret: string | undefined) 
   const actual = Buffer.from(value); const expected = Buffer.from(secret);
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
-export function mockAllowed(environment: string | undefined, mock: string | undefined) {
-  return environment === "development" && mock === "true";
+export function mockAllowed(environment: string | undefined, mock: string | undefined, appMode: string | undefined) {
+  return mock === "true" && (environment === "development" || appMode === "local");
 }

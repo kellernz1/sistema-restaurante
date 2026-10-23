@@ -15,10 +15,11 @@ describe("webhook security", () => {
     expect(verifySignature(raw, signature, undefined)).toBe(false);
     expect(secretMatches("test", "test")).toBe(true); expect(secretMatches("", "")).toBe(false);
   });
-  it("forbids simulator in production and without an explicit mock flag", () => {
-    expect(mockAllowed("development", "true")).toBe(true);
-    for (const environment of ["production", "test", undefined]) expect(mockAllowed(environment, "true")).toBe(false);
-    expect(mockAllowed("development", "false")).toBe(false);
+  it("allows simulator only in development or explicit local mode with the mock flag", () => {
+    expect(mockAllowed("development", "true", undefined)).toBe(true);
+    expect(mockAllowed("production", "true", "local")).toBe(true);
+    for (const environment of ["production", "test", undefined]) expect(mockAllowed(environment, "true", undefined)).toBe(false);
+    expect(mockAllowed("development", "false", "local")).toBe(false);
   });
   it("validates messages, click events, location and delivery callbacks", () => {
     const payload = { object: "whatsapp_business_account", entry: [{ changes: [{ value: { metadata: { phone_number_id: "1" }, messages: [{ id: "wamid.1", from: "5511999999999", timestamp: "1792756800", interactive: { button_reply: { id: "pickup" } } }], statuses: [{ id: "wamid.2", recipient_id: "5511999999999", status: "read" }] } }] }] };

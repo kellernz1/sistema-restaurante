@@ -8,13 +8,16 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { sendWhatsApp } from "./client";
 import { text } from "./messages.pt-BR";
 import { assertReply, webhookSchema } from "./protocol";
+import { mockAllowed } from "./security";
 import { prompt, transition } from "./state-machine";
 import type { Context, Environment, Input, Reply, Session } from "./types";
 
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json;
 type Job = Tables<"whatsapp_messages">;
 export function checkWhatsAppMode() {
-  if (process.env.NODE_ENV === "production" && process.env.WHATSAPP_MOCK === "true") throw new Error("WhatsApp mock is forbidden in production");
+  if (process.env.WHATSAPP_MOCK === "true" && !mockAllowed(process.env.NODE_ENV, process.env.WHATSAPP_MOCK, process.env.APP_MODE)) {
+    throw new Error("WhatsApp mock is allowed only in development or local application mode");
+  }
 }
 
 export async function enqueueInput(id: string, phone: string, input: Input, receivedAt: string) {

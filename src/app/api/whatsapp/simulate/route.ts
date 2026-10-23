@@ -7,7 +7,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 
 const schema = z.strictObject({ phone: z.string().regex(/^\+[1-9]\d{7,14}$/), message_id: z.string().min(1).max(400).optional(), text: z.string().max(4096).default(""), location: z.object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) }).optional() });
 export async function POST(request: Request) {
-  if (!mockAllowed(process.env.NODE_ENV, process.env.WHATSAPP_MOCK)) return publicJson({ error: "Not found" }, 404);
+  if (!mockAllowed(process.env.NODE_ENV, process.env.WHATSAPP_MOCK, process.env.APP_MODE)) return publicJson({ error: "Not found" }, 404);
   if (!secretMatches(request.headers.get("authorization"), process.env.WHATSAPP_WORKER_SECRET ? `Bearer ${process.env.WHATSAPP_WORKER_SECRET}` : undefined)) return publicJson({ error: "Forbidden" }, 403);
   try {
     const input = schema.safeParse(await readPublicBody(request));
