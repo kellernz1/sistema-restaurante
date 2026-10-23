@@ -16,6 +16,8 @@
     "db:backup": "node scripts/local/backup.mjs",
     "db:restore": "node scripts/local/restore.mjs",
     "types": "node scripts/local/types.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "seed:clear-demo": "node scripts/clear-demo.mjs",
     "lint": "eslint .",
     "test:whatsapp": "vitest run"
   },
