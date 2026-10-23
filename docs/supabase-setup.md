@@ -7,6 +7,7 @@
 3. Run `supabase/migrations/202610220001_initial_schema.sql` as one script.
    Then run `supabase/migrations/202610220002_table_self_service.sql`. On an existing Phase 7 environment, run only the new migration.
    For Phase 9, apply `supabase/migrations/202610220003_offsite_orders.sql` after the first two migrations. On an existing Phase 8 environment, run only `202610220003_offsite_orders.sql`.
+   For Phase 10, apply `supabase/migrations/202610220004_whatsapp_bot.sql` after the previous migrations. On an existing Phase 9 environment, run only the Phase 10 migration.
 4. In **Authentication > Users**, create these four users with passwords of your choice:
    - `admin@restaurante.local`
    - `garcom@restaurante.local`
@@ -16,6 +17,7 @@
 6. Run `supabase/tests/rls_smoke_test.sql`. A successful execution ends with `ROLLBACK` and no exception.
    Run `supabase/tests/table_self_service_test.sql` to validate the Phase 8 functions, token rotation, requests, and database throttling. See `docs/qr-nfc-setup.md` for deployment and physical tag setup.
    Run `supabase/tests/offsite_orders_test.sql` for Phase 9 totals, delivery minimum, change, readiness, transitions, permissions, and table isolation. See `docs/phase-9-validation.md` for UI acceptance.
+   Run `supabase/tests/whatsapp_bot_test.sql` for Phase 10 atomic turns, duplicate IDs, order types, and restricted table/function access. Follow `docs/whatsapp-setup.md` for mock/Meta/worker setup.
 
 The seed is idempotent. The smoke test is transactional and does not retain its fixtures.
 

@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 
 import { settingsSchema } from "./settings-schema";
 
-const switches = { is_accepting_orders: "Aceitar novos pedidos", pickup_enabled: "Permitir retirada", delivery_enabled: "Permitir entrega", dine_in_qr_enabled: "Permitir QR/NFC nas mesas", require_confirmation_for_qr: "Exigir confirmação do primeiro pedido QR/NFC", whatsapp_enabled: "Habilitar WhatsApp (integração na próxima fase)" };
+const switches = { is_accepting_orders: "Aceitar novos pedidos", pickup_enabled: "Permitir retirada", delivery_enabled: "Permitir entrega", dine_in_qr_enabled: "Permitir QR/NFC nas mesas", require_confirmation_for_qr: "Exigir confirmação do primeiro pedido QR/NFC", whatsapp_enabled: "Habilitar pedidos pelo WhatsApp" };
 const numbers = { delivery_fee: "Taxa de entrega (R$)", min_delivery_order: "Mínimo em produtos para entrega (R$)", estimated_pickup_minutes: "Previsão de retirada (minutos)", estimated_delivery_minutes: "Previsão de entrega (minutos)" };
 
 export function SettingsForm({ initial }: { initial: Tables<"restaurant_settings"> }) {

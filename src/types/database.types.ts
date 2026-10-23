@@ -9,6 +9,18 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      whatsapp_conversations: {
+        Row: { phone: string; state: string; context: Json; needs_human: boolean; opted_out: boolean; last_message_at: string; lease_token: string | null; lease_until: string | null };
+        Insert: { phone: string; state?: string; context?: Json; needs_human?: boolean; opted_out?: boolean; last_message_at?: string; lease_token?: string | null; lease_until?: string | null };
+        Update: { state?: string; context?: Json; needs_human?: boolean; opted_out?: boolean; last_message_at?: string; lease_token?: string | null; lease_until?: string | null };
+        Relationships: [];
+      };
+      whatsapp_messages: {
+        Row: { id: string; sequence: number; wa_message_id: string; direction: string; phone: string; payload: Json; status: string; provider_id: string | null; attempts: number; lease_token: string | null; lease_until: string | null; created_at: string };
+        Insert: { id?: string; wa_message_id: string; direction: string; phone: string; payload: Json; status?: string; provider_id?: string | null; attempts?: number; lease_token?: string | null; lease_until?: string | null; created_at?: string };
+        Update: { payload?: Json; status?: string; provider_id?: string | null; attempts?: number; lease_token?: string | null; lease_until?: string | null };
+        Relationships: [];
+      };
       service_requests: {
         Row: { id: string; table_id: string; type: string; status: string; created_at: string };
         Insert: { id?: string; table_id: string; type: string; status?: string; created_at?: string };
@@ -359,6 +371,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      claim_whatsapp_message: { Args: { p_direction: string }; Returns: Database["public"]["Tables"]["whatsapp_messages"]["Row"] };
+      commit_whatsapp_turn: { Args: { p_message_id: string; p_lease: string; p_session: Json; p_replies: Json; p_order?: Json }; Returns: Database["public"]["Tables"]["orders"]["Row"] };
+      whatsapp_handoffs: { Args: Record<PropertyKey, never>; Returns: { phone: string; last_message_at: string }[] };
+      resolve_whatsapp_handoff: { Args: { p_phone: string }; Returns: undefined };
       advance_hub_order: { Args: { p_order_id: string; p_action: string; p_reason?: string; p_payment_method?: string }; Returns: Database["public"]["Tables"]["orders"]["Row"] };
       sync_offsite_ready: { Args: { p_order_id: string }; Returns: undefined };
       consume_public_rate_limit: { Args: { p_key: string; p_limit: number; p_window_seconds: number }; Returns: boolean };

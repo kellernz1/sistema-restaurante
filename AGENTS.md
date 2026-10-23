@@ -41,7 +41,10 @@
 - QR/NFC order creation revalidates `table_token` under the table lock in `create_customer_order`; rotating a token invalidates old links. Customer pages use polling and never mount the staff AuthProvider.
 - Staff review, request attendance, and token rotation use role-checked RPCs. Public service requests and bill status changes are atomic.
 - Offsite public orders atomically upsert customer/address data, enforce minimum/fee/change against database prices, and begin pending confirmation. Only cashier/admin use `advance_hub_order`; kitchen completion updates only item status via an authenticated server endpoint and triggers aggregate readiness.
-- `notifyCustomer` is a server-only no-op hook until Phase 10. Customer address reuse is opt-in on the same browser, scoped by normalized phone; no anonymous address lookup by phone is exposed.
+- Customer address reuse on the web is opt-in on the same browser, scoped by normalized phone; no anonymous address lookup by phone is exposed.
+- WhatsApp uses the official Cloud API only. Signed webhook batches persist before acknowledgement; a leased PostgreSQL queue serializes turns per phone. Order, conversation, inbound completion and reply outbox commit together through the shared order service.
+- WhatsApp notifications enqueue once per order/event, use templates outside the 24-hour window, and honor opt-out/human pause. Ambiguous outbound failures are never automatically resent; staff must review them. Deployments must schedule the authenticated worker as well as allow Next.js `after`.
+- `WHATSAPP_MOCK` and `/api/whatsapp/simulate` are development-only. Raw WhatsApp tables are admin read-only; cashier/admin use narrow handoff RPCs. Number-only dine-in orders require a free table and always await confirmation; existing tables require a valid token or staff assistance.
 
 ## Current Phase
 
@@ -54,7 +57,8 @@
 - Phase 7: implemented after user confirmation; lint, build, TypeScript, and subtotal tests pass. Live Supabase and print-preview acceptance remain pending; see `docs/phase-7-validation.md`.
 - Phase 8: implemented after user confirmation; lint, build, TypeScript, and 9 automated/smoke tests pass. Migration execution, live Supabase acceptance, and QR/NFC/print checks remain pending; see `docs/phase-8-validation.md` and `docs/qr-nfc-setup.md`.
 - Phase 9: implemented after user confirmation; lint, build, TypeScript, and 17 automated/HTTP smoke tests pass. Migration execution and live acceptance remain pending; see `docs/phase-9-validation.md`.
-- Next phase: Phase 10 (only after user confirmation).
+- Phase 10: implemented after user confirmation; lint, build, TypeScript, 27 Vitest tests, and 21 native/HTTP tests pass. Migration execution, full mock flows against Supabase, and live Meta acceptance remain pending; see `docs/phase-10-validation.md` and `docs/whatsapp-setup.md`.
+- All planned implementation phases are present. Environment/database/provider acceptance is still required before production use.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

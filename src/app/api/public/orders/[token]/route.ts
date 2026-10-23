@@ -9,7 +9,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     await publicQuota(request, "tracking-read", 1800);
     const db = createAdminClient();
     const order = await db.from("orders").select("id, order_number, order_type, status, total_amount, delivery_fee, cancel_reason, payment_method, cash_change_for")
-      .eq("public_token", token).in("order_type", ["pickup", "delivery"]).maybeSingle();
+      .eq("public_token", token).maybeSingle();
     if (order.error) throw order.error;
     if (!order.data) throw new PublicApiError(404, "Pedido não encontrado.");
     const [items, settings] = await Promise.all([

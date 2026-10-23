@@ -7,7 +7,7 @@ import { OrderTypeBadge } from "@/components/order-type-badge";
 import { money } from "./menu-cart";
 import { CustomerApiError, customerApi } from "./public-client";
 
-type TrackedOrder = { order_number: number; order_type: "pickup" | "delivery"; status: string; total_amount: number; delivery_fee: number; cancel_reason: string | null; estimated_minutes: number; items: { id: string; quantity: number; unit_price: number; products: { name: string } | null }[] };
+type TrackedOrder = { order_number: number; order_type: "dine_in" | "pickup" | "delivery"; status: string; total_amount: number; delivery_fee: number; cancel_reason: string | null; estimated_minutes: number; items: { id: string; quantity: number; unit_price: number; products: { name: string } | null }[] };
 
 export function OrderTracking({ token }: { token: string }) {
   const [order, setOrder] = useState<TrackedOrder | null>(null);

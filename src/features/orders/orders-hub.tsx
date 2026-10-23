@@ -6,6 +6,7 @@ import { OrderTypeBadge } from "@/components/order-type-badge";
 import { money } from "@/features/customer-ordering/menu-cart";
 import { customerApi } from "@/features/customer-ordering/public-client";
 import { useAuth } from "@/features/auth/auth-provider";
+import { HumanHandoffs } from "@/features/whatsapp/human-handoffs";
 import { createClient } from "@/utils/supabase/client";
 
 import { hubQuery, type HubOrder } from "./hub-query";
@@ -106,7 +107,7 @@ export function OrdersHub({ initialOrders, initialError }: { initialOrders: HubO
   const renderCard = (order: HubOrder) => <button className="hub-card" key={order.id} aria-pressed={selectedId === order.id} onClick={() => { setSelectedId(order.id); setPayment(order.payment_method ?? "pix"); }}><OrderTypeBadge type={order.order_type} /><strong>#{order.order_number} {order.order_type === "dine_in" ? `· Mesa ${order.tables?.table_number}` : `· ${order.customer_name ?? "Cliente"}`}</strong><span>{labels[order.status]}</span><span>{money.format(order.total_amount)}</span></button>;
 
   return <section className="orders-hub"><header className="table-dashboard-heading orders-screen-only"><div><span className="eyebrow">Operação</span><h1>Central de pedidos</h1><p>Até 200 pedidos, priorizando os ativos. {writable ? "Confirme e acompanhe cada atendimento." : "Acesso de consulta; alterações são feitas pelo caixa."}</p></div><button className="ghost-button" disabled={refreshing} onClick={() => void refresh()}>{refreshing ? "Atualizando..." : "Atualizar pedidos"}</button></header>
-    {error && <p className="table-notice table-notice-error orders-screen-only" role="alert">{error}</p>}{notice && <p className="table-notice table-notice-info orders-screen-only" role="status">{notice}</p>}
+    <HumanHandoffs />{error && <p className="table-notice table-notice-error orders-screen-only" role="alert">{error}</p>}{notice && <p className="table-notice table-notice-info orders-screen-only" role="status">{notice}</p>}
     <div className="cashier-actions orders-screen-only"><button className="ghost-button" aria-pressed={sound} onClick={() => void toggleSound()}>{sound ? "Desativar som" : "Ativar som para novos pedidos"}</button>{(["all", "dine_in", "pickup", "delivery"] as const).map((type) => <button className="ghost-button" aria-pressed={filter === type} key={type} onClick={() => setFilter(type)}>{type === "all" ? "Todos" : <OrderTypeBadge type={type} />}</button>)}</div>
     <div className="hub-layout"><div className="orders-screen-only"><h2>Novos pedidos <span className="status-pill" aria-live="polite">{pending.length}</span></h2><div className="hub-cards">{pending.map(renderCard)}</div>{!pending.length && <p>Nenhum pedido aguardando confirmação.</p>}<h2>Em acompanhamento</h2><div className="hub-cards">{others.map(renderCard)}</div>{!others.length && <p>Nenhum pedido neste filtro.</p>}</div>
       {selected ? <aside className="order-panel hub-ticket"><div className="table-detail-heading"><h2>Pedido #{selected.order_number}</h2><OrderTypeBadge type={selected.order_type} /></div><p>{labels[selected.status]} · Origem: {selected.source === "whatsapp" ? "WhatsApp" : selected.source.toUpperCase()}</p>

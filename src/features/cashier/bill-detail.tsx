@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OrderTypeBadge } from "@/components/order-type-badge";
+import { customerApi } from "@/features/customer-ordering/public-client";
 import type { Database } from "@/types/database.types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -95,8 +96,9 @@ export function BillDetail({ table, onClosed }: { table: CashierTable; onClosed:
     setBusy(true);
     setNotice("");
     try {
-      const { data, error: closeError } = await db.rpc("close_order", { p_order_id: order.id, p_payment_method: payment });
-      if (closeError || !data) throw closeError ?? new Error("No closed order returned");
+      const { order: data } = await customerApi<{ order: Order }>(`/api/staff/orders/${order.id}/close`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payment_method: payment }),
+      });
       if (mounted.current) {
         setOrder(data);
         setConfirmation(null);
