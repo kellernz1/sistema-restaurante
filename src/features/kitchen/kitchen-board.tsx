@@ -107,9 +107,11 @@ export function KitchenBoard({ initialItems, initialError }: {
     setNotice("");
     setItems((current) => current.map((row) => row.id === item.id ? { ...row, status: nextStatus } : row));
     try {
-      const { data, error: mutationError } = await supabase.from("order_items")
-        .update({ status: nextStatus }).eq("id", item.id).eq("status", item.status).select("id");
-      if (mutationError || !data?.length) throw mutationError ?? new Error("Item changed");
+      const response = await fetch(`/api/staff/items/${item.id}/status`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expected: item.status, status: nextStatus }),
+      });
+      if (!response.ok) throw new Error("Item changed");
     } catch {
       if (mounted.current) {
         // Only restore an existing card: a cancelled order must not reappear.

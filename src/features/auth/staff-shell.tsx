@@ -1,9 +1,10 @@
 "use client";
 
 import { LoaderCircle, LogOut, UtensilsCrossed } from "lucide-react";
+import Link from "next/link";
 import { type ReactNode, useState } from "react";
 
-import { ROLE_LABELS } from "@/lib/auth";
+import { ROLE_LABELS, ROLE_DASHBOARDS } from "@/lib/auth";
 
 import { useAuth } from "./auth-provider";
 
@@ -46,6 +47,11 @@ export function StaffShell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
+        <nav className="staff-navigation" aria-label="Navegação da equipe">
+          {role && <Link href={ROLE_DASHBOARDS[role]}>Meu painel</Link>}
+          {role && ["admin", "cashier", "waiter"].includes(role) && <Link href="/orders">Pedidos</Link>}
+          {role === "admin" && <><Link href="/admin/tables/qr">QR codes</Link><Link href="/admin/settings">Configurações</Link></>}
+        </nav>
         <div className="staff-account">
           <div className="staff-identity">
             <strong>{profile?.full_name ?? "Usuário"}</strong>

@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Product = { id: string; category_id: string; name: string; price: number; description: string | null };
+import { ProductCatalog, CartEditor, cartSubtotal, money, type CatalogProduct as Product, type CartLine } from "./menu-cart";
 type Menu = { table_number: number; restaurant_name: string; accepting: boolean; products: Product[]; categories: { id: string; name: string }[] };
-type CartLine = { id: string; product: Product; quantity: number; notes: string };
 type Tracking = { order_number: number; status: string; items: { id: string; quantity: number; status: string; products: { name: string } | null }[] };
-const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const labels: Record<string, string> = { pending_confirmation: "Aguardando confirmação do garçom", open: "Pedido confirmado", ready: "Pedido pronto", closed: "Atendimento concluído", cancelled: "Pedido não confirmado. Chame o garçom.", pending: "Recebido", preparing: "Preparando", delivered: "Entregue" };
 
 class MenuError extends Error {
@@ -27,7 +25,6 @@ export function TableMenu({ token, source }: { token: string; source: "qr" | "nf
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [fatal, setFatal] = useState(false);
-  const [search, setSearch] = useState("");
   const [name, setName] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [busy, setBusy] = useState(false);
@@ -104,8 +101,7 @@ export function TableMenu({ token, source }: { token: string; source: "qr" | "nf
   }
 
   const disabled = busy || loading || fatal || !menu?.accepting;
-  const visibleProducts = menu?.products.filter((product) => `${product.name} ${product.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR"))) ?? [];
-  const total = cart.reduce((sum, line) => sum + Math.round(line.product.price * 100) * line.quantity, 0) / 100;
+  const total = cartSubtotal(cart);
 
   return <main className="customer-page"><header className="customer-header"><span className="eyebrow">{menu?.restaurant_name ?? "Mesa Certa"}</span>
     <h1>{menu ? `Mesa ${menu.table_number}` : "Cardápio da mesa"}</h1><p>Escolha seus produtos e peça por aqui.</p></header>
@@ -116,17 +112,8 @@ export function TableMenu({ token, source }: { token: string; source: "qr" | "nf
     {menu && !fatal && <>
       {!menu.accepting && <p className="table-notice table-notice-info">No momento esta mesa não está recebendo novos pedidos. Fale com o garçom.</p>}
       <div className="customer-service"><button className="ghost-button" disabled={busy} onClick={() => void send("waiter")}>Chamar garçom</button><button className="ghost-button" disabled={busy} onClick={() => void send("bill")}>Pedir a conta</button></div>
-      <div className="order-layout"><section className="order-panel"><h2>Cardápio</h2><label className="field-group">Buscar produto<input className="order-input" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome ou descrição" /></label>
-        {!visibleProducts.length && <p>Nenhum produto encontrado.</p>}
-        {menu.categories.map((category) => {
-          const products = visibleProducts.filter((product) => product.category_id === category.id);
-          return products.length ? <section key={category.id}><h3>{category.name}</h3>{products.map((product) => <article className="menu-product" key={product.id}><div><strong>{product.name}</strong><p>{product.description}</p><span>{money.format(product.price)}</span></div><button className="ghost-button" disabled={disabled || cart.length >= 50} aria-label={`Adicionar ${product.name}`} onClick={() => setCart((lines) => [...lines, { id: crypto.randomUUID(), product, quantity: 1, notes: "" }])}>Adicionar</button></article>)}</section> : null;
-        })}
-      </section><section className="order-panel"><h2>Seu pedido</h2>
-        {!cart.length && <p>Seu carrinho está vazio.</p>}
-        {cart.map((line, index) => <div className="cart-line" key={line.id}><strong>{line.product.name}</strong><span>{money.format(line.product.price * line.quantity)}</span>
-          <div className="quantity-control"><button className="ghost-button" disabled={busy} aria-label={`Diminuir ${line.product.name}, item ${index + 1}`} onClick={() => setCart((lines) => lines.flatMap((item) => item.id !== line.id ? [item] : item.quantity > 1 ? [{ ...item, quantity: item.quantity - 1 }] : []))}>−</button><output>{line.quantity}</output><button className="ghost-button" disabled={busy || line.quantity >= 99} aria-label={`Aumentar ${line.product.name}, item ${index + 1}`} onClick={() => setCart((lines) => lines.map((item) => item.id === line.id ? { ...item, quantity: item.quantity + 1 } : item))}>+</button><button className="ghost-button" disabled={busy} aria-label={`Remover ${line.product.name}, item ${index + 1}`} onClick={() => setCart((lines) => lines.filter((item) => item.id !== line.id))}>Remover</button></div>
-          <label className="field-group">Observações do item {index + 1}<textarea className="order-input" maxLength={500} disabled={busy} value={line.notes} placeholder="Ex.: sem cebola" onChange={(event) => setCart((lines) => lines.map((item) => item.id === line.id ? { ...item, notes: event.target.value } : item))} /></label></div>)}
+      <div className="order-layout"><ProductCatalog products={menu.products} categories={menu.categories} disabled={disabled} cartCount={cart.length} onAdd={(product) => setCart((lines) => [...lines, { id: crypto.randomUUID(), product, quantity: 1, notes: "" }])} />
+      <section className="order-panel"><h2>Seu pedido</h2><CartEditor cart={cart} setCart={setCart} busy={busy} />
         <label className="field-group">Seu nome (opcional)<input className="order-input" value={name} maxLength={80} disabled={busy} onChange={(event) => setName(event.target.value)} autoComplete="given-name" /></label>
         <p className="order-total">Total estimado<strong>{money.format(total)}</strong></p><p>Os valores serão conferidos ao enviar.</p><button className="primary-button" disabled={disabled || !cart.length} onClick={() => void send("order")}>{busy ? "Aguarde..." : "Enviar pedido"}</button>
       </section></div>

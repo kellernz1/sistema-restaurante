@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { OrderTypeBadge } from "@/components/order-type-badge";
 import { TABLE_STATUS_LABELS } from "@/features/tables/table-status";
 import type { Database } from "@/types/database.types";
 import { createClient } from "@/utils/supabase/client";
@@ -130,7 +131,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
   const filtered = products.filter((product) => `${product.name} ${product.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(query));
 
   return <section className="table-detail-state">
-    <Link className="back-link" href="/waiter">← Mapa de mesas</Link>
+    <Link className="back-link" href="/waiter">← Mapa de mesas</Link><OrderTypeBadge type="dine_in" />
     <div className="table-detail-heading"><div><span className="eyebrow">{order ? `Comanda #${order.order_number}` : "Sem comanda ativa"}</span>
       <h1>Mesa {table.table_number}</h1>{order && ["qr", "nfc"].includes(order.source) && <p>via {order.source.toUpperCase()}</p>}</div><span className={`table-status-label status-${table.status}`}>{TABLE_STATUS_LABELS[table.status]}</span></div>
     {notice && <p className="table-notice table-notice-info" role="status">{notice}</p>}

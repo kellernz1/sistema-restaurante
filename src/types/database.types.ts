@@ -359,6 +359,8 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      advance_hub_order: { Args: { p_order_id: string; p_action: string; p_reason?: string; p_payment_method?: string }; Returns: Database["public"]["Tables"]["orders"]["Row"] };
+      sync_offsite_ready: { Args: { p_order_id: string }; Returns: undefined };
       consume_public_rate_limit: { Args: { p_key: string; p_limit: number; p_window_seconds: number }; Returns: boolean };
       create_table_service_request: { Args: { p_token: string; p_type: string }; Returns: string };
       attend_service_request: { Args: { p_request_id: string }; Returns: undefined };

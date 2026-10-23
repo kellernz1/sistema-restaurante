@@ -6,6 +6,7 @@
 2. Open **SQL Editor** in the Supabase Dashboard.
 3. Run `supabase/migrations/202610220001_initial_schema.sql` as one script.
    Then run `supabase/migrations/202610220002_table_self_service.sql`. On an existing Phase 7 environment, run only the new migration.
+   For Phase 9, apply `supabase/migrations/202610220003_offsite_orders.sql` after the first two migrations. On an existing Phase 8 environment, run only `202610220003_offsite_orders.sql`.
 4. In **Authentication > Users**, create these four users with passwords of your choice:
    - `admin@restaurante.local`
    - `garcom@restaurante.local`
@@ -14,6 +15,7 @@
 5. Run `supabase/seed.sql`. It assigns the roles and inserts the sample data.
 6. Run `supabase/tests/rls_smoke_test.sql`. A successful execution ends with `ROLLBACK` and no exception.
    Run `supabase/tests/table_self_service_test.sql` to validate the Phase 8 functions, token rotation, requests, and database throttling. See `docs/qr-nfc-setup.md` for deployment and physical tag setup.
+   Run `supabase/tests/offsite_orders_test.sql` for Phase 9 totals, delivery minimum, change, readiness, transitions, permissions, and table isolation. See `docs/phase-9-validation.md` for UI acceptance.
 
 The seed is idempotent. The smoke test is transactional and does not retain its fixtures.
 

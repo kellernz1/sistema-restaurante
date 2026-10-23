@@ -40,6 +40,8 @@
 - Public table endpoints validate strict Zod payloads and throttle through service-role-only PostgreSQL counters. Forwarding headers are trusted only when `PUBLIC_TRUST_PROXY=true` behind a proxy that overwrites them.
 - QR/NFC order creation revalidates `table_token` under the table lock in `create_customer_order`; rotating a token invalidates old links. Customer pages use polling and never mount the staff AuthProvider.
 - Staff review, request attendance, and token rotation use role-checked RPCs. Public service requests and bill status changes are atomic.
+- Offsite public orders atomically upsert customer/address data, enforce minimum/fee/change against database prices, and begin pending confirmation. Only cashier/admin use `advance_hub_order`; kitchen completion updates only item status via an authenticated server endpoint and triggers aggregate readiness.
+- `notifyCustomer` is a server-only no-op hook until Phase 10. Customer address reuse is opt-in on the same browser, scoped by normalized phone; no anonymous address lookup by phone is exposed.
 
 ## Current Phase
 
@@ -51,7 +53,8 @@
 - Phase 6: implemented after the user's request to proceed; lint, build, and TypeScript checks pass. Live Supabase acceptance tests remain pending; see `docs/phase-6-validation.md`.
 - Phase 7: implemented after user confirmation; lint, build, TypeScript, and subtotal tests pass. Live Supabase and print-preview acceptance remain pending; see `docs/phase-7-validation.md`.
 - Phase 8: implemented after user confirmation; lint, build, TypeScript, and 9 automated/smoke tests pass. Migration execution, live Supabase acceptance, and QR/NFC/print checks remain pending; see `docs/phase-8-validation.md` and `docs/qr-nfc-setup.md`.
-- Next phase: Phase 9 (only after user confirmation).
+- Phase 9: implemented after user confirmation; lint, build, TypeScript, and 17 automated/HTTP smoke tests pass. Migration execution and live acceptance remain pending; see `docs/phase-9-validation.md`.
+- Next phase: Phase 10 (only after user confirmation).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -19,6 +19,14 @@ export function publicError(error: unknown) {
     : publicJson({ error: "Não foi possível concluir. Confira os dados e tente novamente." }, 503);
 }
 
+export async function publicQuota(request: Request, scope: string, limit: number, identity?: string) {
+  const ip = process.env.PUBLIC_TRUST_PROXY === "true" ? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown" : "shared";
+  const hash = createHmac("sha256", process.env.SUPABASE_SERVICE_ROLE_KEY!).update(identity ?? ip).digest("hex");
+  const { data, error } = await createAdminClient().rpc("consume_public_rate_limit", { p_key: `${scope}:${hash}`, p_limit: limit, p_window_seconds: 600 });
+  if (error) throw error;
+  if (!data) throw new PublicApiError(429, "Muitas tentativas. Aguarde alguns minutos e tente novamente.");
+}
+
 export async function publicLimit(request: Request, token: string, mutation: boolean) {
   if (!tableTokenSchema.safeParse(token).success) throw new PublicApiError(404, "QR inválido ou desatualizado. Chame o garçom.");
   const db = createAdminClient();
