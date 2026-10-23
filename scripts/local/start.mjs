@@ -37,6 +37,29 @@ const app = startDetached(
   "app",
   env,
 );
+fs.writeFileSync(stateFile, JSON.stringify({ app, startedAt: new Date().toISOString() }, null, 2));
+
+let healthy = false;
+for (let attempt = 0; attempt < 45; attempt += 1) {
+  if (!isProcessRunning(app)) throw new Error("The application stopped during startup. Check logs/app.error.log.");
+  try {
+    const response = await fetch(new URL("/api/health", env.NEXT_PUBLIC_APP_URL), {
+      signal: AbortSignal.timeout(2_000),
+      cache: "no-store",
+    });
+    if (response.ok) {
+      healthy = true;
+      break;
+    }
+  } catch {
+    // The production server may still be binding its port.
+  }
+  await new Promise((resolve) => setTimeout(resolve, 1_000));
+}
+if (!healthy) {
+  throw new Error("The local stack did not become healthy within 45 seconds. Check logs/app.error.log and run `npm run local:stop`.");
+}
+
 const worker = startDetached(
   [path.join(ROOT, "scripts", "whatsapp-worker.mjs")],
   "whatsapp-worker",

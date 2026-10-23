@@ -14,7 +14,7 @@ const MAX_BACKUPS = 14;
 
 function timestamp(date = new Date()) {
   const pad = (value) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}`;
 }
 
 export async function createBackup() {
@@ -41,7 +41,7 @@ export async function createBackup() {
   );
 
   const backups = fs.readdirSync(BACKUP_DIR)
-    .filter((file) => /^\d{4}-\d{2}-\d{2}_\d{6}\.sql$/.test(file))
+    .filter((file) => /^\d{4}-\d{2}-\d{2}_\d{4}\.sql$/.test(file))
     .sort()
     .reverse();
   for (const oldBackup of backups.slice(MAX_BACKUPS)) {

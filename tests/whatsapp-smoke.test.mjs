@@ -7,9 +7,10 @@ test("WhatsApp webhook rejects invalid signatures without database access", { sk
   const response = await fetch(`${base}/api/whatsapp/webhook`, { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": "sha256=ff" }, body: "{}" });
   assert.equal(response.status, 401);
 });
-test("WhatsApp worker requires a secret and simulator is absent from production", { skip: !base }, async () => {
+test("WhatsApp worker requires a secret and simulator follows the configured runtime mode", { skip: !base }, async () => {
   assert.equal((await fetch(`${base}/api/whatsapp/process`, { method: "POST" })).status, 403);
-  assert.equal((await fetch(`${base}/api/whatsapp/simulate`, { method: "POST" })).status, 404);
+  const localMock = process.env.WHATSAPP_MOCK === "true" && (process.env.NODE_ENV === "development" || process.env.APP_MODE === "local");
+  assert.equal((await fetch(`${base}/api/whatsapp/simulate`, { method: "POST" })).status, localMock ? 403 : 404);
 });
 test("WhatsApp verification handshake returns the exact challenge", { skip: !base || !process.env.WEBHOOK_TEST_TOKEN }, async () => {
   const response = await fetch(`${base}/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(process.env.WEBHOOK_TEST_TOKEN)}&hub.challenge=test-challenge`);
