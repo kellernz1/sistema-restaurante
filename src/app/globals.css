@@ -980,3 +980,31 @@ a {
     animation-iteration-count: 1 !important;
   }
 }
+
+.order-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.order-panel { min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+.order-panel h2 { margin: 0 0 20px; font-family: Georgia, serif; font-size: 1.7rem; }
+.order-panel h3 { margin: 28px 0 12px; }
+.order-panel p { color: var(--muted); line-height: 1.5; }
+.order-input { width: 100%; min-height: 44px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--foreground); font: inherit; }
+textarea.order-input { resize: vertical; min-height: 74px; }
+.order-input:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.menu-products { display: grid; gap: 12px; }
+.menu-product { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.menu-product p { margin: 6px 0; font-size: .88rem; }
+.menu-product strong, .cart-line strong, .sent-items strong { overflow-wrap: anywhere; }
+.cart-line { display: grid; gap: 12px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.quantity-control { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.order-total { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); }
+.order-total strong { color: var(--foreground); }
+.sent-items { list-style: none; padding: 0; }
+.sent-items li { display: flex; align-items: center; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.sent-items li > div { flex: 1; }
+.sent-items p { margin: 6px 0 0; font-size: .88rem; overflow-wrap: anywhere; }
+.item-status { padding: 6px 10px; border-radius: 999px; font-size: .8rem; font-weight: bold; white-space: nowrap; }
+.item-pending { background: #ebe6db; color: #45483f; }
+.item-preparing { background: #f4e1bc; color: #77501c; }
+.item-ready { background: #d9eee1; color: #286647; }
+.item-delivered { background: #dde5f5; color: #384e80; }
+@media (max-width: 860px) { .order-layout { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .order-panel { padding: 18px; } .sent-items li { flex-wrap: wrap; } .sent-items li > div { flex-basis: 100%; } .menu-product { align-items: flex-start; } }

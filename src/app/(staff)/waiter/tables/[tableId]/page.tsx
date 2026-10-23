@@ -1,85 +1,18 @@
-import { ArrowLeft, ClipboardList, Users } from "lucide-react";
-import Link from "next/link";
-
-import { TABLE_STATUS_LABELS } from "@/features/tables/table-status";
+﻿import Link from "next/link";
+import { TableOrder } from "@/features/orders/table-order";
 import { createClient } from "@/utils/supabase/server";
 
-type TablePageProps = {
-  params: Promise<{ tableId: string }>;
-};
-
-export default async function WaiterTablePage({ params }: TablePageProps) {
+export default async function WaiterTablePage({ params }: { params: Promise<{ tableId: string }> }) {
   const { tableId } = await params;
-  const supabase = await createClient();
-  const [{ data: table, error: tableError }, { data: order }] =
-    await Promise.all([
-      supabase
-        .from("tables")
-        .select("id, table_number, capacity, status")
-        .eq("id", tableId)
-        .maybeSingle(),
-      supabase
-        .from("orders")
-        .select("id, order_number, status, created_at")
-        .eq("table_id", tableId)
-        .not("status", "in", '("closed","cancelled")')
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-
-  if (tableError || !table) {
-    return (
-      <section className="table-detail-state">
-        <span className="placeholder-icon danger-icon">
-          <ClipboardList aria-hidden="true" size={25} />
-        </span>
-        <span className="eyebrow">Mesa não encontrada</span>
-        <h1>Não foi possível abrir este atendimento</h1>
-        <p>Volte ao mapa e escolha uma mesa disponível.</p>
-        <Link className="primary-button compact-button" href="/waiter">
-          <ArrowLeft aria-hidden="true" size={17} />
-          Voltar ao mapa
-        </Link>
-      </section>
-    );
+  const db = await createClient();
+  const [table, order, products, categories] = await Promise.all([
+    db.from("tables").select("*").eq("id", tableId).maybeSingle(),
+    db.from("orders").select("*").eq("table_id", tableId).eq("order_type", "dine_in").not("status", "in", '("closed","cancelled")').maybeSingle(),
+    db.from("products").select("*").eq("is_active", true).order("name"),
+    db.from("categories").select("*").order("sort_order").order("name"),
+  ]);
+  if (!table.data || table.error || order.error || products.error || categories.error) {
+    return <section className="table-detail-state"><h1>Não foi possível carregar a comanda</h1><p>Confira a conexão e tente novamente.</p><Link href="/waiter">Voltar ao mapa</Link></section>;
   }
-
-  return (
-    <section className="table-detail-state">
-      <Link className="back-link" href="/waiter">
-        <ArrowLeft aria-hidden="true" size={17} />
-        Mapa de mesas
-      </Link>
-
-      <div className="table-detail-heading">
-        <div>
-          <span className="eyebrow">Atendimento em andamento</span>
-          <h1>Mesa {table.table_number}</h1>
-        </div>
-        <span className={`table-status-label status-${table.status}`}>
-          {TABLE_STATUS_LABELS[table.status]}
-        </span>
-      </div>
-
-      <div className="table-detail-card">
-        <span className="placeholder-icon">
-          <ClipboardList aria-hidden="true" size={25} />
-        </span>
-        <div>
-          <strong>
-            {order ? `Comanda #${order.order_number}` : "Comanda da mesa"}
-          </strong>
-          <p>
-            Os produtos, o carrinho e os itens enviados serão adicionados na
-            Fase 5.
-          </p>
-        </div>
-        <span className="table-capacity">
-          <Users aria-hidden="true" size={17} />
-          {table.capacity} {table.capacity === 1 ? "lugar" : "lugares"}
-        </span>
-      </div>
-    </section>
-  );
+  return <TableOrder initialTable={table.data} initialOrder={order.data} products={products.data ?? []} categories={categories.data ?? []} />;
 }
