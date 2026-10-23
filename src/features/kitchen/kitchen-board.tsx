@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, RefreshCw } from "lucide-react";
+import { Clock, RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OrderTypeBadge } from "@/components/order-type-badge";
@@ -42,6 +42,10 @@ export function KitchenBoard({ initialItems, initialError }: {
   const [pendingIds, setPendingIds] = useState<string[]>([]);
   const [now, setNow] = useState<number | null>(null);
   const [warningMinutes, setWarningMinutes] = useState(10);
+  const [sound, setSound] = useState(false);
+  const audio = useRef<AudioContext | null>(null);
+  const soundEnabled = useRef(false);
+  const seenItems = useRef(new Set(initialItems.map((item) => item.id)));
   const pending = useRef(new Map<string, KitchenStatus>());
   const mounted = useRef(false);
   const revision = useRef(0);
@@ -53,10 +57,28 @@ export function KitchenBoard({ initialItems, initialError }: {
       const result = await kitchenQuery(supabase);
       if (!mounted.current || version !== revision.current) return;
       if (result.error) throw result.error;
-      setItems(result.data.map((item) => ({
+      const nextItems = result.data.map((item) => ({
         ...item,
         status: pending.current.get(item.id) ?? item.status,
-      })));
+      }));
+      const hasNewPendingItem = nextItems.some(
+        (item) => item.status === "pending" && !seenItems.current.has(item.id),
+      );
+      if (
+        soundEnabled.current &&
+        hasNewPendingItem &&
+        audio.current?.state === "running"
+      ) {
+        const oscillator = audio.current.createOscillator();
+        const gain = audio.current.createGain();
+        gain.gain.value = 0.15;
+        oscillator.frequency.value = 740;
+        oscillator.connect(gain).connect(audio.current.destination);
+        oscillator.start();
+        oscillator.stop(audio.current.currentTime + 0.22);
+      }
+      seenItems.current = new Set(nextItems.map((item) => item.id));
+      setItems(nextItems);
       setError("");
     } catch {
       if (mounted.current && version === revision.current) {
@@ -95,9 +117,23 @@ export function KitchenBoard({ initialItems, initialError }: {
       window.clearInterval(clock);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", update);
+      void audio.current?.close();
       void supabase.removeChannel(channel);
     };
   }, [supabase, refresh]);
+
+  async function toggleSound() {
+    try {
+      if (!audio.current || audio.current.state === "closed") {
+        audio.current = new AudioContext();
+      }
+      await audio.current.resume();
+      soundEnabled.current = !soundEnabled.current;
+      setSound(soundEnabled.current);
+    } catch {
+      setNotice("Não foi possível ativar o som neste navegador.");
+    }
+  }
 
   async function advance(item: KitchenItem) {
     if (pending.current.has(item.id) || !["pending", "preparing"].includes(item.status)) return;
@@ -132,10 +168,16 @@ export function KitchenBoard({ initialItems, initialError }: {
       <div className="table-dashboard-heading">
         <div><span className="eyebrow">Painel da cozinha</span><h1>Fila de preparo</h1>
           <p>Pedidos abertos em tempo real. Comece pelos itens com maior tempo de espera.</p></div>
-        <button className="ghost-button refresh-button" disabled={refreshing} onClick={() => void refresh()}>
-          <RefreshCw aria-hidden="true" size={17} className={refreshing ? "spin" : ""} />
-          {refreshing ? "Atualizando..." : "Atualizar fila"}
-        </button>
+        <div className="cashier-actions">
+          <button className="ghost-button" aria-pressed={sound} onClick={() => void toggleSound()}>
+            {sound ? <Volume2 aria-hidden="true" size={17} /> : <VolumeX aria-hidden="true" size={17} />}
+            {sound ? "Desativar som" : "Ativar som"}
+          </button>
+          <button className="ghost-button refresh-button" disabled={refreshing} onClick={() => void refresh()}>
+            <RefreshCw aria-hidden="true" size={17} className={refreshing ? "spin" : ""} />
+            {refreshing ? "Atualizando..." : "Atualizar fila"}
+          </button>
+        </div>
       </div>
       <label className="kitchen-threshold">Alertar após
         <select value={warningMinutes} onChange={(event) => setWarningMinutes(Number(event.target.value))}>

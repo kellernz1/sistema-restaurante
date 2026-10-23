@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/next-command.mjs dev",
+    "build": "node scripts/next-command.mjs build",
+    "start": "node scripts/next-command.mjs start",
     "lint": "eslint .",
     "test:whatsapp": "vitest run"
   },

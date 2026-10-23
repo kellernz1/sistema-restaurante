@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { uuid } from "@/lib/uuid";
+
 import { ProductCatalog, CartEditor, cartSubtotal, money, type CatalogProduct as Product, type CartLine } from "./menu-cart";
 type Menu = { table_number: number; restaurant_name: string; accepting: boolean; products: Product[]; categories: { id: string; name: string }[] };
 type Tracking = { order_number: number; status: string; items: { id: string; quantity: number; status: string; products: { name: string } | null }[] };
@@ -112,7 +114,7 @@ export function TableMenu({ token, source }: { token: string; source: "qr" | "nf
     {menu && !fatal && <>
       {!menu.accepting && <p className="table-notice table-notice-info">No momento esta mesa não está recebendo novos pedidos. Fale com o garçom.</p>}
       <div className="customer-service"><button className="ghost-button" disabled={busy} onClick={() => void send("waiter")}>Chamar garçom</button><button className="ghost-button" disabled={busy} onClick={() => void send("bill")}>Pedir a conta</button></div>
-      <div className="order-layout"><ProductCatalog products={menu.products} categories={menu.categories} disabled={disabled} cartCount={cart.length} onAdd={(product) => setCart((lines) => [...lines, { id: crypto.randomUUID(), product, quantity: 1, notes: "" }])} />
+      <div className="order-layout"><ProductCatalog products={menu.products} categories={menu.categories} disabled={disabled} cartCount={cart.length} onAdd={(product) => setCart((lines) => [...lines, { id: uuid(), product, quantity: 1, notes: "" }])} />
       <section className="order-panel"><h2>Seu pedido</h2><CartEditor cart={cart} setCart={setCart} busy={busy} />
         <label className="field-group">Seu nome (opcional)<input className="order-input" value={name} maxLength={80} disabled={busy} onChange={(event) => setName(event.target.value)} autoComplete="given-name" /></label>
         <p className="order-total">Total estimado<strong>{money.format(total)}</strong></p><p>Os valores serão conferidos ao enviar.</p><button className="primary-button" disabled={disabled || !cart.length} onClick={() => void send("order")}>{busy ? "Aguarde..." : "Enviar pedido"}</button>

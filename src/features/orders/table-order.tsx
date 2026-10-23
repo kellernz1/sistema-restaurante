@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OrderTypeBadge } from "@/components/order-type-badge";
 import { TABLE_STATUS_LABELS } from "@/features/tables/table-status";
+import { uuid } from "@/lib/uuid";
 import type { Database } from "@/types/database.types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -146,7 +147,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
           return categoryProducts.length ? <section key={category.id}><h3>{category.name}</h3>
             <div className="menu-products">{categoryProducts.map((product) => <article className="menu-product" key={product.id}>
               <div><strong>{product.name}</strong><p>{product.description}</p><span>{money.format(product.price)}</span></div>
-              <button className="ghost-button" disabled={disabled} onClick={() => setCart((current) => [...current, { id: crypto.randomUUID(), product, quantity: 1, notes: "" }])} aria-label={`Adicionar ${product.name}`}>Adicionar</button>
+              <button className="ghost-button" disabled={disabled} onClick={() => setCart((current) => [...current, { id: uuid(), product, quantity: 1, notes: "" }])} aria-label={`Adicionar ${product.name}`}>Adicionar</button>
             </article>)}</div></section> : null;
         })}
       </section>
