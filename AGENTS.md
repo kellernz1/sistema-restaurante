@@ -46,7 +46,8 @@
 - Phase 4: confirmed by the user.
 - Phase 5: implemented; lint, build, and TypeScript checks pass. Live Supabase acceptance tests remain pending environment setup; see `docs/phase-5-validation.md`.
 - Phase 6: implemented after the user's request to proceed; lint, build, and TypeScript checks pass. Live Supabase acceptance tests remain pending; see `docs/phase-6-validation.md`.
-- Next phase: Phase 7 (only after user confirmation).
+- Phase 7: implemented after user confirmation; lint, build, TypeScript, and subtotal tests pass. Live Supabase and print-preview acceptance remain pending; see `docs/phase-7-validation.md`.
+- Next phase: Phase 8 (only after user confirmation).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

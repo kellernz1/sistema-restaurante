@@ -1,15 +1,9 @@
-import { BadgeDollarSign } from "lucide-react";
+﻿import { CashierBoard } from "@/features/cashier/cashier-board";
+import { cashierTablesQuery } from "@/features/cashier/cashier-query";
+import { createClient } from "@/utils/supabase/server";
 
-import { DashboardPlaceholder } from "@/features/auth/dashboard-placeholder";
-
-export default function CashierDashboard() {
-  return (
-    <DashboardPlaceholder
-      eyebrow="Painel do caixa"
-      title="Fechamentos sem atrito"
-      description="Confira comandas, pagamentos e mesas aguardando fechamento."
-      icon={BadgeDollarSign}
-      nextStep="O fluxo de fechamento de contas será disponibilizado na Fase 7."
-    />
-  );
+export default async function CashierDashboard() {
+  const db = await createClient();
+  const { data, error } = await cashierTablesQuery(db);
+  return <CashierBoard initialTables={data ?? []} initialError={!!error} />;
 }
