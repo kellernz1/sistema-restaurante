@@ -13,6 +13,11 @@
 !.env.example
 
 # debug logs
+logs/
+backups/
+.local-secrets/
+supabase/.temp/
+supabase/.branches/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
