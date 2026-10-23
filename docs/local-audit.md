@@ -36,6 +36,12 @@ Essa conclusão foi verificada estaticamente no código da versão instalada. O 
 
 Os navegadores de funcionários se conectam diretamente ao endpoint configurado em `NEXT_PUBLIC_SUPABASE_URL`. Para dispositivos da rede, ele deve usar o IP LAN do computador, nunca `127.0.0.1`. As tabelas `orders`, `order_items`, `tables` e `service_requests` estão previstas na publicação Realtime pelas migrations.
 
+## Chaves locais
+
+A premissa do prompt sobre configurar `jwt_secret` no `config.toml` foi reavaliada contra a referência atual da CLI. Essa opção não faz parte da configuração documentada. A CLI atual gera chaves opacas `publishable` e `secret` para a stack local, que substituem as chaves JWT legadas.
+
+O aplicativo agora prefere `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY`, mantendo as variáveis antigas apenas como fallback de migração. A chave secret permanece em código marcado como `server-only`. Essa abordagem evita depender do JWT de demonstração conhecido e segue a recomendação atual do Supabase: <https://supabase.com/docs/guides/getting-started/api-keys>.
+
 ## Verificações do repositório
 
 - As quatro migrations informadas existem.

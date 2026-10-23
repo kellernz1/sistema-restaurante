@@ -4,6 +4,7 @@ import { createHmac } from "node:crypto";
 
 import { tableTokenSchema } from "@/features/customer-ordering/validation";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { getSecretSupabaseKey } from "@/utils/supabase/private-env";
 
 export class PublicApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -21,7 +22,7 @@ export function publicError(error: unknown) {
 
 export async function publicQuota(request: Request, scope: string, limit: number, identity?: string) {
   const ip = process.env.PUBLIC_TRUST_PROXY === "true" ? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown" : "shared";
-  const hash = createHmac("sha256", process.env.SUPABASE_SERVICE_ROLE_KEY!).update(identity ?? ip).digest("hex");
+  const hash = createHmac("sha256", getSecretSupabaseKey()).update(identity ?? ip).digest("hex");
   const { data, error } = await createAdminClient().rpc("consume_public_rate_limit", { p_key: `${scope}:${hash}`, p_limit: limit, p_window_seconds: 600 });
   if (error) throw error;
   if (!data) throw new PublicApiError(429, "Muitas tentativas. Aguarde alguns minutos e tente novamente.");
@@ -32,7 +33,7 @@ export async function publicLimit(request: Request, token: string, mutation: boo
   const db = createAdminClient();
   // Only trust forwarding headers when the deployment proxy overwrites them.
   const ip = process.env.PUBLIC_TRUST_PROXY === "true" ? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown" : "shared";
-  const digest = (value: string) => createHmac("sha256", process.env.SUPABASE_SERVICE_ROLE_KEY!).update(value).digest("hex");
+  const digest = (value: string) => createHmac("sha256", getSecretSupabaseKey()).update(value).digest("hex");
   const scope = mutation ? "write" : "read";
   for (const [key, limit] of [[`ip:${digest(ip)}`, mutation ? 60 : 1800], [`table:${digest(token)}`, mutation ? 20 : 6000]] as const) {
     const { data, error } = await db.rpc("consume_public_rate_limit", { p_key: `${scope}:${key}`, p_limit: limit, p_window_seconds: 600 });
