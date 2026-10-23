@@ -1008,3 +1008,27 @@ textarea.order-input { resize: vertical; min-height: 74px; }
 .item-delivered { background: #dde5f5; color: #384e80; }
 @media (max-width: 860px) { .order-layout { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .order-panel { padding: 18px; } .sent-items li { flex-wrap: wrap; } .sent-items li > div { flex-basis: 100%; } .menu-product { align-items: flex-start; } }
+
+.order-type-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; font-size: .76rem; font-weight: 800; }
+.order-type-dine_in { color: #286647; background: #d9eee1; }
+.order-type-pickup { color: #77501c; background: #f4e1bc; }
+.order-type-delivery { color: #384e80; background: #dde5f5; }
+.kitchen-dashboard { display: grid; gap: 24px; }
+.kitchen-threshold { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: .88rem; }
+.kitchen-threshold select { padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--foreground); font: inherit; }
+.kitchen-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.kitchen-column { min-width: 0; min-height: 260px; padding: 16px; border: 1px solid var(--line); border-top: 4px solid var(--muted); border-radius: 18px; background: var(--surface-soft); }
+.kitchen-column-preparing { border-top-color: #b07b2e; }
+.kitchen-column-ready { border-top-color: var(--brand); }
+.kitchen-column > h2 { display: flex; align-items: center; justify-content: space-between; margin: 0 0 18px; font-size: 1rem; }
+.kitchen-column > h2 > span { padding: 5px 9px; border-radius: 999px; background: var(--surface); font-size: .8rem; }
+.kitchen-empty { margin-top: 40px; text-align: center; color: var(--muted); font-size: .88rem; }
+.kitchen-card { display: grid; gap: 14px; padding: 18px; margin-top: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 6px 18px rgb(39 46 37 / 5%); }
+.kitchen-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .8rem; color: var(--muted); }
+.kitchen-card h3 { margin: 0; font: 1.5rem Georgia, serif; overflow-wrap: anywhere; }
+.kitchen-product { margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.kitchen-notes { margin: 0; padding: 12px; border-left: 3px solid #b07b2e; border-radius: 4px; background: #fbf1de; color: #674615; font-size: .9rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.kitchen-elapsed { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: .78rem; }
+.kitchen-overdue { color: #95352e; font-weight: bold; }
+@media (min-width: 641px) and (max-width: 960px) { .kitchen-columns { gap: 10px; } .kitchen-column { padding: 10px; } .kitchen-card { padding: 12px; } }
+@media (max-width: 640px) { .kitchen-columns { grid-template-columns: 1fr; } .kitchen-column { min-height: 160px; } .kitchen-empty { margin-top: 24px; } }

@@ -1,15 +1,9 @@
-import { CookingPot } from "lucide-react";
+﻿import { KitchenBoard } from "@/features/kitchen/kitchen-board";
+import { kitchenQuery } from "@/features/kitchen/kitchen-query";
+import { createClient } from "@/utils/supabase/server";
 
-import { DashboardPlaceholder } from "@/features/auth/dashboard-placeholder";
-
-export default function KitchenDashboard() {
-  return (
-    <DashboardPlaceholder
-      eyebrow="Painel da cozinha"
-      title="Produção organizada"
-      description="Visualize a fila de preparo e mantenha o salão informado em tempo real."
-      icon={CookingPot}
-      nextStep="O painel de produção em tempo real será disponibilizado na Fase 6."
-    />
-  );
+export default async function KitchenDashboard() {
+  const supabase = await createClient();
+  const { data, error } = await kitchenQuery(supabase);
+  return <KitchenBoard initialItems={data ?? []} initialError={!!error} />;
 }
