@@ -1068,3 +1068,35 @@ textarea.order-input { resize: vertical; min-height: 74px; }
   .bill-table thead { display: table-header-group; }
   .bill-table td p, .cashier-bill p, .order-total strong { color: black; }
 }
+
+.customer-page { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 64px; display: grid; gap: 22px; }
+.customer-header { padding: 24px 0 8px; }
+.customer-header h1 { margin: 0; font: clamp(2.5rem, 8vw, 4rem) Georgia, serif; }
+.customer-header p { color: var(--muted); line-height: 1.5; }
+.customer-service { display: flex; flex-wrap: wrap; gap: 12px; }
+.customer-page > .ghost-button { justify-self: start; }
+.customer-page .order-layout { grid-template-columns: 1fr; }
+.service-alerts { display: grid; gap: 16px; }
+.service-alerts h2 { margin: 0; }
+.service-alert { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 0; border-top: 1px solid var(--line); }
+.service-alert p { margin: 6px 0; }
+.qr-sheet { display: grid; gap: 28px; }
+.qr-sheet h1 { font: clamp(2rem, 5vw, 4rem) Georgia, serif; }
+.qr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.qr-card { display: grid; justify-items: center; text-align: center; gap: 12px; padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: white; break-inside: avoid; }
+.qr-card h2 { font: 2rem Georgia, serif; margin: 0; }
+.qr-card p { margin: 0; overflow-wrap: anywhere; max-width: 100%; }
+.qr-card img { max-width: 100%; height: auto; }
+.qr-url { color: var(--brand); overflow-wrap: anywhere; font-size: .78rem; }
+@media (min-width: 900px) { .customer-page .order-layout { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); } }
+@media (max-width: 640px) { .qr-grid { grid-template-columns: 1fr; } .service-alert { align-items: flex-start; flex-direction: column; } }
+@media print {
+  .qr-screen-only { display: none !important; }
+  @page table-qr { size: A4; margin: 12mm; }
+  .qr-sheet { page: table-qr; }
+  .qr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10mm; }
+  .qr-card { padding: 8mm; border: 1px solid #bbb; border-radius: 0; gap: 3mm; }
+  .qr-card img { width: 46mm; height: 46mm; }
+  .qr-card .qr-url { display: none; }
+  .qr-card .eyebrow { margin: 0; }
+}

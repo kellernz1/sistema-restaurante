@@ -9,6 +9,18 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      service_requests: {
+        Row: { id: string; table_id: string; type: string; status: string; created_at: string };
+        Insert: { id?: string; table_id: string; type: string; status?: string; created_at?: string };
+        Update: { id?: string; table_id?: string; type?: string; status?: string; created_at?: string };
+        Relationships: [{ foreignKeyName: "service_requests_table_id_fkey"; columns: ["table_id"]; isOneToOne: false; referencedRelation: "tables"; referencedColumns: ["id"] }];
+      };
+      public_rate_limits: {
+        Row: { key: string; window_start: string; hits: number };
+        Insert: { key: string; window_start: string; hits: number };
+        Update: { key?: string; window_start?: string; hits?: number };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -347,6 +359,11 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      consume_public_rate_limit: { Args: { p_key: string; p_limit: number; p_window_seconds: number }; Returns: boolean };
+      create_table_service_request: { Args: { p_token: string; p_type: string }; Returns: string };
+      attend_service_request: { Args: { p_request_id: string }; Returns: undefined };
+      review_table_order: { Args: { p_order_id: string; p_accept: boolean }; Returns: undefined };
+      rotate_table_token: { Args: { p_table_id: string }; Returns: string };
       close_order: {
         Args: { p_order_id: string; p_payment_method: string };
         Returns: Database["public"]["Tables"]["orders"]["Row"];

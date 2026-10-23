@@ -132,7 +132,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
   return <section className="table-detail-state">
     <Link className="back-link" href="/waiter">← Mapa de mesas</Link>
     <div className="table-detail-heading"><div><span className="eyebrow">{order ? `Comanda #${order.order_number}` : "Sem comanda ativa"}</span>
-      <h1>Mesa {table.table_number}</h1></div><span className={`table-status-label status-${table.status}`}>{TABLE_STATUS_LABELS[table.status]}</span></div>
+      <h1>Mesa {table.table_number}</h1>{order && ["qr", "nfc"].includes(order.source) && <p>via {order.source.toUpperCase()}</p>}</div><span className={`table-status-label status-${table.status}`}>{TABLE_STATUS_LABELS[table.status]}</span></div>
     {notice && <p className="table-notice table-notice-info" role="status">{notice}</p>}
     {syncError && <p className="table-notice table-notice-error" role="alert">{syncError}</p>}
     {!active && <p className="table-notice table-notice-info">Esta comanda está encerrada ou não existe. Volte ao mapa para iniciar um atendimento.</p>}

@@ -1,4 +1,5 @@
 import { TableGrid } from "@/features/tables/table-grid";
+import { ServiceAlerts } from "@/features/tables/service-alerts";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function WaiterDashboard() {
@@ -9,9 +10,9 @@ export default async function WaiterDashboard() {
     .order("table_number");
 
   return (
-    <TableGrid
+    <div className="table-dashboard"><ServiceAlerts /><TableGrid
       initialTables={data ?? []}
       initialLoadError={error ? "Não foi possível carregar as mesas." : null}
-    />
+    /></div>
   );
 }

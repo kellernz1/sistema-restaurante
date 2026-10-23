@@ -37,6 +37,9 @@
 - Role-specific RLS policies use security-definer helpers to compare proposed updates with stored rows, preventing unauthorized column changes.
 - Customer-created orders use the service-role-only `create_customer_order(jsonb)` RPC.
 - Database types live in `src/types/database.types.ts` and must be regenerated after schema changes.
+- Public table endpoints validate strict Zod payloads and throttle through service-role-only PostgreSQL counters. Forwarding headers are trusted only when `PUBLIC_TRUST_PROXY=true` behind a proxy that overwrites them.
+- QR/NFC order creation revalidates `table_token` under the table lock in `create_customer_order`; rotating a token invalidates old links. Customer pages use polling and never mount the staff AuthProvider.
+- Staff review, request attendance, and token rotation use role-checked RPCs. Public service requests and bill status changes are atomic.
 
 ## Current Phase
 
@@ -47,7 +50,8 @@
 - Phase 5: implemented; lint, build, and TypeScript checks pass. Live Supabase acceptance tests remain pending environment setup; see `docs/phase-5-validation.md`.
 - Phase 6: implemented after the user's request to proceed; lint, build, and TypeScript checks pass. Live Supabase acceptance tests remain pending; see `docs/phase-6-validation.md`.
 - Phase 7: implemented after user confirmation; lint, build, TypeScript, and subtotal tests pass. Live Supabase and print-preview acceptance remain pending; see `docs/phase-7-validation.md`.
-- Next phase: Phase 8 (only after user confirmation).
+- Phase 8: implemented after user confirmation; lint, build, TypeScript, and 9 automated/smoke tests pass. Migration execution, live Supabase acceptance, and QR/NFC/print checks remain pending; see `docs/phase-8-validation.md` and `docs/qr-nfc-setup.md`.
+- Next phase: Phase 9 (only after user confirmation).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

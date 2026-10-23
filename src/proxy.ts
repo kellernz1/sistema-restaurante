@@ -27,6 +27,7 @@ function redirectWithCookies(
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (!isStaffRoute(pathname) && pathname !== "/login") return NextResponse.next();
   const { response, supabase, user } = await updateSession(request);
   const staffRoute = isStaffRoute(pathname);
 
