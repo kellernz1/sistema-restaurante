@@ -67,7 +67,8 @@ async function setItemStatuses(client, orderId, statuses) {
 
 async function seedOperationalDemo(client) {
   const tables = assertResult(await client.from("tables").select("id,table_number,qr_token"), "read tables");
-  const products = assertResult(await client.from("products").select("id,name").eq("is_active", true).order("name"), "read products");
+  const products = assertResult(await client.from("products").select("id,name,price").eq("is_active", true).order("name"), "read products");
+  const settings = assertResult(await client.from("restaurant_settings").select("min_delivery_order").eq("id", true).single(), "read demo settings");
   if (tables.length < 12 || products.length < 8) throw new Error("Base seed is missing. Run `npm run db:reset` first.");
   const table = (number) => tables.find((candidate) => candidate.table_number === number);
   const product = (index) => products[index % products.length];
@@ -84,6 +85,12 @@ async function seedOperationalDemo(client) {
     return order;
   };
   const offsite = async (type, phone, name, items, extra = {}) => {
+    if (type === "delivery") {
+      const price = (entry) => Math.round(Number(products.find((candidate) => candidate.id === entry.product_id).price) * 100);
+      const subtotal = items.reduce((total, entry) => total + price(entry) * entry.quantity, 0);
+      const shortfall = Math.round(Number(settings.min_delivery_order) * 100) - subtotal;
+      if (shortfall > 0) items[0].quantity += Math.ceil(shortfall / price(items[0]));
+    }
     const order = await createOrder(client, {
       order_type: type, source: extra.source || "web", customer_phone: phone,
       customer_name: `[DEMO] ${name}`, notes: extra.notes || `[DEMO] Pedido ${type}`,
@@ -122,7 +129,7 @@ async function seedOperationalDemo(client) {
   const address1 = { street: "Rua das Flores", number: "120", complement: "Apto 12", neighborhood: "Centro", city: "São Paulo", state: "SP", zip_code: "01001000", reference: "Portaria azul" };
   const address2 = { street: "Avenida Brasil", number: "950", complement: "Casa 2", neighborhood: "Jardins", city: "São Paulo", state: "SP", zip_code: "01430001", reference: "Próximo à praça" };
   await offsite("delivery", DEMO_PHONES[1], "João Lima", [item(product(10)), item(product(11))], { source: "whatsapp", address: address1, notes: "[DEMO] Entrega WhatsApp aguardando confirmação" });
-  const delivery = await offsite("delivery", DEMO_PHONES[1], "João Lima", [item(product(12)), item(product(13))], { address: address2, payment_method: "cash", cash_change_for: 100, notes: "[DEMO] Entrega em rota — troco para R$ 100" });
+  const delivery = await offsite("delivery", DEMO_PHONES[1], "João Lima", [item(product(12))], { address: address2, payment_method: "cash", cash_change_for: 100, notes: "[DEMO] Entrega em rota — troco para R$ 100" });
   await setOrder(client, delivery.id, { status: "open", confirmed_at: new Date().toISOString() });
   await setItemStatuses(client, delivery.id, ["ready"]);
   await setOrder(client, delivery.id, { status: "out_for_delivery" });

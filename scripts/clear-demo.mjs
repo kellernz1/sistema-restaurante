@@ -13,6 +13,8 @@ import { isMain } from "./local/lib.mjs";
 export async function clearDemo({ keepStaff = false } = {}) {
   const { client } = demoClient();
   const manifest = readManifest();
+  const markedOrders = assertResult(await client.from("orders").select("table_id").like("notes", "[DEMO]%"), "read marked demo tables");
+  const tableIds = [...new Set(markedOrders.map((order) => order.table_id).filter(Boolean))];
 
   if (manifest.serviceRequestIds?.length) {
     assertResult(
@@ -24,6 +26,12 @@ export async function clearDemo({ keepStaff = false } = {}) {
     assertResult(await client.from("orders").delete().in("id", manifest.orderIds), "delete demo orders");
   }
   assertResult(await client.from("orders").delete().like("notes", "[DEMO]%"), "delete marked demo orders");
+  for (const tableId of tableIds) {
+    const remaining = assertResult(await client.from("orders").select("id").eq("table_id", tableId).in("status", ["pending_confirmation", "open"]).limit(1), "check remaining table orders");
+    if (!remaining.length) {
+      assertResult(await client.from("tables").update({ status: "available" }).eq("id", tableId), "release demo table");
+    }
+  }
   assertResult(await client.from("whatsapp_messages").delete().in("phone", DEMO_PHONES), "delete demo WhatsApp messages");
   assertResult(await client.from("whatsapp_conversations").delete().in("phone", DEMO_PHONES), "delete demo WhatsApp conversations");
   assertResult(await client.from("customers").delete().like("name", "[DEMO]%"), "delete demo customers");

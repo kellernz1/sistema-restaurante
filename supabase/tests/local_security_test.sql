@@ -23,9 +23,9 @@ begin
       ('whatsapp_conversations'),
       ('whatsapp_messages')
   ) as expected(table_name)
+  left join pg_namespace on pg_namespace.nspname = 'public'
   left join pg_class on pg_class.relname = expected.table_name
-  left join pg_namespace on pg_namespace.oid = pg_class.relnamespace
-    and pg_namespace.nspname = 'public'
+    and pg_class.relnamespace = pg_namespace.oid
   where pg_class.oid is null or not pg_class.relrowsecurity;
 
   if missing_rls is not null then

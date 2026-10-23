@@ -43,7 +43,8 @@ enable_signup = false
 enable_anonymous_sign_ins = false
 
 [auth.email]
-enable_signup = false
+# Enable the email provider; global auth.enable_signup still blocks registration.
+enable_signup = true
 enable_confirmations = false
 double_confirm_changes = false
 

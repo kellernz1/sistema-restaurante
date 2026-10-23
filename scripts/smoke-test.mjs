@@ -117,8 +117,8 @@ for (const [email, role, route] of accounts) {
     const response = await fetch(`${baseUrl}/login`, { headers: { cookie }, redirect: "manual" });
     const location = response.headers.get("location");
     expect(response.status >= 300 && response.status < 400 && new URL(location, baseUrl).pathname === route, `expected redirect to ${route}, received ${location}`);
-    const { client } = await authenticatedClient(email);
-    const profile = assertResult(await client.from("profiles").select("role").single(), `profile ${email}`);
+    const { client, session } = await authenticatedClient(email);
+    const profile = assertResult(await client.from("profiles").select("role").eq("id", session.user.id).single(), `profile ${email}`);
     expect(profile.role === role, `expected role ${role}, received ${profile.role}`);
   });
 }

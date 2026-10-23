@@ -136,7 +136,7 @@ begin
   end if;
 
   if requested_type in ('pickup', 'delivery') then
-    if requested_change is not null and requested_change < subtotal + case when requested_type = 'delivery' then settings.delivery_fee else 0 end then
+    if requested_change is not null and requested_change < subtotal + (case when requested_type = 'delivery' then settings.delivery_fee else 0 end) then
       raise exception 'Cash change amount is below order total' using errcode = '23514';
     end if;
     insert into public.customers(phone, name) values (p_payload ->> 'customer_phone', btrim(p_payload ->> 'customer_name'))

@@ -304,10 +304,14 @@ do $$
 declare
   visible_rows integer;
 begin
-  select count(*) into visible_rows from public.products;
-  if visible_rows <> 0 then
-    raise exception 'FAIL: anon can read products';
-  end if;
+  begin
+    select count(*) into visible_rows from public.products;
+    if visible_rows <> 0 then
+      raise exception 'FAIL: anon can read products';
+    end if;
+  exception
+    when insufficient_privilege then null;
+  end;
 
   begin
     insert into public.tables (table_number, capacity) values (999998, 2);

@@ -21,6 +21,12 @@ export function executable(name) {
 }
 
 export function run(command, args, options = {}) {
+  const npmLauncher = isWindows && /^(npm|npx)\.cmd$/i.test(path.basename(command));
+  if (npmLauncher) {
+    const name = path.basename(command, ".cmd");
+    args = [path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", `${name}-cli.js`), ...args];
+    command = process.execPath;
+  }
   const result = spawnSync(command, args, {
     cwd: ROOT,
     env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1", ...options.env },
