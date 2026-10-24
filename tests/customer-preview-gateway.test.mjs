@@ -7,7 +7,7 @@ test("preview exposes only customer routes and static assets", () => {
   for (const path of ["/order", "/api/public/menu", `/track/${"a".repeat(64)}`, `/api/public/orders/${"b".repeat(64)}`, "/_next/static/chunks/app.js", "/_next/static/chunks/app.css"]) assert.equal(allowCustomerPreview("GET", path), true, path);
   assert.equal(allowCustomerPreview("POST", "/api/public/orders"), true);
   assert.equal(allowCustomerPreview("POST", "/api/public/delivery-quote"), true);
-  for (const path of ["/admin", "/login", "/dev/whatsapp", "/api/staff/products", "/api/whatsapp/simulate", "/api/public/tables/abc", "/auth/v1/token", "/_next/static/../server.js", "/_next/static/app.js.map", "/%61dmin", "//admin", "/order/../admin", "/order\\..\\admin"]) {
+  for (const path of ["/admin", "/login", "/dev/whatsapp", "/api/staff/products", "/api/staff/kitchen-print", `/print/kitchen/${"a".repeat(36)}`, "/api/whatsapp/simulate", "/api/public/tables/abc", "/auth/v1/token", "/_next/static/../server.js", "/_next/static/app.js.map", "/%61dmin", "//admin", "/order/../admin", "/order\\..\\admin"]) {
     for (const method of ["GET", "POST"]) assert.equal(allowCustomerPreview(method, path), false, `${method} ${path}`);
   }
   assert.equal(allowCustomerPreview("POST", "/order"), false);

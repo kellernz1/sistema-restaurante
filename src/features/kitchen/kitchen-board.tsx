@@ -7,6 +7,7 @@ import { OrderTypeBadge } from "@/components/order-type-badge";
 import { createClient } from "@/utils/supabase/client";
 
 import { kitchenQuery, type KitchenItem, type KitchenStatus } from "./kitchen-query";
+import { KitchenPrintQueue } from "./print-queue";
 
 const columns: { status: KitchenStatus; title: string }[] = [
   { status: "pending", title: "Recebidos" },
@@ -179,6 +180,7 @@ export function KitchenBoard({ initialItems, initialError }: {
           </button>
         </div>
       </div>
+      <KitchenPrintQueue />
       <label className="kitchen-threshold">Alertar após
         <select value={warningMinutes} onChange={(event) => setWarningMinutes(Number(event.target.value))}>
           {[5, 10, 15, 20, 30].map((value) => <option value={value} key={value}>{value} minutos</option>)}

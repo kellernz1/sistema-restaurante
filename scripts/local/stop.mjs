@@ -3,7 +3,9 @@ import path from "node:path";
 
 import { isProcessRunning, isWindows, LOCAL_STATE_DIR, run, runSupabase } from "./lib.mjs";
 import { stopCustomerPreview } from "./stop-customer-preview.mjs";
+import { stopAdminPreview } from "./stop-admin-preview.mjs";
 
+stopAdminPreview();
 stopCustomerPreview();
 
 const stateFile = path.join(LOCAL_STATE_DIR, "processes.json");

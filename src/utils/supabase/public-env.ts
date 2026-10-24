@@ -9,3 +9,11 @@ export function getPublicSupabaseKey() {
 
   return key;
 }
+
+export function browserSupabaseConnection(originalUrl: string, browserOrigin?: string, previewEnabled = false) {
+  const storageKey = `sb-${new URL(originalUrl).hostname.split(".")[0]}-auth-token`;
+  if (browserOrigin && previewEnabled && new URL(browserOrigin).hostname.endsWith(".trycloudflare.com")) {
+    return { url: `${new URL(browserOrigin).origin}/__staff_supabase`, storageKey, preview: true };
+  }
+  return { url: originalUrl, storageKey, preview: false };
+}

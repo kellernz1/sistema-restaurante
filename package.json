@@ -12,6 +12,7 @@
     "local:start": "node scripts/local/start.mjs",
     "local:stop": "node scripts/local/stop.mjs",
     "local:share:stop": "node scripts/local/stop-customer-preview.mjs",
+    "local:admin-share:stop": "node scripts/local/stop-admin-preview.mjs",
     "local:info": "node scripts/local/info.mjs",
     "db:reset": "node scripts/local/reset.mjs",
     "db:backup": "node scripts/local/backup.mjs",

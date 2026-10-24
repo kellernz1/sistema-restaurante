@@ -5,6 +5,8 @@
 @import "./menu-management.css";
 @import "./employees.css";
 @import "./settings.css";
+@import "./customer-catalog.css";
+@import "./kitchen-print.css";
 
 :root {
   --background: #f4f1ea;

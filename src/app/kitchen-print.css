@@ -1,0 +1,18 @@
+html .kitchen-print-frame { position: fixed; left: -10000px; top: 0; width: 360px; height: 600px; border: 0; }
+@media screen {
+  html .kitchen-print-queue { display: grid; gap: 16px; }
+  html .kitchen-print-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+  html .kitchen-print-heading h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 22px; font-family: var(--font-system); }
+  html .kitchen-print-heading p, html .kitchen-print-queue > p { margin: 8px 0 0; font-size: 14px; }
+  html .kitchen-print-heading > button { flex-shrink: 0; }
+  html .kitchen-print-queue summary { color: var(--brand); cursor: pointer; padding: 12px 0; }
+  html .kitchen-print-queue small { color: var(--muted); line-height: 1.5; }
+  html .kitchen-print-job { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-block: 18px; border-top: 1px solid var(--line); }
+  html .kitchen-print-job p, html .manual-kitchen-print p { font-size: 13px; margin: 6px 0 0; }
+  html .manual-kitchen-print { min-width: 0; }
+  html .manual-kitchen-print button { min-height: 44px; }
+  @media (max-width: 640px) {
+    html .kitchen-print-heading, html .kitchen-print-job { flex-direction: column; align-items: stretch; }
+  }
+}
+@media print { .kitchen-print-queue, .manual-kitchen-print { display: none !important; } }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Store, Truck, MapPin, MessageCircle } from "lucide-react";
+import { Store, Truck, MapPin, MessageCircle, Printer } from "lucide-react";
 
 import type { StoredRow } from "@/types/records";
 import { createClient } from "@/utils/supabase/client";
@@ -10,12 +10,13 @@ import { settingsSchema } from "./settings-schema";
 import { coordinatesMapLink } from "@/features/customer-ordering/delivery-location";
 import { customerApi } from "@/features/customer-ordering/public-client";
 
-const switches = { is_accepting_orders: "Aceitar novos pedidos", pickup_enabled: "Permitir retirada", delivery_enabled: "Permitir entrega", dine_in_qr_enabled: "Permitir QR/NFC nas mesas", require_confirmation_for_qr: "Exigir confirmação do primeiro pedido QR/NFC", whatsapp_enabled: "Habilitar pedidos pelo WhatsApp" };
+const switches = { kitchen_auto_print_enabled: "Impressão automática na cozinha", is_accepting_orders: "Aceitar novos pedidos", pickup_enabled: "Permitir retirada", delivery_enabled: "Permitir entrega", dine_in_qr_enabled: "Permitir QR/NFC nas mesas", require_confirmation_for_qr: "Exigir confirmação do primeiro pedido QR/NFC", whatsapp_enabled: "Habilitar pedidos pelo WhatsApp" };
 const numbers = { min_delivery_order: "Pedido mínimo para entrega (R$)", estimated_pickup_minutes: "Previsão de retirada (minutos)", estimated_delivery_minutes: "Previsão de entrega (minutos)", delivery_fee: "Taxa fixa de entrega (R$)", delivery_distance_step_km: "Tamanho de cada faixa (km)", delivery_distance_step_fee: "Valor por faixa (R$)" };
 const sections = [
   { id: "operations", label: "Atendimento", description: "Pedidos, retirada e mesas", icon: Store },
   { id: "delivery", label: "Entrega e taxas", description: "Valores, distância e prazo", icon: Truck },
   { id: "location", label: "Localização", description: "Ponto de saída do restaurante", icon: MapPin },
+  { id: "printing", label: "Impressão", description: "Comandas e impressão automática", icon: Printer },
   { id: "whatsapp", label: "WhatsApp", description: "Atendimento pelo WhatsApp", icon: MessageCircle },
 ] as const;
 type SettingsSection = typeof sections[number]["id"];
@@ -106,6 +107,7 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
           {locationNotice && <p className="table-notice table-notice-info" role="status">{locationNotice}</p>}
           <details className="settings-coordinate-details"><summary>Ajustar coordenadas manualmente</summary><div className="settings-fields-grid">{(["delivery_origin_latitude", "delivery_origin_longitude"] as const).map((key) => <label className="field-group" key={key}>{key.endsWith("latitude") ? "Latitude" : "Longitude"}<input className="order-input" type="number" step="0.000001" min={key.endsWith("latitude") ? -90 : -180} max={key.endsWith("latitude") ? 90 : 180} disabled={busy} value={form[key] ?? ""} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value === "" ? null : Number(event.target.value) }))} /></label>)}</div></details>
         </>}
+        {section === "printing" && <fieldset className="settings-fieldset"><legend>Comandas da cozinha</legend>{renderSwitch("kitchen_auto_print_enabled", "Processe automaticamente as comandas confirmadas. A fila e a impressão manual continuam disponíveis quando desativada.")}<div className="settings-context-note"><p>Abra a tela da cozinha no computador que usará a impressora e clique em Ativar neste computador.</p><p>Sem impressora, você pode testar escolhendo Salvar como PDF. Para sair direto no papel, sem janela, será necessário configurar a impressora e o modo de impressão do computador.</p><a className="back-link" href="/kitchen">Abrir cozinha ›</a></div></fieldset>}
         {section === "whatsapp" && <fieldset className="settings-fieldset"><legend>Pedidos pelo WhatsApp</legend>{renderSwitch("whatsapp_enabled", "Envie o link do cardápio para o cliente montar o pedido.")}<div className="settings-context-note"><p>Os pedidos recebidos pelo link aparecem na Central de pedidos.</p><p>Para pausar todos os canais, use a opção Aceitar novos pedidos em Atendimento.</p></div></fieldset>}
       </section>
     </div>

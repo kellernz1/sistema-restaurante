@@ -93,6 +93,52 @@ isOneToOne: false
                   Relationships: [
 
                   ]
+                },"kitchen_print_jobs": {
+                  Row: {
+                    "claim_token": string | null,"claimed_at": string | null,"claimed_by": string | null,"created_at": string,"dispatched_at": string | null,"error_message": string | null,"id": string,"order_id": string,"status": string,"terminal_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "claim_token"?: string | null,"claimed_at"?: string | null,"claimed_by"?: string | null,"created_at"?: string,"dispatched_at"?: string | null,"error_message"?: string | null,"id"?: string,"order_id": string,"status"?: string,"terminal_id"?: string | null
+                  }
+                  Update: {
+                    "claim_token"?: string | null,"claimed_at"?: string | null,"claimed_by"?: string | null,"created_at"?: string,"dispatched_at"?: string | null,"error_message"?: string | null,"id"?: string,"order_id"?: string,"status"?: string,"terminal_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "kitchen_print_jobs_claimed_by_fkey"
+      columns: ["claimed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "kitchen_print_jobs_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: true
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"kitchen_printer_lease": {
+                  Row: {
+                    "expires_at": string,"id": boolean,"terminal_id": string | null,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "expires_at"?: string,"id"?: boolean,"terminal_id"?: string | null,"user_id"?: string | null
+                  }
+                  Update: {
+                    "expires_at"?: string,"id"?: boolean,"terminal_id"?: string | null,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "kitchen_printer_lease_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"order_items": {
                   Row: {
                     "created_at": string,"id": string,"notes": string | null,"order_id": string,"product_id": string,"quantity": number,"status": Database["public"]['Enums']["order_item_status"],"unit_price": number,"updated_at": string,"can_update_order_item": boolean | null
@@ -221,14 +267,14 @@ isOneToOne: false
                   ]
                 },"restaurant_settings": {
                   Row: {
-                    "delivery_distance_step_fee": number,"delivery_distance_step_km": number,"delivery_enabled": boolean,"delivery_fee": number,"delivery_fee_mode": string,"delivery_origin_latitude": number | null,"delivery_origin_longitude": number | null,"dine_in_qr_enabled": boolean,"estimated_delivery_minutes": number,"estimated_pickup_minutes": number,"id": boolean,"is_accepting_orders": boolean,"min_delivery_order": number,"pickup_enabled": boolean,"require_confirmation_for_qr": boolean,"whatsapp_enabled": boolean,"delivery_pricing_snapshot": Json | null
+                    "delivery_distance_step_fee": number,"delivery_distance_step_km": number,"delivery_enabled": boolean,"delivery_fee": number,"delivery_fee_mode": string,"delivery_origin_latitude": number | null,"delivery_origin_longitude": number | null,"dine_in_qr_enabled": boolean,"estimated_delivery_minutes": number,"estimated_pickup_minutes": number,"id": boolean,"is_accepting_orders": boolean,"kitchen_auto_print_enabled": boolean,"min_delivery_order": number,"pickup_enabled": boolean,"require_confirmation_for_qr": boolean,"whatsapp_enabled": boolean,"delivery_pricing_snapshot": Json | null
                   }
                   ComputedFields: "delivery_pricing_snapshot"
                   Insert: {
-                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
+                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
                   }
                   Update: {
-                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
+                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
                   }
                   Relationships: [
 
@@ -349,6 +395,9 @@ isOneToOne: false
                            },
 "can_update_table":
 { Args: { "p_new": Omit<Database["public"]['Tables']["tables"]['Row'], Database["public"]['Tables']["tables"]['ComputedFields']> }; Returns: boolean
+                           },
+"claim_kitchen_print_job":
+{ Args: { "p_terminal_id": string }; Returns: Json
                            },
 "claim_whatsapp_message":
 { Args: { "p_direction": string }; Returns: {
@@ -507,6 +556,12 @@ isOneToOne: false
 "delivery_pricing_snapshot":
 { Args: { "settings": Omit<Database["public"]['Tables']["restaurant_settings"]['Row'], Database["public"]['Tables']["restaurant_settings"]['ComputedFields']> }; Returns: Json
                            },
+"finish_kitchen_print_job":
+{ Args: { "p_claim_token": string,"p_error"?: string,"p_job_id": string,"p_terminal_id": string }; Returns: undefined
+                           },
+"mark_manual_kitchen_print":
+{ Args: { "p_order_id": string }; Returns: undefined
+                           },
 "open_table":
 { Args: { "p_table_id": string }; Returns: {
               "cancel_reason": string | null,
@@ -540,6 +595,9 @@ isOneToOne: false
       } },
 "recompute_order_total":
 { Args: { "p_order_id": string }; Returns: number
+                           },
+"release_kitchen_printer":
+{ Args: { "p_terminal_id": string }; Returns: undefined
                            },
 "resolve_whatsapp_handoff":
 { Args: { "p_phone": string }; Returns: undefined
