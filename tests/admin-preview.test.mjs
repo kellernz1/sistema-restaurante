@@ -30,13 +30,21 @@ test("staff gateway requires its code before app/API access", async () => {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
   try {
+    // A no-referrer policy makes browser form POSTs send Origin: null.
+    // Preserve same-origin form metadata without leaking referrers to other sites.
+    const form = await fetch(`${origin}/__preview/login`);
+    assert.equal(form.headers.get("referrer-policy"), "same-origin");
+    for (const suppliedOrigin of ["null", "https://other.example"]) {
+      const rejected = await fetch(`${origin}/__preview/login`, { method: "POST", headers: { origin: suppliedOrigin }, body: "code=test-secret", redirect: "manual" });
+      assert.equal(rejected.status, 403);
+    }
     const page = await fetch(`${origin}/admin`, { redirect: "manual" });
     assert.equal(page.status, 303);
     assert.equal(page.headers.get("location"), "/__preview/login");
     assert.equal((await fetch(`${origin}/api/staff/orders`)).status, 401);
     const wrong = await fetch(`${origin}/__preview/login`, { method: "POST", body: "code=wrong" });
     assert.equal(wrong.status, 401);
-    const login = await fetch(`${origin}/__preview/login`, { method: "POST", body: "code=test-secret", redirect: "manual" });
+    const login = await fetch(`${origin}/__preview/login`, { method: "POST", headers: { origin: "https://team.trycloudflare.com" }, body: "code=test-secret", redirect: "manual" });
     assert.equal(login.status, 303);
     const cookies = login.headers.getSetCookie();
     assert.equal(cookies.length, 2);

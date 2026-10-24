@@ -37,7 +37,7 @@ export function createAdminPreviewGateway(config) {
   const failures = new Map();
   const current = () => typeof config === "function" ? config() : config;
   function authorized(request) { const { accessCode } = current(); return validPreviewSession(cookieValue(request.headers.cookie, sessionCookie), accessCode); }
-  function securityHeaders(response) { response.setHeader("X-Robots-Tag", "noindex, nofollow"); response.setHeader("Referrer-Policy", "no-referrer"); response.setHeader("Cache-Control", "no-store"); response.setHeader("X-Content-Type-Options", "nosniff"); }
+  function securityHeaders(response) { response.setHeader("X-Robots-Tag", "noindex, nofollow"); response.setHeader("Referrer-Policy", "same-origin"); response.setHeader("Cache-Control", "no-store"); response.setHeader("X-Content-Type-Options", "nosniff"); }
   function json(response, status, message) { response.writeHead(status, { "content-type": "application/json; charset=utf-8" }); response.end(JSON.stringify({ error: message })); }
   const server = http.createServer(async (request, response) => {
     securityHeaders(response);
