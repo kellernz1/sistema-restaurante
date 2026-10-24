@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslation } from "@/components/language-provider";
 import { Bike, ShoppingBag, Utensils } from "lucide-react";
 
 import type { Database } from "@/types/database.types";
@@ -11,11 +14,12 @@ const orderTypes = {
 export function OrderTypeBadge({ type }: {
   type: Database["public"]["Enums"]["order_type"];
 }) {
+  const t = useTranslation();
   const { label, icon: Icon } = orderTypes[type];
   return (
     <span className={`order-type-badge order-type-${type}`}>
       <Icon aria-hidden="true" size={15} />
-      {label}
+      {t(label)}
     </span>
   );
 }

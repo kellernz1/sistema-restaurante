@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
@@ -22,17 +25,18 @@ function subscribe(onChange: () => void) {
 }
 
 export function ThemePicker() {
+  const t = useTranslation();
   const theme = useSyncExternalStore(subscribe, () => normalize(document.documentElement.dataset.theme), () => "system" as Theme);
   const Icon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
   return <div className="theme-picker">
     <Icon size={17} aria-hidden="true" />
-    <label htmlFor="appearance-theme">Tema</label>
+    <label htmlFor="appearance-theme">{t("Tema")}</label>
     <select id="appearance-theme" value={theme} onChange={(event) => {
       const selected = normalize(event.target.value);
       try { localStorage.setItem(storageKey, selected); } catch { /* Theme still works when storage is unavailable. */ }
       applyTheme(selected);
     }}>
-      <option value="light">Claro</option><option value="dark">Escuro</option><option value="system">Automático</option>
+      <option value="light">{t("Claro")}</option><option value="dark">{t("Escuro")}</option><option value="system">{t("Automático")}</option>
     </select>
   </div>;
 }

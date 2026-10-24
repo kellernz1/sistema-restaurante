@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { getTranslation } from "@/lib/i18n/server";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -7,9 +9,13 @@ import { PublicApiError } from "@/lib/public-table-api";
 import "./receipt.css";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Comanda da cozinha", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslation();
+  return { title: t("Comanda da cozinha"), robots: { index: false, follow: false } };
+}
 
 export default async function KitchenTicketPage({ params }: { params: Promise<{ orderId: string }> }) {
+  const t = await getTranslation();
   const { db } = await requireStaff(["admin", "cashier", "kitchen", "waiter"]).catch((error) => {
     if (error instanceof PublicApiError && error.status === 401) redirect("/login");
     if (error instanceof PublicApiError && error.status === 403) redirect("/unauthorized");
@@ -22,11 +28,11 @@ export default async function KitchenTicketPage({ params }: { params: Promise<{ 
   const order = result.data;
   const types = { dine_in: "LOCAL", pickup: "RETIRADA", delivery: "ENTREGA" };
   return <main className="kitchen-receipt" data-kitchen-ticket={order.id}>
-    <div className="kitchen-receipt-controls"><ManualPrintButton orderId={order.id} /><p>Para testar sem impressora, selecione Salvar como PDF na janela de impressão.</p></div>
-    <header><p>COZINHA · MESA CERTA</p><h1>Pedido #{order.order_number}</h1><strong>{types[order.order_type]}{order.tables ? ` · Mesa ${order.tables.table_number}` : ""}</strong>
-      {order.customer_name && <p>Cliente: {order.customer_name}</p>}<p>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>{order.status === "cancelled" && <h2>PEDIDO CANCELADO</h2>}
+    <div className="kitchen-receipt-controls"><ManualPrintButton orderId={order.id} /><p>{t("Para testar sem impressora, selecione Salvar como PDF na janela de impressão.")}</p></div>
+    <header><p>{t("COZINHA · MESA CERTA")}</p><h1>{t("Pedido #")}{order.order_number}</h1><strong>{t(types[order.order_type])}{t(order.tables ? t(` · Mesa ${order.tables.table_number}`) : "")}</strong>
+      {order.customer_name && <p>{t("Cliente: ")}{order.customer_name}</p>}<p>{t(new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }))}</p>{order.status === "cancelled" && <h2>{t("PEDIDO CANCELADO")}</h2>}
     </header>
-    <section aria-label="Itens para preparo">{[...order.order_items].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((item) => <article key={item.id}><h2>{item.quantity} × {item.products?.name ?? "Produto"}</h2>{item.notes && <p className="kitchen-receipt-notes">OBS.: {item.notes}</p>}</article>)}</section>
-    {order.notes && <footer><strong>Observações do pedido</strong><p>{order.notes}</p></footer>}
+    <section aria-label={t("Itens para preparo")}>{[...order.order_items].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((item) => <article key={item.id}><h2>{item.quantity} × {item.products?.name ?? t("Produto")}</h2>{item.notes && <p className="kitchen-receipt-notes">{t("OBS.: ")}{item.notes}</p>}</article>)}</section>
+    {order.notes && <footer><strong>{t("Observações do pedido")}</strong><p>{order.notes}</p></footer>}
   </main>;
 }

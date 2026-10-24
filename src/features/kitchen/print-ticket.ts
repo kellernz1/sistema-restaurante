@@ -1,9 +1,12 @@
 "use client";
 
+import { createTranslator, normalizeLocale } from "@/lib/i18n/catalog";
+
 export async function printKitchenTicket(orderId: string, beforePrint: () => Promise<void>) {
+  const t = createTranslator(normalizeLocale(document.documentElement.lang));
   const frame = document.createElement("iframe");
   frame.className = "kitchen-print-frame";
-  frame.title = "Comanda da cozinha";
+  frame.title = t("Comanda da cozinha");
   const loaded = new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("A comanda demorou para carregar. Confira a conexão e use a impressão manual.")), 15000);
     frame.onload = () => {

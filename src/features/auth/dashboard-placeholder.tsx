@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslation } from "@/components/language-provider";
 import type { LucideIcon } from "lucide-react";
 
 type DashboardPlaceholderProps = {
@@ -15,12 +18,13 @@ export function DashboardPlaceholder({
   icon: Icon,
   nextStep,
 }: DashboardPlaceholderProps) {
+  const t = useTranslation();
   return (
     <section className="dashboard-placeholder">
       <div className="dashboard-copy">
-        <span className="eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-        <p>{description}</p>
+        <span className="eyebrow">{t(eyebrow)}</span>
+        <h1>{t(title)}</h1>
+        <p>{t(description)}</p>
       </div>
 
       <div className="placeholder-card">
@@ -28,10 +32,10 @@ export function DashboardPlaceholder({
           <Icon aria-hidden="true" size={28} />
         </span>
         <div>
-          <strong>Área preparada</strong>
-          <p>{nextStep}</p>
+          <strong>{t("Área preparada")}</strong>
+          <p>{t(nextStep)}</p>
         </div>
-        <span className="status-pill">Em breve</span>
+        <span className="status-pill">{t("Em breve")}</span>
       </div>
     </section>
   );

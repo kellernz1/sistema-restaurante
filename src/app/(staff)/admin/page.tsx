@@ -1,3 +1,4 @@
+import { getTranslation } from "@/lib/i18n/server";
 import { ArrowLink, LineupCard } from "@/components/ui";
 import { createClient } from "@/utils/supabase/server";
 
@@ -29,20 +30,21 @@ async function loadSummary() {
 }
 
 export default async function AdminDashboard() {
+  const t = await getTranslation();
   const { pending, preparing, ready, revenueCents, revenueError } = await loadSummary();
   const metrics = [
-    { title: "Novos pedidos", description: "Prontos para sua confirmação.", value: pending.error ? "—" : pending.count ?? 0, tone: "blue", href: "/orders" },
-    { title: "Em preparo", description: "O ritmo da sua cozinha, agora.", value: preparing.error ? "—" : preparing.count ?? 0, tone: "peach", href: "/orders" },
-    { title: "Prontos", description: "Tudo pronto para o próximo passo.", value: ready.error ? "—" : ready.count ?? 0, tone: "green", href: "/orders" },
-    { title: "Faturamento do dia", description: "Pedidos pagos e encerrados hoje.", value: revenueError ? "—" : money.format(revenueCents / 100), tone: "lavender", href: "/cashier" },
+    { title: t("Novos pedidos"), description: t("Prontos para sua confirmação."), value: pending.error ? "—" : pending.count ?? 0, tone: "blue", href: "/orders" },
+    { title: t("Em preparo"), description: t("O ritmo da sua cozinha, agora."), value: preparing.error ? "—" : preparing.count ?? 0, tone: "peach", href: "/orders" },
+    { title: t("Prontos"), description: t("Tudo pronto para o próximo passo."), value: ready.error ? "—" : ready.count ?? 0, tone: "green", href: "/orders" },
+    { title: t("Faturamento do dia"), description: t("Pedidos pagos e encerrados hoje."), value: revenueError ? "—" : money.format(revenueCents / 100), tone: "lavender", href: "/cashier" },
   ];
   return <section className="dashboard-lineup">
-    <header className="section-heading"><div><span className="eyebrow">Visão geral</span><h1>Meu painel</h1><p>Seu restaurante. Em um olhar.</p></div><ArrowLink href="/orders">Ver todos os pedidos</ArrowLink></header>
-    {(pending.error || preparing.error || ready.error || revenueError) && <p role="alert" className="table-notice table-notice-error">Alguns indicadores estão indisponíveis. Atualize a página para tentar novamente.</p>}
+    <header className="section-heading"><div><span className="eyebrow">{t("Visão geral")}</span><h1>{t("Meu painel")}</h1><p>{t("Seu restaurante. Em um olhar.")}</p></div><ArrowLink href="/orders">{t("Ver todos os pedidos")}</ArrowLink></header>
+    {(pending.error || preparing.error || ready.error || revenueError) && <p role="alert" className="table-notice table-notice-error">{t("Alguns indicadores estão indisponíveis. Atualize a página para tentar novamente.")}</p>}
     <div className="lineup-grid dashboard-metrics">{metrics.map((metric) => <LineupCard key={metric.title} tone={metric.tone}
-      visual={<span className={metric.title === "Faturamento do dia" ? "metric-number metric-money" : "metric-number"}>{metric.value}</span>}
-      title={metric.title} description={metric.description} detail={metric.title === "Faturamento do dia" ? "Dia corrente · horário de Brasília" : "Pedidos ativos · todos os canais"}
-      actions={<ArrowLink href={metric.href}>Ver</ArrowLink>} />)}</div>
-    <nav className="dashboard-shortcuts" aria-label="Administração"><ArrowLink href="/admin/menu">Gerenciar cardápio</ArrowLink><ArrowLink href="/admin/tables/qr">QR codes das mesas</ArrowLink><ArrowLink href="/admin/settings">Configurações</ArrowLink></nav>
+      visual={<span className={metric.title === t("Faturamento do dia") ? "metric-number metric-money" : "metric-number"}>{t(metric.value)}</span>}
+      title={metric.title} description={metric.description} detail={metric.title === t("Faturamento do dia") ? t("Dia corrente · horário de Brasília") : t("Pedidos ativos · todos os canais")}
+      actions={<ArrowLink href={metric.href}>{t("Ver")}</ArrowLink>} />)}</div>
+    <nav className="dashboard-shortcuts" aria-label={t("Administração")}><ArrowLink href="/admin/menu">{t("Gerenciar cardápio")}</ArrowLink><ArrowLink href="/admin/tables/qr">{t("QR codes das mesas")}</ArrowLink><ArrowLink href="/admin/settings">{t("Configurações")}</ArrowLink></nav>
   </section>;
 }

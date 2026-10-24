@@ -1,4 +1,25 @@
 @media screen {
+  html .interface-preferences {
+    position: fixed; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 40;
+    display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: calc(100vw - 32px);
+  }
+  html .interface-preferences .theme-picker { position: static; }
+  html .language-picker {
+    display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 12px;
+    border: 1px solid var(--line); border-radius: 999px; color: var(--foreground);
+    background: var(--surface); box-shadow: var(--shadow); font-size: .8rem;
+  }
+  html .language-picker label { color: var(--muted); }
+  html .language-picker select {
+    width: auto; min-height: 44px; max-width: 165px; border: 0; border-radius: 12px;
+    color: var(--foreground); background: var(--surface); font: inherit; cursor: pointer;
+  }
+  html .language-picker select:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+  @media (max-width: 640px) {
+    html .interface-preferences { right: 12px; bottom: max(82px, env(safe-area-inset-bottom)); gap: 6px; }
+    html .language-picker label { display: none; }
+    html .language-picker { padding-inline: 10px; }
+  }
   /* Explicit dark mode also works when the operating system uses light mode. */
   html:root[data-theme="dark"] {
     color-scheme: dark;
@@ -50,5 +71,6 @@
   }
 }
 @media print {
+  .interface-preferences { display: none !important; }
   .theme-picker { display: none !important; }
 }

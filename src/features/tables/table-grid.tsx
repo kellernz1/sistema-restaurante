@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import {
   Armchair,
   CircleAlert,
@@ -57,6 +60,7 @@ function toRestaurantTable(value: Record<string, unknown>): RestaurantTable | nu
 }
 
 export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
+  const t = useTranslation();
   const router = useRouter();
   const [supabase] = useState(createClient);
   const [tables, setTables] = useState(() => sortTables(initialTables));
@@ -78,7 +82,7 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
     if (error) {
       setNotice({
         tone: "error",
-        message: "Não foi possível atualizar as mesas. Tente novamente.",
+        message: t("Não foi possível atualizar as mesas. Tente novamente."),
       });
     } else {
       setTables(data);
@@ -86,7 +90,7 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
     }
 
     setIsRefreshing(false);
-  }, [supabase]);
+  }, [supabase, t]);
 
   useEffect(() => {
     const channel = supabase
@@ -126,7 +130,7 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
           setNotice({
             tone: "info",
             message:
-              "A atualização em tempo real foi interrompida. Atualize as mesas para conferir o salão.",
+              t("A atualização em tempo real foi interrompida. Atualize as mesas para conferir o salão."),
           });
         }
       });
@@ -134,7 +138,7 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [refreshTables, supabase]);
+  }, [refreshTables, supabase, t]);
 
   async function handleTableClick(table: RestaurantTable) {
     if (table.status !== "available") {
@@ -163,8 +167,8 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
       setNotice({
         tone: "error",
         message: isRaceCondition
-          ? `A Mesa ${table.table_number} acabou de ser aberta por outro garçom. O mapa foi atualizado.`
-          : "Não foi possível abrir esta mesa. Confira sua conexão e tente novamente.",
+          ? t(`A Mesa ${table.table_number} acabou de ser aberta por outro garçom. O mapa foi atualizado.`)
+          : t("Não foi possível abrir esta mesa. Confira sua conexão e tente novamente."),
       });
       openingTableIdRef.current = null;
       setOpeningTableId(null);
@@ -193,12 +197,10 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
     <section className="table-dashboard">
       <div className="table-dashboard-heading">
         <div>
-          <span className="eyebrow">Painel do garçom</span>
-          <h1>Mapa de mesas</h1>
+          <span className="eyebrow">{t("Painel do garçom")}</span>
+          <h1>{t("Mapa de mesas")}</h1>
           <p>
-            Abra uma mesa livre ou retome um atendimento em andamento. As
-            mudanças do salão aparecem aqui em tempo real.
-          </p>
+            {t("Abra uma mesa livre ou retome um atendimento em andamento. As mudanças do salão aparecem aqui em tempo real.")}</p>
         </div>
 
         <button
@@ -212,15 +214,14 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
           ) : (
             <RefreshCw aria-hidden="true" size={17} />
           )}
-          Atualizar
-        </button>
+          {t("Atualizar")}</button>
       </div>
 
-      <div className="table-summary" aria-label="Resumo das mesas">
+      <div className="table-summary" aria-label={t("Resumo das mesas")}>
         {(Object.keys(TABLE_STATUS_LABELS) as TableStatus[]).map((status) => (
           <div className={`summary-item summary-${status}`} key={status}>
-            <span>{TABLE_STATUS_LABELS[status]}</span>
-            <strong>{tableCounts[status]}</strong>
+            <span>{t(TABLE_STATUS_LABELS[status])}</span>
+            <strong>{t(tableCounts[status])}</strong>
           </div>
         ))}
       </div>
@@ -231,15 +232,15 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
           role={notice.tone === "error" ? "alert" : "status"}
         >
           <CircleAlert aria-hidden="true" size={19} />
-          <span>{notice.message}</span>
+          <span>{t(notice.message)}</span>
         </div>
       ) : null}
 
       {tables.length === 0 ? (
         <div className="table-empty-state">
           <Armchair aria-hidden="true" size={32} />
-          <strong>Nenhuma mesa encontrada</strong>
-          <p>Execute o seed do Supabase ou tente atualizar novamente.</p>
+          <strong>{t("Nenhuma mesa encontrada")}</strong>
+          <p>{t("Execute o seed do Supabase ou tente atualizar novamente.")}</p>
         </div>
       ) : (
         <div className="table-grid">
@@ -256,31 +257,30 @@ export function TableGrid({ initialTables, initialLoadError }: TableGridProps) {
                 onClick={() => void handleTableClick(table)}
                 disabled={isOpening || isDisabled}
                 aria-busy={isOpening}
-                aria-label={`Mesa ${table.table_number}, ${TABLE_STATUS_LABELS[table.status]}, capacidade para ${table.capacity} pessoas`}
+                aria-label={t(`Mesa ${table.table_number}, ${t(TABLE_STATUS_LABELS[table.status])}, capacidade para ${table.capacity} pessoas`)}
               >
                 <span className="table-card-topline">
                   <span className={`table-status-dot dot-${table.status}`} />
                   <span className={`table-status-label status-${table.status}`}>
-                    {TABLE_STATUS_LABELS[table.status]}
+                    {t(TABLE_STATUS_LABELS[table.status])}
                   </span>
                 </span>
 
                 <span className="table-number">
-                  <small>Mesa</small>
+                  <small>{t("Mesa")}</small>
                   {table.table_number}
                 </span>
 
                 <span className="table-capacity">
                   <Users aria-hidden="true" size={17} />
-                  {table.capacity} {table.capacity === 1 ? "lugar" : "lugares"}
+                  {table.capacity} {t(table.capacity === 1 ? t("lugar") : t("lugares"))}
                 </span>
 
                 <span className="table-action">
                   {isOpening ? (
                     <>
                       <LoaderCircle className="spin" aria-hidden="true" size={16} />
-                      Abrindo mesa...
-                    </>
+                      {t("Abrindo mesa...")}</>
                   ) : (
                     TABLE_ACTION_LABELS[table.status]
                   )}

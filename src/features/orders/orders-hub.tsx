@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ArrowButton, PillButton, SegmentedControl, StatusPill } from "@/components/ui";
@@ -37,6 +40,7 @@ function deliveryDistance(order: HubOrder) {
 }
 
 export function OrdersHub({ initialOrders, initialError }: { initialOrders: HubOrder[]; initialError: boolean }) {
+  const t = useTranslation();
   const { role } = useAuth();
   const writable = role === "cashier" || role === "admin";
   const [db] = useState(createClient);
@@ -45,7 +49,7 @@ export function OrdersHub({ initialOrders, initialError }: { initialOrders: HubO
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(initialError ? "Não foi possível carregar os pedidos." : "");
+  const [error, setError] = useState(initialError ? t("Não foi possível carregar os pedidos.") : "");
   const [notice, setNotice] = useState("");
   const [payment, setPayment] = useState("pix");
   const [sound, setSound] = useState(false);
@@ -73,9 +77,9 @@ export function OrdersHub({ initialOrders, initialError }: { initialOrders: HubO
       }
       seenPending.current = new Set(pending.map((order) => order.id));
       setOrders(result.data); setError("");
-    } catch { if (version === revision.current) setError("Não foi possível atualizar a central. Confira a conexão e tente novamente."); }
+    } catch { if (version === revision.current) setError(t("Não foi possível atualizar a central. Confira a conexão e tente novamente.")); }
     finally { if (version === revision.current) setRefreshing(false); }
-  }, [db]);
+  }, [db, t]);
 
   useEffect(() => {
     let alive = true;
@@ -87,13 +91,13 @@ export function OrdersHub({ initialOrders, initialError }: { initialOrders: HubO
       .subscribe((status) => {
         if (!alive) return;
         if (status === "SUBSCRIBED") update();
-        if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setError("Tempo real indisponível. Use Atualizar pedidos.");
+        if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setError(t("Tempo real indisponível. Use Atualizar pedidos."));
       });
     update();
     const visible = () => { if (document.visibilityState === "visible") update(); };
     document.addEventListener("visibilitychange", visible); window.addEventListener("online", update);
     return () => { alive = false; invalidate(); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", update); void db.removeChannel(channel); };
-  }, [db, refresh]);
+  }, [db, refresh, t]);
   useEffect(() => { const closeAudio = () => { void audio.current?.close(); }; return closeAudio; }, []);
 
   async function toggleSound() {
@@ -101,20 +105,20 @@ export function OrdersHub({ initialOrders, initialError }: { initialOrders: HubO
       if (!audio.current || audio.current.state === "closed") audio.current = new AudioContext();
       await audio.current.resume();
       soundEnabled.current = !soundEnabled.current; setSound(soundEnabled.current);
-    } catch { setNotice("Não foi possível ativar o som neste navegador."); }
+    } catch { setNotice(t("Não foi possível ativar o som neste navegador.")); }
   }
 
   async function act(order: HubOrder, action: string) {
     if (lock.current || !writable) return;
-    const reason = action === "reject" ? window.prompt("Informe o motivo da recusa:")?.trim() : undefined;
+    const reason = action === "reject" ? window.prompt(t("Informe o motivo da recusa:"))?.trim() : undefined;
     if (action === "reject" && !reason) return;
-    if (action === "ready" && order.order_items.some((item) => !["ready", "delivered"].includes(item.status)) && !window.confirm("Há itens que ainda não estão prontos. Deseja marcar o pedido inteiro como pronto?")) return;
-    if (action === "complete" && !window.confirm(`Confirmar recebimento e concluir o pedido #${order.order_number}?`)) return;
+    if (action === "ready" && order.order_items.some((item) => !["ready", "delivered"].includes(item.status)) && !window.confirm(t("Há itens que ainda não estão prontos. Deseja marcar o pedido inteiro como pronto?"))) return;
+    if (action === "complete" && !window.confirm(t(`Confirmar recebimento e concluir o pedido #${order.order_number}?`))) return;
     lock.current = true; setBusy(true); setNotice("");
     try {
       await customerApi(`/api/staff/orders/${order.id}/transition`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, reason, ...(action === "complete" ? { payment_method: payment } : {}) }) });
-      setNotice("Pedido atualizado.");
-    } catch (failure) { setNotice(failure instanceof Error ? failure.message : "Não foi possível atualizar o pedido."); }
+      setNotice(t("Pedido atualizado."));
+    } catch (failure) { setNotice(failure instanceof Error ? failure.message : t("Não foi possível atualizar o pedido.")); }
     finally { await refresh(); setBusy(false); lock.current = false; }
   }
 
@@ -126,38 +130,39 @@ export function OrdersHub({ initialOrders, initialError }: { initialOrders: HubO
   const selectOrder = (order: HubOrder) => { setSelectedId(order.id); setPayment(order.payment_method ?? "pix"); };
   const renderCard = (order: HubOrder) => <article className={`hub-card hub-type-${order.order_type}`} key={order.id} data-selected={selectedId === order.id}>
     <div className="hub-card-top"><OrderTypeBadge type={order.order_type} /><OrderAge createdAt={order.created_at} closedAt={order.closed_at} /></div>
-    <div className="hub-card-main"><strong>#{order.order_number} {order.order_type === "dine_in" ? `· Mesa ${order.tables?.table_number}` : `· ${order.customer_name ?? "Cliente"}`}</strong><span className="hub-price">{money.format(order.total_amount)}</span></div>
-    <StatusPill tone={order.status} className={`hub-order-status hub-status-${order.status}`}>{labels[order.status]}</StatusPill>
-    <div className="hub-card-actions">{writable && order.status === "pending_confirmation" && <PillButton disabled={busy || !!error} onClick={() => void act(order, "accept")}>Confirmar</PillButton>}
-      <ArrowButton aria-pressed={selectedId === order.id} onClick={() => selectOrder(order)} aria-label={`Detalhes do pedido #${order.order_number}`}>Detalhes</ArrowButton></div>
+    <div className="hub-card-main"><strong>#{order.order_number} {order.order_type === "dine_in" ? t(`· Mesa ${order.tables?.table_number}`) : `· ${order.customer_name ?? t("Cliente")}`}</strong><span className="hub-price">{t(money.format(order.total_amount))}</span></div>
+    <StatusPill tone={order.status} className={`hub-order-status hub-status-${order.status}`}>{t(labels[order.status])}</StatusPill>
+    <div className="hub-card-actions">{writable && order.status === "pending_confirmation" && <PillButton disabled={busy || !!error} onClick={() => void act(order, "accept")}>{t("Confirmar")}</PillButton>}
+      <ArrowButton aria-pressed={selectedId === order.id} onClick={() => selectOrder(order)} aria-label={t(`Detalhes do pedido #${order.order_number}`)}>{t("Detalhes")}</ArrowButton></div>
   </article>;
 
-  return <section className="orders-hub"><header className="table-dashboard-heading orders-screen-only"><div><span className="eyebrow">Operação</span><h1>Central de pedidos</h1><p>Até 200 pedidos, priorizando os ativos. {writable ? "Confirme e acompanhe cada atendimento." : "Acesso de consulta; alterações são feitas pelo caixa."}</p></div><ArrowButton disabled={refreshing} onClick={() => void refresh()}>{refreshing ? "Atualizando..." : "Atualizar"}</ArrowButton></header>
-    <HumanHandoffs />{error && <p className="table-notice table-notice-error orders-screen-only" role="alert">{error}</p>}{notice && <p className="table-notice table-notice-info orders-screen-only" role="status">{notice}</p>}
+  return <section className="orders-hub"><header className="table-dashboard-heading orders-screen-only"><div><span className="eyebrow">{t("Operação")}</span><h1>{t("Central de pedidos")}</h1><p>{t("Até 200 pedidos, priorizando os ativos. ")}{t(writable ? t("Confirme e acompanhe cada atendimento.") : t("Acesso de consulta; alterações são feitas pelo caixa."))}</p></div><ArrowButton disabled={refreshing} onClick={() => void refresh()}>{t(refreshing ? t("Atualizando...") : t("Atualizar"))}</ArrowButton></header>
+    <HumanHandoffs />{error && <p className="table-notice table-notice-error orders-screen-only" role="alert">{t(error)}</p>}{notice && <p className="table-notice table-notice-info orders-screen-only" role="status">{t(notice)}</p>}
     <div className="cashier-actions hub-toolbar orders-screen-only">
-      <SegmentedControl label="Filtrar pedidos por canal" value={filter} onChange={setFilter} options={[
-        { value: "all", label: "Todos", count: orders.length },
-        { value: "dine_in", label: "Local", count: orders.filter((order) => order.order_type === "dine_in").length },
-        { value: "pickup", label: "Retirada", count: orders.filter((order) => order.order_type === "pickup").length },
-        { value: "delivery", label: "Entrega", count: orders.filter((order) => order.order_type === "delivery").length },
+      <SegmentedControl label={t("Filtrar pedidos por canal")} value={filter} onChange={setFilter} options={[
+        { value: "all", label: t("Todos"), count: orders.length },
+        { value: "dine_in", label: t("Local"), count: orders.filter((order) => order.order_type === "dine_in").length },
+        { value: "pickup", label: t("Retirada"), count: orders.filter((order) => order.order_type === "pickup").length },
+        { value: "delivery", label: t("Entrega"), count: orders.filter((order) => order.order_type === "delivery").length },
       ]} />
-      <ArrowButton aria-pressed={sound} onClick={() => void toggleSound()}>{sound ? "Desativar som" : "Ativar som"}</ArrowButton>
+      <ArrowButton aria-pressed={sound} onClick={() => void toggleSound()}>{t(sound ? t("Desativar som") : t("Ativar som"))}</ArrowButton>
     </div>
-    <div className="hub-layout"><div className="orders-screen-only"><h2>Novos pedidos <span className="status-pill" aria-live="polite">{pending.length}</span></h2><div className="hub-cards">{pending.map(renderCard)}</div>{!pending.length && <p>Nenhum pedido aguardando confirmação.</p>}<h2>Em acompanhamento</h2><div className="hub-cards">{others.map(renderCard)}</div>{!others.length && <p>Nenhum pedido neste filtro.</p>}</div>
-      {selected ? <OrderDetails key={selected.id} onClose={closeDetails}><div className="table-detail-heading"><h2>Pedido #{selected.order_number}</h2><OrderTypeBadge type={selected.order_type} /></div><p>{labels[selected.status]} · Origem: {sourceLabels[selected.source]}</p>
-        {selected.order_type === "dine_in" ? <p>Mesa {selected.tables?.table_number}</p> : <><p>Cliente: {selected.customer_name}</p><p>Telefone: {selected.customer_phone}</p><div className="cashier-actions orders-screen-only"><a className="back-link" href={`tel:${selected.customer_phone ?? ""}`}>Ligar</a><a className="back-link" target="_blank" rel="noreferrer" href={`https://wa.me/${selected.customer_phone?.replace(/\D/g, "") ?? ""}`}>Abrir WhatsApp</a></div></>}
-        {selected.order_type === "delivery" && <><p>Endereço: {addressText(selected) || "Localização enviada pelo cliente"}</p>{deliveryDistance(selected) && <p>Distância de entrega: {deliveryDistance(selected)}</p>}<a className="back-link orders-screen-only" target="_blank" rel="noreferrer" href={deliveryMapLink(selected)}>Abrir no mapa</a></>}
-        <ul className="sent-items">{selected.order_items.map((item) => <li key={item.id}><div><strong>{item.quantity} × {item.products?.name ?? "Produto"}</strong>{item.notes && <p>Observações: {item.notes}</p>}<p>{money.format(item.unit_price)} por unidade</p></div><span>{money.format(Math.round(item.unit_price * 100) * item.quantity / 100)}</span></li>)}</ul>
-        {selected.notes && <p>Observações do pedido: {selected.notes}</p>}<p>Taxa de entrega: {money.format(selected.delivery_fee)}</p>{selected.cash_change_for !== null && <p>Troco para: {money.format(selected.cash_change_for)} · Troco: {money.format(Math.max(0, selected.cash_change_for - selected.total_amount))}</p>}<p className="order-total">Total<strong>{money.format(selected.total_amount)}</strong></p><p>Pagamento: {selected.payment_method === "cash" ? "Dinheiro" : selected.payment_method === "card" ? "Cartão" : selected.payment_method === "pix" ? "Pix" : "A definir"} · {selected.payment_status === "paid" ? "Recebido" : "Pendente"}</p>{selected.cancel_reason && <p>Motivo da recusa: {selected.cancel_reason}</p>}
-        <div className="cashier-actions hub-ticket-actions orders-screen-only"><button className="ghost-button" onClick={() => window.print()}>Imprimir pedido</button><ManualPrintButton orderId={selected.id} />
-          {writable && <>{selected.status === "pending_confirmation" && <><button className="primary-button" disabled={busy || !!error} onClick={() => void act(selected, "accept")}>Aceitar</button><button className="ghost-button" disabled={busy || !!error} onClick={() => void act(selected, "reject")}>Recusar com motivo</button></>}{selected.order_type !== "dine_in" && selected.status === "open" && <button className="primary-button" disabled={busy || !!error} onClick={() => void act(selected, "ready")}>Marcar pronto</button>}{selected.order_type === "delivery" && selected.status === "ready" && <button className="primary-button" disabled={busy || !!error} onClick={() => void act(selected, "dispatch")}>Saiu para entrega</button>}{((selected.order_type === "pickup" && selected.status === "ready") || (selected.order_type === "delivery" && selected.status === "out_for_delivery")) && <><label className="field-group">Pagamento recebido<select className="order-input" disabled={busy} value={payment} onChange={(event) => setPayment(event.target.value)}><option value="cash">Dinheiro</option><option value="card">Cartão</option><option value="pix">Pix</option></select></label><button className="primary-button" disabled={busy || !!error} onClick={() => void act(selected, "complete")}>Receber e concluir</button></>}</>}
+    <div className="hub-layout"><div className="orders-screen-only"><h2>{t("Novos pedidos ")}<span className="status-pill" aria-live="polite">{t(pending.length)}</span></h2><div className="hub-cards">{t(pending.map(renderCard))}</div>{!pending.length && <p>{t("Nenhum pedido aguardando confirmação.")}</p>}<h2>{t("Em acompanhamento")}</h2><div className="hub-cards">{t(others.map(renderCard))}</div>{!others.length && <p>{t("Nenhum pedido neste filtro.")}</p>}</div>
+      {selected ? <OrderDetails key={selected.id} onClose={closeDetails}><div className="table-detail-heading"><h2>{t("Pedido #")}{selected.order_number}</h2><OrderTypeBadge type={selected.order_type} /></div><p>{t(labels[selected.status])} {t(" · Origem: ")}{t(sourceLabels[selected.source])}</p>
+        {selected.order_type === "dine_in" ? <p>{t("Mesa ")}{selected.tables?.table_number}</p> : <><p>{t("Cliente: ")}{selected.customer_name}</p><p>{t("Telefone: ")}{selected.customer_phone}</p><div className="cashier-actions orders-screen-only"><a className="back-link" href={`tel:${selected.customer_phone ?? ""}`}>{t("Ligar")}</a><a className="back-link" target="_blank" rel="noreferrer" href={`https://wa.me/${selected.customer_phone?.replace(/\D/g, "") ?? ""}`}>{t("Abrir WhatsApp")}</a></div></>}
+        {selected.order_type === "delivery" && <><p>{t("Endereço: ")}{addressText(selected) || t("Localização enviada pelo cliente")}</p>{deliveryDistance(selected) && <p>{t("Distância de entrega: ")}{t(deliveryDistance(selected))}</p>}<a className="back-link orders-screen-only" target="_blank" rel="noreferrer" href={deliveryMapLink(selected)}>{t("Abrir no mapa")}</a></>}
+        <ul className="sent-items">{selected.order_items.map((item) => <li key={item.id}><div><strong>{item.quantity} × {item.products?.name ?? t("Produto")}</strong>{item.notes && <p>{t("Observações: ")}{item.notes}</p>}<p>{t(money.format(item.unit_price))} {t(" por unidade")}</p></div><span>{t(money.format(Math.round(item.unit_price * 100) * item.quantity / 100))}</span></li>)}</ul>
+        {selected.notes && <p>{t("Observações do pedido: ")}{selected.notes}</p>}<p>{t("Taxa de entrega: ")}{t(money.format(selected.delivery_fee))}</p>{selected.cash_change_for !== null && <p>{t("Troco para: ")}{t(money.format(selected.cash_change_for))} {t(" · Troco: ")}{t(money.format(Math.max(0, selected.cash_change_for - selected.total_amount)))}</p>}<p className="order-total">{t("Total")}<strong>{t(money.format(selected.total_amount))}</strong></p><p>{t("Pagamento: ")}{t(selected.payment_method === "cash" ? t("Dinheiro") : selected.payment_method === "card" ? t("Cartão") : selected.payment_method === "pix" ? t("Pix") : t("A definir"))} · {t(selected.payment_status === "paid" ? t("Recebido") : t("Pendente"))}</p>{selected.cancel_reason && <p>{t("Motivo da recusa: ")}{t(selected.cancel_reason)}</p>}
+        <div className="cashier-actions hub-ticket-actions orders-screen-only"><button className="ghost-button" onClick={() => window.print()}>{t("Imprimir pedido")}</button><ManualPrintButton orderId={selected.id} />
+          {writable && <>{selected.status === "pending_confirmation" && <><button className="primary-button" disabled={busy || !!error} onClick={() => void act(selected, "accept")}>{t("Aceitar")}</button><button className="ghost-button" disabled={busy || !!error} onClick={() => void act(selected, "reject")}>{t("Recusar com motivo")}</button></>}{selected.order_type !== "dine_in" && selected.status === "open" && <button className="primary-button" disabled={busy || !!error} onClick={() => void act(selected, "ready")}>{t("Marcar pronto")}</button>}{selected.order_type === "delivery" && selected.status === "ready" && <button className="primary-button" disabled={busy || !!error} onClick={() => void act(selected, "dispatch")}>{t("Saiu para entrega")}</button>}{((selected.order_type === "pickup" && selected.status === "ready") || (selected.order_type === "delivery" && selected.status === "out_for_delivery")) && <><label className="field-group">{t("Pagamento recebido")}<select className="order-input" disabled={busy} value={payment} onChange={(event) => setPayment(event.target.value)}><option value="cash">{t("Dinheiro")}</option><option value="card">{t("Cartão")}</option><option value="pix">{t("Pix")}</option></select></label><button className="primary-button" disabled={busy || !!error} onClick={() => void act(selected, "complete")}>{t("Receber e concluir")}</button></>}</>}
         </div>
-      </OrderDetails> : <div className="table-empty-state orders-screen-only"><strong>Selecione um pedido</strong><p>Confira os itens e o atendimento aqui.</p></div>}
+      </OrderDetails> : <div className="table-empty-state orders-screen-only"><strong>{t("Selecione um pedido")}</strong><p>{t("Confira os itens e o atendimento aqui.")}</p></div>}
     </div>
   </section>;
 }
 
 function OrderAge({ createdAt, closedAt }: { createdAt: string; closedAt: string | null }) {
+  const t = useTranslation();
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const update = () => setNow(Date.now());
@@ -165,5 +170,5 @@ function OrderAge({ createdAt, closedAt }: { createdAt: string; closedAt: string
     return () => window.clearInterval(timer);
   }, []);
   const minutes = now === null ? null : Math.max(0, Math.floor(((closedAt ? new Date(closedAt).getTime() : now) - new Date(createdAt).getTime()) / 60000));
-  return <time className="hub-elapsed" dateTime={createdAt}>{minutes === null ? "—" : `${closedAt ? "Duração: " : "Há "}${minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`}`}</time>;
+  return <time className="hub-elapsed" dateTime={createdAt}>{t(minutes === null ? "—" : `${closedAt ? t("Duração: ") : t("Há ")}${minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`}`)}</time>;
 }

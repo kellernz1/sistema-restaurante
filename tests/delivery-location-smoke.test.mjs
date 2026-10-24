@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomInt, randomUUID } from "node:crypto";
 import test from "node:test";
 import { createClient } from "@supabase/supabase-js";
+import { deliveryFixture } from "./helpers/delivery-fixture.mjs";
 
 const base = process.env.PUBLIC_TEST_URL;
 const api = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -23,24 +24,32 @@ test("public checkout persists the delivery map pin with its address", { skip: !
     assert.ifError((await db.from("products").delete().eq("id", productId)).error);
     assert.ifError((await db.from("categories").delete().eq("id", categoryId)).error);
   });
-  const settings = await db.from("restaurant_settings").select("min_delivery_order, is_accepting_orders, delivery_enabled").eq("id", true).single();
+  const settings = await db.from("restaurant_settings").select("*").eq("id", true).single();
   assert.ifError(settings.error);
   assert.ok(settings.data.is_accepting_orders && settings.data.delivery_enabled);
+  const delivery = await deliveryFixture(db, t, settings.data);
   assert.ifError((await db.from("categories").insert({ id: categoryId, name: "__location_test__" })).error);
   assert.ifError((await db.from("products").insert({ id: productId, category_id: categoryId, name: "__location_test__", price: Math.max(30, Math.ceil(settings.data.min_delivery_order)) })).error);
   const location = "https://www.google.com/maps/search/?api=1&query=-23.550520,-46.633308";
-  const payload = { order_type: "delivery", customer_name: "__location_test__", customer_phone: phone, payment_method: "pix", items: [{ product_id: productId, quantity: 1, notes: "" }], delivery_address: { street: "Rua Teste", number: "10", neighborhood: "Centro", city: "São Paulo", state: "SP", zip_code: "01001000", location_url: location } };
+  const payload = { order_type: "delivery", customer_name: "__location_test__", customer_phone: phone, payment_method: "pix", items: [{ product_id: productId, quantity: 1, notes: "" }], delivery_address: delivery.address };
   const send = (body) => fetch(`${base}/api/public/orders`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   assert.equal((await send({ ...payload, delivery_address: { ...payload.delivery_address, location_url: "javascript:alert(1)" } })).status, 400);
+  if (settings.data.delivery_fee_mode === "distance") {
+    const { delivery_quote_id, ...unquotedAddress } = delivery.address;
+    assert.ok(delivery_quote_id);
+    assert.equal((await send({ ...payload, delivery_address: unquotedAddress })).status, 409, "distance checkout requires a server quote");
+    assert.equal((await send({ ...payload, delivery_address: { ...delivery.address, location_url: "https://www.google.com/maps/search/?api=1&query=-23.56,-46.64" } })).status, 409, "quote is bound to the destination");
+  }
   const result = await send(payload);
   assert.equal(result.status, 201, await result.clone().text());
   const created = await result.json();
-  const order = await db.from("orders").select("delivery_address, status").eq("public_token", created.tracking_path.split("/").at(-1)).single();
+  const order = await db.from("orders").select("delivery_address, delivery_fee, status").eq("public_token", created.tracking_path.split("/").at(-1)).single();
   assert.ifError(order.error);
   assert.equal(order.data.delivery_address.location_url, location);
   assert.equal(order.data.delivery_address.number, "10");
   assert.equal(order.data.status, "pending_confirmation");
-  const locationOnly = { ...payload, delivery_address: { location_url: location, reference: "Portão azul" } };
+  assert.equal(order.data.delivery_fee, delivery.fee);
+  const locationOnly = { ...payload, delivery_address: { location_url: location, reference: "Portão azul", ...(delivery.address.delivery_quote_id ? { delivery_quote_id: delivery.address.delivery_quote_id } : {}) } };
   const locationResponse = await send(locationOnly);
   assert.equal(locationResponse.status, 201, await locationResponse.clone().text());
   const locationOrder = await locationResponse.json();

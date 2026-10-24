@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -13,10 +16,11 @@ export function CashierBoard({ initialTables, initialError }: {
   initialTables: CashierTable[];
   initialError: boolean;
 }) {
+  const t = useTranslation();
   const [db] = useState(createClient);
   const [tables, setTables] = useState(initialTables);
   const [selected, setSelected] = useState<CashierTable | null>(null);
-  const [error, setError] = useState(initialError ? "Não foi possível carregar as mesas." : "");
+  const [error, setError] = useState(initialError ? t("Não foi possível carregar as mesas.") : "");
   const [connectionError, setConnectionError] = useState("");
   const [loading, setLoading] = useState(false);
   const generation = useRef(0);
@@ -31,11 +35,11 @@ export function CashierBoard({ initialTables, initialError }: {
       setTables(result.data);
       setError("");
     } catch {
-      if (version === generation.current) setError("Não foi possível atualizar as mesas. Tente novamente.");
+      if (version === generation.current) setError(t("Não foi possível atualizar as mesas. Tente novamente."));
     } finally {
       if (version === generation.current) setLoading(false);
     }
-  }, [db]);
+  }, [db, t]);
 
   useEffect(() => {
     let alive = true;
@@ -48,7 +52,7 @@ export function CashierBoard({ initialTables, initialError }: {
         if (!alive) return;
         if (status === "SUBSCRIBED") { setConnectionError(""); update(); }
         if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
-          setConnectionError("Tempo real indisponível. Use Atualizar mesas para conferir o salão.");
+          setConnectionError(t("Tempo real indisponível. Use Atualizar mesas para conferir o salão."));
         }
       });
     update();
@@ -62,22 +66,22 @@ export function CashierBoard({ initialTables, initialError }: {
       window.removeEventListener("online", update);
       void db.removeChannel(channel);
     };
-  }, [db, refresh]);
+  }, [db, refresh, t]);
 
   const sorted = [...tables].sort((a, b) => Number(b.status === "closing") - Number(a.status === "closing") || a.table_number - b.table_number);
   return <section className="cashier-dashboard">
-    <div className="table-dashboard-heading cashier-screen-only"><div><span className="eyebrow">Painel do caixa</span>
-      <h1>Fechamento de contas</h1><p>Mesas aguardando a conta aparecem primeiro. Selecione uma mesa para conferir a comanda.</p></div>
-      <div className="cashier-actions"><Link className="primary-button" href="/cashier/orders/new">Novo pedido</Link><button className="ghost-button" disabled={loading} onClick={() => void refresh()}>{loading ? "Atualizando..." : "Atualizar mesas"}</button></div></div>
-    {(error || connectionError) && <p className="table-notice table-notice-error cashier-screen-only" role="alert">{error || connectionError}</p>}
+    <div className="table-dashboard-heading cashier-screen-only"><div><span className="eyebrow">{t("Painel do caixa")}</span>
+      <h1>{t("Fechamento de contas")}</h1><p>{t("Mesas aguardando a conta aparecem primeiro. Selecione uma mesa para conferir a comanda.")}</p></div>
+      <div className="cashier-actions"><Link className="primary-button" href="/cashier/orders/new">{t("Novo pedido")}</Link><button className="ghost-button" disabled={loading} onClick={() => void refresh()}>{t(loading ? t("Atualizando...") : t("Atualizar mesas"))}</button></div></div>
+    {(error || connectionError) && <p className="table-notice table-notice-error cashier-screen-only" role="alert">{t(error || connectionError)}</p>}
     <div className="cashier-layout">
-      <section className="cashier-table-list cashier-screen-only" aria-label="Mesas com atendimento ativo" aria-busy={loading}>
-        {!sorted.length && <p>{error ? "Atualize para conferir as mesas." : "Nenhuma mesa aguardando pagamento."}</p>}
+      <section className="cashier-table-list cashier-screen-only" aria-label={t("Mesas com atendimento ativo")} aria-busy={loading}>
+        {!sorted.length && <p>{t(error ? t("Atualize para conferir as mesas.") : t("Nenhuma mesa aguardando pagamento."))}</p>}
         {sorted.map((table) => <button key={table.id} className={`cashier-table table-card-${table.status}`} aria-pressed={selected?.id === table.id}
-          onClick={() => setSelected(table)}><strong>Mesa {table.table_number}</strong><span className={`table-status-label status-${table.status}`}>{TABLE_STATUS_LABELS[table.status]}</span></button>)}
+          onClick={() => setSelected(table)}><strong>{t("Mesa ")}{table.table_number}</strong><span className={`table-status-label status-${table.status}`}>{t(TABLE_STATUS_LABELS[table.status])}</span></button>)}
       </section>
       {selected ? <BillDetail key={selected.id} table={selected} onClosed={refresh} />
-        : <div className="table-empty-state cashier-screen-only"><strong>Selecione uma mesa</strong><p>Os itens e as opções de pagamento aparecerão aqui.</p></div>}
+        : <div className="table-empty-state cashier-screen-only"><strong>{t("Selecione uma mesa")}</strong><p>{t("Os itens e as opções de pagamento aparecerão aqui.")}</p></div>}
     </div>
   </section>;
 }

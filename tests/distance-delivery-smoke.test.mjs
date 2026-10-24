@@ -15,11 +15,18 @@ test("real road quote is cached and charged by public checkout", { skip: !(base 
   assert.ifError(settingsResult.error);
   const settings = settingsResult.data;
   assert.equal(settings.delivery_fee_mode, "distance");
-  const location = process.env.DELIVERY_ROUTE_SMOKE_LOCATION || coordinatesMapLink(settings.delivery_origin_latitude, settings.delivery_origin_longitude);
+  assert.ok(Number.isFinite(settings.delivery_origin_latitude) && Number.isFinite(settings.delivery_origin_longitude), "Configure the restaurant delivery origin first");
+  const destination = process.env.DELIVERY_ROUTE_SMOKE_LOCATION || coordinatesMapLink(settings.delivery_origin_latitude + 0.002, settings.delivery_origin_longitude + 0.002);
+  // A unique valid map URL guarantees the first request reaches the routing service.
+  const locationUrl = new URL(destination);
+  locationUrl.searchParams.set("route_test", randomUUID());
+  const location = locationUrl.href;
   const post = (path, data) => fetch(`${base}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
   const first = await post("/api/public/delivery-quote", { location_url: location });
   assert.equal(first.status, 200, await first.clone().text());
   const quote = await first.json();
+  t.after(async () => assert.ifError((await db.from("delivery_quotes").delete().eq("id", quote.id)).error));
+  assert.ok(Number.isFinite(quote.distance_meters) && quote.distance_meters > 0, "Expected a real route between different points");
   assert.equal(quote.fee, distanceDeliveryFee(quote.distance_meters, settings.delivery_distance_step_km, settings.delivery_distance_step_fee));
   const cached = await post("/api/public/delivery-quote", { location_url: location });
   assert.equal(cached.status, 200);

@@ -1,26 +1,36 @@
+import { getTranslation } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { ThemePicker } from "@/components/theme-picker";
 import { themeInitialization } from "@/lib/theme-initialization";
+import { LanguageProvider } from "@/components/language-provider";
+import { LanguagePicker } from "@/components/language-picker";
+import { getLocale } from "@/lib/i18n/server";
 
 
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "Sistema de Restaurante",
-  description: "Gestão integrada de pedidos e atendimento para restaurantes.",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslation();
+  return {
+  title: t("Sistema de Restaurante"),
+  description: t("Gestão integrada de pedidos e atendimento para restaurantes."),
 };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeInitialization }} />
-        {children}
-        <ThemePicker />
+        <LanguageProvider locale={locale}>
+          {children}
+          <div className="interface-preferences"><LanguagePicker /><ThemePicker /></div>
+        </LanguageProvider>
       </body>
     </html>
   );

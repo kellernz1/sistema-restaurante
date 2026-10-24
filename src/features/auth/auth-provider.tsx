@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import type { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import {
@@ -29,6 +32,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const t = useTranslation();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -137,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [loading, profile, signOut, user],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{t(children)}</AuthContext.Provider>;
 }
 
 export function useAuth() {

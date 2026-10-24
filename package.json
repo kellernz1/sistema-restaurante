@@ -21,6 +21,7 @@
     "test:sql": "node scripts/local/sql-tests.mjs",
     "test:smoke": "node scripts/smoke-test.mjs",
     "test:all": "node scripts/run-all-tests.mjs",
+    "test:external": "node scripts/test-external.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "seed:clear-demo": "node scripts/clear-demo.mjs",
     "lint": "eslint .",

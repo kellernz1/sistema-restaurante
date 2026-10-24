@@ -49,7 +49,10 @@ test("rejection and completion require reason and payment respectively", () => {
 });
 
 test("settings reject negative prices, fractional times, and invalid cent amounts", () => {
-  const settings = { is_accepting_orders: true, dine_in_qr_enabled: true, require_confirmation_for_qr: true, pickup_enabled: true, delivery_enabled: true, whatsapp_enabled: false, delivery_fee: 5.5, min_delivery_order: 20, estimated_pickup_minutes: 30, estimated_delivery_minutes: 50 };
+  const settings = { is_accepting_orders: true, dine_in_qr_enabled: true, require_confirmation_for_qr: true, pickup_enabled: true, delivery_enabled: true, whatsapp_enabled: false, kitchen_auto_print_enabled: false, delivery_fee: 5.5, min_delivery_order: 20, estimated_pickup_minutes: 30, estimated_delivery_minutes: 50,
+    delivery_fee_mode: "fixed", delivery_distance_step_km: 2, delivery_distance_step_fee: 6, delivery_origin_latitude: null, delivery_origin_longitude: null };
   assert.equal(settingsSchema.safeParse(settings).success, true);
   for (const extra of [{ delivery_fee: -1 }, { delivery_fee: 0.001 }, { estimated_pickup_minutes: 0 }, { estimated_delivery_minutes: 2.5 }, { min_delivery_order: NaN }]) assert.equal(settingsSchema.safeParse({ ...settings, ...extra }).success, false);
+  assert.equal(settingsSchema.safeParse({ ...settings, delivery_fee_mode: "distance" }).success, false);
+  assert.equal(settingsSchema.safeParse({ ...settings, delivery_fee_mode: "distance", delivery_origin_latitude: -23.55, delivery_origin_longitude: -46.63 }).success, true);
 });

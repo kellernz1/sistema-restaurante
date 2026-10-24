@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { deliveryFixture } from "./helpers/delivery-fixture.mjs";
 
 const base = process.env.PUBLIC_TEST_URL;
 const api = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -66,6 +67,7 @@ test("cashier can submit all channels and retries do not duplicate kitchen items
   const settings = await admin.from("restaurant_settings").select("*").eq("id", true).single();
   assert.ifError(settings.error);
   assert.ok(settings.data.is_accepting_orders && settings.data.pickup_enabled && settings.data.delivery_enabled, "Enable local ordering channels for this smoke test");
+  const delivery = await deliveryFixture(admin, t, settings.data);
   const price = Math.max(12.35, Math.ceil(settings.data.min_delivery_order));
   assert.ifError((await admin.from("categories").insert({ id: categoryId, name: "__cashier_http_test__" })).error);
   assert.ifError((await admin.from("products").insert({ id: productId, category_id: categoryId, name: "__cashier_http_product__", price })).error);
@@ -84,12 +86,12 @@ test("cashier can submit all channels and retries do not duplicate kitchen items
   assert.equal((await admin.from("customers").select("id", { count: "exact", head: true }).eq("phone", phone)).count, 0);
   for (const type of ["pickup", "delivery"]) {
     const request = { request_id: randomUUID(), payload: { order_type: type, customer_name: "__cashier_http_customer__", customer_phone: phone,
-      payment_method: "pix", items, ...(type === "delivery" ? { delivery_address: { street: "Rua Teste", number: "10", neighborhood: "Centro", city: "São Paulo", state: "SP", zip_code: "01001000" } } : {}) } };
+      payment_method: "pix", items, ...(type === "delivery" ? { delivery_address: delivery.address } : {}) } };
     requestIds.push(request.request_id);
     const response = await post("/api/staff/orders", request, cashier);
     assert.equal(response.status, 201, await response.clone().text());
     const order = await response.json();
-    assert.equal(order.total_amount, price * 2 + (type === "delivery" ? settings.data.delivery_fee : 0));
+    assert.equal(order.total_amount, price * 2 + (type === "delivery" ? delivery.fee : 0));
     const item = await admin.from("order_items").select("id").eq("order_id", order.order_id).single();
     assert.ifError(item.error);
     for (const [expected, status] of [["pending", "preparing"], ["preparing", "ready"]]) {

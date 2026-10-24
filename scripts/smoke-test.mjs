@@ -82,11 +82,6 @@ async function simulateWhatsApp(phone, text) {
   return (result.replies ?? []).map((row) => row.payload);
 }
 
-function firstOption(replies, prefix) {
-  const options = replies.flatMap((reply) => reply?.kind === "buttons" ? reply.buttons : reply?.kind === "list" ? reply.rows : []);
-  return options.find((option) => !prefix || option.id.startsWith(prefix))?.id;
-}
-
 async function cleanup() {
   if (cleanupOrderIds.length) await admin.from("orders").delete().in("id", cleanupOrderIds);
   await admin.from("whatsapp_messages").delete().in("phone", smokePhones);
@@ -163,29 +158,26 @@ await check("anonymous users cannot read orders", async () => {
   expect(Boolean(result.error) || result.data?.length === 0, "anonymous order read returned data");
 });
 
-await check("full WhatsApp mock pickup conversation", async () => {
+await check("WhatsApp mock menu link, web pickup and human handoff", async () => {
   expect(env.WHATSAPP_WORKER_SECRET, "WHATSAPP_WORKER_SECRET is missing");
-  let replies = await simulateWhatsApp(smokePhones[1], "menu");
-  expect(firstOption(replies) === "dine_in" || firstOption(replies) === "pickup", "bot did not return order types");
-  replies = await simulateWhatsApp(smokePhones[1], "pickup");
-  const category = firstOption(replies, "category:");
-  expect(category, "bot did not return categories");
-  replies = await simulateWhatsApp(smokePhones[1], category);
-  const selectedProduct = firstOption(replies, "product:");
-  expect(selectedProduct, "bot did not return products");
-  await simulateWhatsApp(smokePhones[1], selectedProduct);
-  await simulateWhatsApp(smokePhones[1], "1");
-  replies = await simulateWhatsApp(smokePhones[1], "skip");
-  expect(firstOption(replies) === "add", "bot did not show cart actions");
-  await simulateWhatsApp(smokePhones[1], "finish");
-  replies = await simulateWhatsApp(smokePhones[1], "Smoke WhatsApp");
-  expect(firstOption(replies) === "cash", "bot did not request payment");
-  replies = await simulateWhatsApp(smokePhones[1], "pix");
-  expect(firstOption(replies) === "confirm", "bot did not request confirmation");
-  await simulateWhatsApp(smokePhones[1], "confirm");
-  const order = assertResult(await admin.from("orders").select("id,status").eq("source", "whatsapp").eq("customer_phone", smokePhones[1]).order("created_at", { ascending: false }).limit(1).single(), "read WhatsApp smoke order");
+  const replies = await simulateWhatsApp(smokePhones[1], "menu");
+  const expectedLink = `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/order`;
+  expect(replies.some((reply) => reply.kind === "text" && reply.body.includes(expectedLink)), "bot did not return the configured public menu link");
+  expect((await fetch(`${baseUrl}/order`)).status === 200, "linked menu did not open");
+  const before = assertResult(await admin.from("orders").select("id").eq("customer_phone", smokePhones[1]), "check bot orders");
+  expect(before.length === 0, "menu-link reply unexpectedly created an order");
+  const response = await fetch(`${baseUrl}/api/public/orders`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ order_type: "pickup", customer_name: "[SMOKE] WhatsApp link", customer_phone: smokePhones[1], payment_method: "pix", items: [{ product_id: product.id, quantity: 1 }] }),
+  });
+  expect(response.status === 201, `linked checkout returned HTTP ${response.status}`);
+  const created = await response.json();
+  const order = assertResult(await admin.from("orders").select("id,status,source").eq("public_token", created.tracking_path.split("/").at(-1)).single(), "read linked checkout order");
   cleanupOrderIds.push(order.id);
-  expect(order.status === "pending_confirmation", `WhatsApp order status is ${order.status}`);
+  expect(order.status === "pending_confirmation" && order.source === "web", "linked checkout did not create a pending web order");
+  await simulateWhatsApp(smokePhones[1], "atendente");
+  const conversation = assertResult(await admin.from("whatsapp_conversations").select("needs_human").eq("phone", smokePhones[1]).single(), "read human handoff");
+  expect(conversation.needs_human, "human handoff did not pause the bot");
 });
 
 await check("database SQL security and workflow suites", async () => runSqlTests());

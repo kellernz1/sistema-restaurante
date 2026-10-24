@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -26,6 +29,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
   products: Product[];
   categories: Tables["categories"]["Row"][];
 }) {
+  const t = useTranslation();
   const [supabase] = useState(createClient);
   const [table, setTable] = useState(initialTable);
   const [order, setOrder] = useState(initialOrder);
@@ -55,7 +59,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
       : null;
     if (version !== revision.current) return;
     if (tableResult.error || !tableResult.data || orderResult.error || itemResult?.error) {
-      setSyncError("Não foi possível atualizar a comanda. Confira a conexão e tente atualizar.");
+      setSyncError(t("Não foi possível atualizar a comanda. Confira a conexão e tente atualizar."));
     } else {
       setTable(tableResult.data);
       setOrder(orderResult.data);
@@ -63,7 +67,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
       setSyncError("");
     }
     setLoading(false);
-  }, [supabase, initialTable.id, initialOrder]);
+  }, [supabase, initialTable.id, initialOrder, t]);
 
   useEffect(() => {
     let mounted = true;
@@ -78,7 +82,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
         if (!mounted) return;
         if (status === "SUBSCRIBED") update();
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          setSyncError("Atualização em tempo real indisponível. Use Atualizar para conferir os itens.");
+          setSyncError(t("Atualização em tempo real indisponível. Use Atualizar para conferir os itens."));
         }
       });
     update();
@@ -92,7 +96,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
       window.removeEventListener("online", update);
       void supabase.removeChannel(channel);
     };
-  }, [supabase, refresh, initialTable.id, initialOrder]);
+  }, [supabase, refresh, initialTable.id, initialOrder, t]);
 
   async function mutate(action: "submit" | "bill" | "deliver", itemId?: string) {
     if (mutation.current || !active || !order || loading || syncError) return;
@@ -108,20 +112,20 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
         })));
         if (error) throw error;
         setCart([]);
-        setNotice("Pedido enviado com sucesso!");
+        setNotice(t("Pedido enviado com sucesso!"));
       } else if (action === "deliver" && itemId) {
         const { data, error } = await supabase.from("order_items").update({ status: "delivered" })
           .eq("id", itemId).eq("order_id", order.id).eq("status", "ready").select("id");
         if (error || !data?.length) throw error ?? new Error("Item changed");
-        setNotice("Item marcado como entregue.");
+        setNotice(t("Item marcado como entregue."));
       } else if (action === "bill") {
         const { data, error } = await supabase.from("tables").update({ status: "closing" })
           .eq("id", table.id).eq("status", "occupied").select("id");
         if (error || !data?.length) throw error ?? new Error("Table changed");
-        setNotice("Conta solicitada ao caixa.");
+        setNotice(t("Conta solicitada ao caixa."));
       }
     } catch {
-      setNotice("Não foi possível concluir a ação. A comanda pode ter sido encerrada ou alterada, ou um produto pode estar indisponível. Confira os dados atualizados antes de tentar novamente.");
+      setNotice(t("Não foi possível concluir a ação. A comanda pode ter sido encerrada ou alterada, ou um produto pode estar indisponível. Confira os dados atualizados antes de tentar novamente."));
     } finally {
       await refresh();
       mutation.current = false;
@@ -135,44 +139,44 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
   const filtered = products.filter((product) => `${product.name} ${product.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(query));
 
   return <section className="table-detail-state">
-    <Link className="back-link" href="/waiter">← Mapa de mesas</Link><OrderTypeBadge type="dine_in" />
-    <div className="table-detail-heading"><div><span className="eyebrow">{order ? `Comanda #${order.order_number}` : "Sem comanda ativa"}</span>
-      <h1>Mesa {table.table_number}</h1>{order && ["qr", "nfc"].includes(order.source) && <p>via {order.source.toUpperCase()}</p>}</div><span className={`table-status-label status-${table.status}`}>{TABLE_STATUS_LABELS[table.status]}</span></div>
-    {notice && <p className="table-notice table-notice-info" role="status">{notice}</p>}
-    {syncError && <p className="table-notice table-notice-error" role="alert">{syncError}</p>}
-    {!active && <p className="table-notice table-notice-info">Esta comanda está encerrada ou não existe. Volte ao mapa para iniciar um atendimento.</p>}
+    <Link className="back-link" href="/waiter">{t("← Mapa de mesas")}</Link><OrderTypeBadge type="dine_in" />
+    <div className="table-detail-heading"><div><span className="eyebrow">{t(order ? t(`Comanda #${order.order_number}`) : t("Sem comanda ativa"))}</span>
+      <h1>{t("Mesa ")}{table.table_number}</h1>{order && ["qr", "nfc"].includes(order.source) && <p>via {t(order.source.toUpperCase())}</p>}</div><span className={`table-status-label status-${table.status}`}>{t(TABLE_STATUS_LABELS[table.status])}</span></div>
+    {notice && <p className="table-notice table-notice-info" role="status">{t(notice)}</p>}
+    {syncError && <p className="table-notice table-notice-error" role="alert">{t(syncError)}</p>}
+    {!active && <p className="table-notice table-notice-info">{t("Esta comanda está encerrada ou não existe. Volte ao mapa para iniciar um atendimento.")}</p>}
     <div className="order-layout">
-      <section className="order-panel"><h2>Cardápio</h2>
-        <label className="field-group">Buscar produto<input className="order-input" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome ou descrição" /></label>
-        {!filtered.length && <p>Nenhum produto disponível para esta busca.</p>}
+      <section className="order-panel"><h2>{t("Cardápio")}</h2>
+        <label className="field-group">{t("Buscar produto")}<input className="order-input" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("Nome ou descrição")} /></label>
+        {!filtered.length && <p>{t("Nenhum produto disponível para esta busca.")}</p>}
         {categories.map((category) => {
           const categoryProducts = filtered.filter((product) => product.category_id === category.id);
           return categoryProducts.length ? <section key={category.id}><h3>{category.name}</h3>
             <div className="menu-products">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} disabled={disabled} onAdd={() => setCart((current) => [...current, { id: uuid(), product, quantity: 1, notes: "" }])} />)}</div></section> : null;
         })}
       </section>
-      <section className="order-panel"><h2>Novo pedido</h2>
-        {!cart.length && <p>Adicione produtos do cardápio para começar.</p>}
+      <section className="order-panel"><h2>{t("Novo pedido")}</h2>
+        {!cart.length && <p>{t("Adicione produtos do cardápio para começar.")}</p>}
         {cart.map((item, index) => <div className="cart-line" key={item.id}>
-          <strong>{item.product.name}</strong><span>{money.format(item.product.price * item.quantity)}</span>
-          <div className="quantity-control"><button className="ghost-button" disabled={busy} aria-label={`Diminuir quantidade de ${item.product.name}, item ${index + 1}`} onClick={() => setCart((current) => current.flatMap((line) => line.id !== item.id ? [line] : line.quantity > 1 ? [{ ...line, quantity: line.quantity - 1 }] : []))}>−</button>
-            <output aria-label={`Quantidade de ${item.product.name}`}>{item.quantity}</output>
-            <button className="ghost-button" disabled={busy || item.quantity >= 99} aria-label={`Aumentar quantidade de ${item.product.name}, item ${index + 1}`} onClick={() => setCart((current) => current.map((line) => line.id === item.id ? { ...line, quantity: Math.min(99, line.quantity + 1) } : line))}>+</button>
-            <button className="ghost-button" disabled={busy} onClick={() => setCart((current) => current.filter((line) => line.id !== item.id))} aria-label={`Remover ${item.product.name}, item ${index + 1}`}>Remover</button></div>
-          <label className="field-group">Observações — item {index + 1}<textarea className="order-input" maxLength={500} disabled={busy} value={item.notes} placeholder="Ex.: sem cebola" onChange={(event) => setCart((current) => current.map((line) => line.id === item.id ? { ...line, notes: event.target.value } : line))} /></label>
+          <strong>{item.product.name}</strong><span>{t(money.format(item.product.price * item.quantity))}</span>
+          <div className="quantity-control"><button className="ghost-button" disabled={busy} aria-label={t(`Diminuir quantidade de ${item.product.name}, item ${index + 1}`)} onClick={() => setCart((current) => current.flatMap((line) => line.id !== item.id ? [line] : line.quantity > 1 ? [{ ...line, quantity: line.quantity - 1 }] : []))}>−</button>
+            <output aria-label={t(`Quantidade de ${item.product.name}`)}>{item.quantity}</output>
+            <button className="ghost-button" disabled={busy || item.quantity >= 99} aria-label={t(`Aumentar quantidade de ${item.product.name}, item ${index + 1}`)} onClick={() => setCart((current) => current.map((line) => line.id === item.id ? { ...line, quantity: Math.min(99, line.quantity + 1) } : line))}>+</button>
+            <button className="ghost-button" disabled={busy} onClick={() => setCart((current) => current.filter((line) => line.id !== item.id))} aria-label={t(`Remover ${item.product.name}, item ${index + 1}`)}>{t("Remover")}</button></div>
+          <label className="field-group">{t("Observações — item ")}{t(index + 1)}<textarea className="order-input" maxLength={500} disabled={busy} value={item.notes} placeholder={t("Ex.: sem cebola")} onChange={(event) => setCart((current) => current.map((line) => line.id === item.id ? { ...line, notes: event.target.value } : line))} /></label>
         </div>)}
-        <p className="order-total">Total estimado <strong>{money.format(total)}</strong></p>
-        <button className="primary-button" disabled={disabled || !cart.length} onClick={() => void mutate("submit")}>{busy ? "Aguarde..." : "Enviar pedido"}</button>
+        <p className="order-total">{t("Total estimado ")}<strong>{t(money.format(total))}</strong></p>
+        <button className="primary-button" disabled={disabled || !cart.length} onClick={() => void mutate("submit")}>{t(busy ? t("Aguarde...") : t("Enviar pedido"))}</button>
       </section>
     </div>
-    <section className="order-panel" aria-busy={loading}><div className="table-detail-heading"><h2>Itens enviados</h2><button className="ghost-button" disabled={busy} onClick={() => void refresh()}>Atualizar</button></div>
-      {loading ? <p>Carregando itens...</p> : !items.length ? <p>Nenhum item enviado nesta comanda.</p> : <ul className="sent-items">{items.map((item) => <li key={item.id}>
-        <div><strong>{item.quantity} × {item.products?.name ?? "Produto"}</strong>{item.notes && <p>Observações: {item.notes}</p>}<p>{money.format(item.unit_price)} por unidade · {money.format(item.unit_price * item.quantity)}</p></div>
-        <span className={`item-status item-${item.status}`}>{itemLabels[item.status]}</span>
-        {item.status === "ready" && <button className="ghost-button" disabled={disabled} onClick={() => void mutate("deliver", item.id)} aria-label={`Marcar ${item.products?.name ?? "item"} como entregue`}>Marcar entregue</button>}
+    <section className="order-panel" aria-busy={loading}><div className="table-detail-heading"><h2>{t("Itens enviados")}</h2><button className="ghost-button" disabled={busy} onClick={() => void refresh()}>{t("Atualizar")}</button></div>
+      {loading ? <p>{t("Carregando itens...")}</p> : !items.length ? <p>{t("Nenhum item enviado nesta comanda.")}</p> : <ul className="sent-items">{items.map((item) => <li key={item.id}>
+        <div><strong>{item.quantity} × {item.products?.name ?? t("Produto")}</strong>{item.notes && <p>{t("Observações: ")}{item.notes}</p>}<p>{t(money.format(item.unit_price))} {t(" por unidade · ")}{t(money.format(item.unit_price * item.quantity))}</p></div>
+        <span className={`item-status item-${item.status}`}>{t(itemLabels[item.status])}</span>
+        {item.status === "ready" && <button className="ghost-button" disabled={disabled} onClick={() => void mutate("deliver", item.id)} aria-label={t(`Marcar ${item.products?.name ?? "item"} como entregue`)}>{t("Marcar entregue")}</button>}
       </li>)}</ul>}
-      <p className="order-total">Total da comanda <strong>{money.format(order?.total_amount ?? 0)}</strong></p>
-      <button className="primary-button compact-button" disabled={disabled || table.status !== "occupied"} onClick={() => void mutate("bill")}>{table.status === "closing" ? "Conta já solicitada" : "Pedir a conta"}</button>
+      <p className="order-total">{t("Total da comanda ")}<strong>{t(money.format(order?.total_amount ?? 0))}</strong></p>
+      <button className="primary-button compact-button" disabled={disabled || table.status !== "occupied"} onClick={() => void mutate("bill")}>{t(table.status === "closing" ? t("Conta já solicitada") : t("Pedir a conta"))}</button>
     </section>
   </section>;
 }

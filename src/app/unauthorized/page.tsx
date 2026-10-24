@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import { LoaderCircle, LogOut, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -7,6 +10,7 @@ import { useState } from "react";
 import { useAuth } from "@/features/auth/auth-provider";
 
 export default function UnauthorizedPage() {
+  const t = useTranslation();
   const { user, profile, loading, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -25,18 +29,15 @@ export default function UnauthorizedPage() {
         <span className="placeholder-icon danger-icon">
           <ShieldAlert aria-hidden="true" size={30} />
         </span>
-        <p className="eyebrow">Acesso indisponível</p>
-        <h1>{profile?.is_active === false ? "Seu acesso está bloqueado." : "Seu usuário ainda não possui um perfil válido."}</h1>
+        <p className="eyebrow">{t("Acesso indisponível")}</p>
+        <h1>{t(profile?.is_active === false ? t("Seu acesso está bloqueado.") : t("Seu usuário ainda não possui um perfil válido."))}</h1>
         <p>
-          Peça ao administrador para conferir seu cadastro e papel de acesso no
-          restaurante.
-        </p>
+          {t("Peça ao administrador para conferir seu cadastro e papel de acesso no restaurante.")}</p>
 
         {loading ? (
           <span className="muted-inline">
             <LoaderCircle className="spin" aria-hidden="true" size={18} />
-            Verificando sessão...
-          </span>
+            {t("Verificando sessão...")}</span>
         ) : user ? (
           <button
             className="primary-button compact-button"
@@ -49,12 +50,10 @@ export default function UnauthorizedPage() {
             ) : (
               <LogOut aria-hidden="true" size={17} />
             )}
-            Sair e usar outra conta
-          </button>
+            {t("Sair e usar outra conta")}</button>
         ) : (
           <Link className="primary-button compact-button" href="/login">
-            Voltar para o login
-          </Link>
+            {t("Voltar para o login")}</Link>
         )}
       </section>
     </main>

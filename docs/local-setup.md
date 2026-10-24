@@ -140,6 +140,26 @@ npm run test:smoke
 
 O teste confere saúde, banco, cinco logins, páginas públicas, ciclo de retirada, cozinha, RLS, WhatsApp e os testes SQL. `npm run test:all` acrescenta os testes unitários do WhatsApp. Depois de alterar o banco, rode `npm run types` e registre o novo `src/types/database.types.ts`.
 
+### Validação completa com webhook e rota real
+
+Com Docker e Supabase iniciados, execute `npm run test:external`. O comando compila
+a aplicação e abre um servidor temporário somente em `127.0.0.1:3001`. A porta
+pode ser alterada com `EXTERNAL_TEST_PORT`. Ela precisa estar livre.
+
+O ambiente deve usar `APP_MODE=local`, `WHATSAPP_MOCK=true` e cobrança de entrega
+por distância com a origem do restaurante configurada. A consulta real de rota
+precisa de internet e usa `DELIVERY_ROUTING_URL`, ou o serviço público de demonstração
+do OSRM no modo local. `DELIVERY_ROUTE_SMOKE_LOCATION` permite escolher outro ponto
+de destino, diferente da origem. O teste confirma também cache, taxa, checkout
+público e criação pelo caixa.
+
+As credenciais de webhook são aleatórias e temporárias, compartilhadas apenas pelo
+servidor de teste e pela suíte. Não é necessária uma conta Meta. Nenhuma credencial
+real é substituída em `.env.local` e nenhuma mensagem real é enviada. O servidor
+temporário é encerrado ao terminar, inclusive se os testes falharem. Seus registros
+ficam em `logs/external-test-server.log`; o Supabase continua disponível até
+`npm run local:stop`.
+
 ## Solução de problemas
 
 - **Docker não inicia:** abra o Docker Desktop, espere o status ficar pronto e rode `npm run local:start` novamente.

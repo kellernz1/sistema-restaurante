@@ -1,10 +1,14 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ArrowButton } from "@/components/ui";
 
 export function OrderDetails({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  const t = useTranslation();
   const panel = useRef<HTMLElement>(null);
   const [mobile, setMobile] = useState(false);
   useEffect(() => {
@@ -32,10 +36,10 @@ export function OrderDetails({ children, onClose }: { children: ReactNode; onClo
     document.addEventListener("keydown", keyboard);
     return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", keyboard); previous?.focus(); };
   }, [mobile, onClose]);
-  return <><button type="button" className="sheet-backdrop orders-screen-only" aria-label="Fechar detalhes do pedido" tabIndex={-1} onClick={onClose} />
+  return <><button type="button" className="sheet-backdrop orders-screen-only" aria-label={t("Fechar detalhes do pedido")} tabIndex={-1} onClick={onClose} />
     <aside ref={panel} className="order-panel hub-ticket" role={mobile ? "dialog" : undefined} aria-modal={mobile || undefined}
-      aria-label="Detalhes do pedido" tabIndex={-1}>
-      <div className="sheet-close orders-screen-only"><ArrowButton onClick={onClose}>Fechar detalhes</ArrowButton></div>
-      {children}
+      aria-label={t("Detalhes do pedido")} tabIndex={-1}>
+      <div className="sheet-close orders-screen-only"><ArrowButton onClick={onClose}>{t("Fechar detalhes")}</ArrowButton></div>
+      {t(children)}
     </aside></>;
 }

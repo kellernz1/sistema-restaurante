@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import { Clock, RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -20,12 +23,13 @@ function ElapsedTime({ createdAt, now, warningMinutes }: {
   now: number | null;
   warningMinutes: number;
 }) {
+  const t = useTranslation();
   const minutes = now === null ? null : Math.max(0, Math.floor((now - Date.parse(createdAt)) / 60000));
   return (
     <span className={`kitchen-elapsed${minutes !== null && minutes >= warningMinutes ? " kitchen-overdue" : ""}`}>
       <Clock aria-hidden="true" size={15} />
-      {minutes === null ? "Calculando tempo..." : `${minutes} min de espera`}
-      {minutes !== null && minutes >= warningMinutes && " · Atenção"}
+      {t(minutes === null ? t("Calculando tempo...") : t(`${minutes} min de espera`))}
+      {t(minutes !== null && minutes >= warningMinutes && t(" · Atenção"))}
     </span>
   );
 }
@@ -34,9 +38,10 @@ export function KitchenBoard({ initialItems, initialError }: {
   initialItems: KitchenItem[];
   initialError: boolean;
 }) {
+  const t = useTranslation();
   const [supabase] = useState(createClient);
   const [items, setItems] = useState(initialItems);
-  const [error, setError] = useState(initialError ? "Não foi possível carregar a fila. Tente atualizar." : "");
+  const [error, setError] = useState(initialError ? t("Não foi possível carregar a fila. Tente atualizar.") : "");
   const [connectionError, setConnectionError] = useState("");
   const [notice, setNotice] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -83,12 +88,12 @@ export function KitchenBoard({ initialItems, initialError }: {
       setError("");
     } catch {
       if (mounted.current && version === revision.current) {
-        setError("Não foi possível atualizar a fila. Confira sua conexão e tente novamente.");
+        setError(t("Não foi possível atualizar a fila. Confira sua conexão e tente novamente."));
       }
     } finally {
       if (mounted.current && version === revision.current) setRefreshing(false);
     }
-  }, [supabase]);
+  }, [supabase, t]);
 
   useEffect(() => {
     mounted.current = true;
@@ -104,7 +109,7 @@ export function KitchenBoard({ initialItems, initialError }: {
           setConnectionError("");
           update();
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          setConnectionError("Tempo real desconectado. Atualize a fila para conferir os pedidos.");
+          setConnectionError(t("Tempo real desconectado. Atualize a fila para conferir os pedidos."));
         }
       });
     update();
@@ -121,7 +126,7 @@ export function KitchenBoard({ initialItems, initialError }: {
       void audio.current?.close();
       void supabase.removeChannel(channel);
     };
-  }, [supabase, refresh]);
+  }, [supabase, refresh, t]);
 
   async function toggleSound() {
     try {
@@ -132,7 +137,7 @@ export function KitchenBoard({ initialItems, initialError }: {
       soundEnabled.current = !soundEnabled.current;
       setSound(soundEnabled.current);
     } catch {
-      setNotice("Não foi possível ativar o som neste navegador.");
+      setNotice(t("Não foi possível ativar o som neste navegador."));
     }
   }
 
@@ -153,7 +158,7 @@ export function KitchenBoard({ initialItems, initialError }: {
       if (mounted.current) {
         // Only restore an existing card: a cancelled order must not reappear.
         setItems((current) => current.map((row) => row.id === item.id ? { ...row, status: item.status } : row));
-        setNotice("Não foi possível alterar o item. Ele pode ter sido atualizado por outra pessoa. A fila será conferida novamente.");
+        setNotice(t("Não foi possível alterar o item. Ele pode ter sido atualizado por outra pessoa. A fila será conferida novamente."));
       }
     } finally {
       pending.current.delete(item.id);
@@ -167,47 +172,46 @@ export function KitchenBoard({ initialItems, initialError }: {
   return (
     <section className="kitchen-dashboard">
       <div className="table-dashboard-heading">
-        <div><span className="eyebrow">Painel da cozinha</span><h1>Fila de preparo</h1>
-          <p>Pedidos abertos em tempo real. Comece pelos itens com maior tempo de espera.</p></div>
+        <div><span className="eyebrow">{t("Painel da cozinha")}</span><h1>{t("Fila de preparo")}</h1>
+          <p>{t("Pedidos abertos em tempo real. Comece pelos itens com maior tempo de espera.")}</p></div>
         <div className="cashier-actions">
           <button className="ghost-button" aria-pressed={sound} onClick={() => void toggleSound()}>
             {sound ? <Volume2 aria-hidden="true" size={17} /> : <VolumeX aria-hidden="true" size={17} />}
-            {sound ? "Desativar som" : "Ativar som"}
+            {t(sound ? t("Desativar som") : t("Ativar som"))}
           </button>
           <button className="ghost-button refresh-button" disabled={refreshing} onClick={() => void refresh()}>
             <RefreshCw aria-hidden="true" size={17} className={refreshing ? "spin" : ""} />
-            {refreshing ? "Atualizando..." : "Atualizar fila"}
+            {t(refreshing ? t("Atualizando...") : t("Atualizar fila"))}
           </button>
         </div>
       </div>
       <KitchenPrintQueue />
-      <label className="kitchen-threshold">Alertar após
-        <select value={warningMinutes} onChange={(event) => setWarningMinutes(Number(event.target.value))}>
-          {[5, 10, 15, 20, 30].map((value) => <option value={value} key={value}>{value} minutos</option>)}
+      <label className="kitchen-threshold">{t("Alertar após")}<select value={warningMinutes} onChange={(event) => setWarningMinutes(Number(event.target.value))}>
+          {[5, 10, 15, 20, 30].map((value) => <option value={value} key={value}>{t(value)} {t(" minutos")}</option>)}
         </select>
       </label>
-      {(error || connectionError) && <p className="table-notice table-notice-error" role="alert">{error || connectionError}</p>}
-      {notice && <p className="table-notice table-notice-error" role="alert">{notice}</p>}
-      <div className="kitchen-columns" aria-label="Fila de produção" aria-busy={refreshing}>
+      {(error || connectionError) && <p className="table-notice table-notice-error" role="alert">{t(error || connectionError)}</p>}
+      {notice && <p className="table-notice table-notice-error" role="alert">{t(notice)}</p>}
+      <div className="kitchen-columns" aria-label={t("Fila de produção")} aria-busy={refreshing}>
         {columns.map((column) => {
           const columnItems = items.filter((item) => item.status === column.status);
           return <section className={`kitchen-column kitchen-column-${column.status}`} key={column.status}>
-            <h2>{column.title}<span aria-label={`${columnItems.length} itens`}>{columnItems.length}</span></h2>
-            {!columnItems.length && <p className="kitchen-empty">{error ? "Atualize para conferir esta coluna." : "Nenhum item nesta etapa."}</p>}
+            <h2>{t(column.title)}<span aria-label={t(`${columnItems.length} itens`)}>{t(columnItems.length)}</span></h2>
+            {!columnItems.length && <p className="kitchen-empty">{t(error ? t("Atualize para conferir esta coluna.") : t("Nenhum item nesta etapa."))}</p>}
             {columnItems.map((item) => {
               const order = item.orders;
               const isPending = pendingIds.includes(item.id);
               return <article className="kitchen-card" key={item.id} aria-busy={isPending}>
                 <div className="kitchen-card-heading"><OrderTypeBadge type={order.order_type} /><span>#{order.order_number}</span></div>
                 <h3>{order.order_type === "dine_in"
-                  ? `Mesa ${order.tables?.table_number ?? "não informada"}`
-                  : order.customer_name?.trim().split(/\s+/)[0] || "Cliente"}</h3>
-                <p className="kitchen-product"><strong>{item.quantity} ×</strong> {item.products?.name ?? "Produto indisponível"}</p>
-                {item.notes && <p className="kitchen-notes"><strong>Observações:</strong> {item.notes}</p>}
+                  ? t(`Mesa ${order.tables?.table_number ?? t("não informada")}`)
+                  : order.customer_name?.trim().split(/\s+/)[0] || t("Cliente")}</h3>
+                <p className="kitchen-product"><strong>{item.quantity} ×</strong> {item.products?.name ?? t("Produto indisponível")}</p>
+                {item.notes && <p className="kitchen-notes"><strong>{t("Observações:")}</strong> {item.notes}</p>}
                 <ElapsedTime createdAt={item.created_at} now={now} warningMinutes={warningMinutes} />
                 {column.status !== "ready" && <button className="primary-button" disabled={isPending || !!error} onClick={() => void advance(item)}
-                  aria-label={`${column.status === "pending" ? "Iniciar preparo" : "Marcar pronto"}: ${item.products?.name ?? "item"}, pedido ${order.order_number}`}>
-                  {isPending ? "Salvando..." : column.status === "pending" ? "Iniciar preparo" : "Marcar pronto"}
+                  aria-label={t(`${column.status === "pending" ? t("Iniciar preparo") : t("Marcar pronto")}: ${item.products?.name ?? "item"}, pedido ${order.order_number}`)}>
+                  {t(isPending ? t("Salvando...") : column.status === "pending" ? t("Iniciar preparo") : t("Marcar pronto"))}
                 </button>}
               </article>;
             })}

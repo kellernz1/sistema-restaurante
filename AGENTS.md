@@ -10,7 +10,7 @@
 ## Conventions
 
 - Code, identifiers, comments, and commits are written in English.
-- User-facing text is written in Brazilian Portuguese (`pt-BR`).
+- User-facing interface text supports Brazilian Portuguese (`pt-BR`, default) and Spanish (`es`). Use `useTranslation` in Client Components and `getTranslation` in Server Components; add source text and Spanish translations to `src/lib/i18n/es.json`. Keep restaurant-entered menu content unchanged.
 - Currency uses `Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })`.
 - Server Components are the default; Client Components are used only for browser interaction or Realtime.
 - Public customer flows never access Supabase directly; they use validated server endpoints.

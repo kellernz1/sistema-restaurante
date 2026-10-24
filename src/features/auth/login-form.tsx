@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/components/language-provider";
+
+
 import { AlertCircle, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -11,6 +14,7 @@ function isValidEmail(value: string) {
 }
 
 export function LoginForm() {
+  const t = useTranslation();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,12 +27,12 @@ export function LoginForm() {
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!isValidEmail(normalizedEmail)) {
-      setError("Informe um e-mail válido.");
+      setError(t("Informe um e-mail válido."));
       return;
     }
 
     if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
+      setError(t("A senha deve ter pelo menos 6 caracteres."));
       return;
     }
 
@@ -40,7 +44,7 @@ export function LoginForm() {
     });
 
     if (signInError) {
-      setError("E-mail ou senha incorretos. Verifique os dados e tente novamente.");
+      setError(t("E-mail ou senha incorretos. Verifique os dados e tente novamente."));
       setLoading(false);
       return;
     }
@@ -49,7 +53,7 @@ export function LoginForm() {
     const { data: profile } = account.user ? await supabase.from("profiles").select("is_active").eq("id", account.user.id).maybeSingle() : { data: null };
     if (profile?.is_active === false) {
       await supabase.auth.signOut();
-      setError("Seu acesso está bloqueado. Fale com o administrador do restaurante.");
+      setError(t("Seu acesso está bloqueado. Fale com o administrador do restaurante."));
       setLoading(false);
       return;
     }
@@ -60,7 +64,7 @@ export function LoginForm() {
   return (
     <form className="login-form" onSubmit={handleSubmit} noValidate>
       <div className="field-group">
-        <label htmlFor="email">E-mail</label>
+        <label htmlFor="email">{t("E-mail")}</label>
         <div className="input-shell">
           <Mail aria-hidden="true" size={19} />
           <input
@@ -69,7 +73,7 @@ export function LoginForm() {
             type="email"
             autoComplete="email"
             inputMode="email"
-            placeholder="voce@restaurante.com"
+            placeholder={t("voce@restaurante.com")}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             disabled={loading}
@@ -79,7 +83,7 @@ export function LoginForm() {
       </div>
 
       <div className="field-group">
-        <label htmlFor="password">Senha</label>
+        <label htmlFor="password">{t("Senha")}</label>
         <div className="input-shell">
           <LockKeyhole aria-hidden="true" size={19} />
           <input
@@ -87,7 +91,7 @@ export function LoginForm() {
             name="password"
             type="password"
             autoComplete="current-password"
-            placeholder="Digite sua senha"
+            placeholder={t("Digite sua senha")}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             disabled={loading}
@@ -99,7 +103,7 @@ export function LoginForm() {
       {error ? (
         <div className="form-error" role="alert">
           <AlertCircle aria-hidden="true" size={18} />
-          <span>{error}</span>
+          <span>{t(error)}</span>
         </div>
       ) : null}
 
@@ -107,10 +111,9 @@ export function LoginForm() {
         {loading ? (
           <>
             <LoaderCircle className="spin" aria-hidden="true" size={18} />
-            Entrando...
-          </>
+            {t("Entrando...")}</>
         ) : (
-          "Entrar"
+          t("Entrar")
         )}
       </button>
     </form>
