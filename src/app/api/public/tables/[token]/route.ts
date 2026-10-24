@@ -8,7 +8,7 @@ export async function GET(request: Request, context: PublicTableContext) {
     const { table, settings } = await resolvePublicTable(token);
     const db = createAdminClient();
     const [products, categories] = await Promise.all([
-      db.from("products").select("id, category_id, name, price, description").eq("is_active", true).order("name"),
+      db.from("products").select("id, category_id, name, price, description, image_version").eq("is_active", true).order("name"),
       db.from("categories").select("id, name").order("sort_order").order("name"),
     ]);
     if (products.error || categories.error) throw products.error ?? categories.error;

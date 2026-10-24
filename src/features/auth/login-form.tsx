@@ -45,6 +45,14 @@ export function LoginForm() {
       return;
     }
 
+    const { data: account } = await supabase.auth.getUser();
+    const { data: profile } = account.user ? await supabase.from("profiles").select("is_active").eq("id", account.user.id).maybeSingle() : { data: null };
+    if (profile?.is_active === false) {
+      await supabase.auth.signOut();
+      setError("Seu acesso está bloqueado. Fale com o administrador do restaurante.");
+      setLoading(false);
+      return;
+    }
     router.replace("/");
     router.refresh();
   }

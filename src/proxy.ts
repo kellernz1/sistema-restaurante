@@ -50,11 +50,11 @@ export async function proxy(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, is_active")
     .eq("id", user.id)
     .maybeSingle();
 
-  const role = profile?.role as UserRole | undefined;
+  const role = (profile?.is_active ? profile.role : undefined) as UserRole | undefined;
   if (!role) {
     return redirectWithCookies(request, "/unauthorized", response);
   }

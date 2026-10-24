@@ -3,7 +3,7 @@ begin;
 insert into public.categories(name) values('__phase10_category__');
 insert into public.products(category_id,name,price) select id,'__phase10_product__',12.35 from public.categories where name='__phase10_category__';
 insert into public.tables(table_number,capacity) values(999994,2);
-update public.restaurant_settings set is_accepting_orders=true,whatsapp_enabled=true,pickup_enabled=true,delivery_enabled=true,dine_in_qr_enabled=true,require_confirmation_for_qr=false,delivery_fee=5.50,min_delivery_order=20 where id=true;
+update public.restaurant_settings set delivery_fee_mode='fixed',is_accepting_orders=true,whatsapp_enabled=true,pickup_enabled=true,delivery_enabled=true,dine_in_qr_enabled=true,require_confirmation_for_qr=false,delivery_fee=5.50,min_delivery_order=20 where id=true;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 select set_config('request.jwt.claim.role','service_role',true);
 select set_config('request.jwt.claim.sub','',true);

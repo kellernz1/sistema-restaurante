@@ -34,6 +34,8 @@ export function StaffShell({ children }: { children: ReactNode }) {
     );
   }
 
+  if (!role) return <main className="centered-state"><p>Acesso indisponível. Confira seu cadastro com o administrador.</p><Link className="back-link" href="/unauthorized">Conferir acesso</Link></main>;
+
   return (
     <div className="staff-app">
       <header className="staff-header">
@@ -50,7 +52,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
         <nav className="staff-navigation" aria-label="Navegação da equipe">
           {role && <Link href={ROLE_DASHBOARDS[role]}>Meu painel</Link>}
           {role && ["admin", "cashier", "waiter"].includes(role) && <Link href="/orders">Pedidos</Link>}
-          {role === "admin" && <><Link href="/admin/tables/qr">QR codes</Link><Link href="/admin/settings">Configurações</Link></>}
+          {role === "admin" && <><Link href="/admin/menu">Cardápio</Link><Link href="/admin/tables/qr">QR codes</Link><Link href="/admin/settings">Configurações</Link></>}
         </nav>
         <div className="staff-account">
           <div className="staff-identity">

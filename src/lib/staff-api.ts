@@ -7,7 +7,7 @@ export async function requireStaff(roles: string[]) {
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user) throw new PublicApiError(401, "Entre na sua conta para continuar.");
-  const { data: profile } = await db.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (!profile || !roles.includes(profile.role)) throw new PublicApiError(403, "Seu acesso não permite esta ação.");
-  return { db, role: profile.role };
+  const { data: profile } = await db.from("profiles").select("role, is_active").eq("id", user.id).maybeSingle();
+  if (!profile || !profile.is_active || !roles.includes(profile.role)) throw new PublicApiError(403, "Seu acesso não permite esta ação.");
+  return { db, role: profile.role, userId: user.id };
 }

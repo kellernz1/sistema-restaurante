@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useAuth } from "@/features/auth/auth-provider";
 
 export default function UnauthorizedPage() {
-  const { user, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   async function handleSignOut() {
@@ -25,8 +25,8 @@ export default function UnauthorizedPage() {
         <span className="placeholder-icon danger-icon">
           <ShieldAlert aria-hidden="true" size={30} />
         </span>
-        <p className="eyebrow">Acesso não configurado</p>
-        <h1>Seu usuário ainda não possui um perfil válido.</h1>
+        <p className="eyebrow">Acesso indisponível</p>
+        <h1>{profile?.is_active === false ? "Seu acesso está bloqueado." : "Seu usuário ainda não possui um perfil válido."}</h1>
         <p>
           Peça ao administrador para conferir seu cadastro e papel de acesso no
           restaurante.

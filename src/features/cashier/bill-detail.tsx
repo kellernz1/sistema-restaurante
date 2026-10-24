@@ -5,12 +5,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { OrderTypeBadge } from "@/components/order-type-badge";
 import { customerApi } from "@/features/customer-ordering/public-client";
 import type { Database } from "@/types/database.types";
+import type { StoredRow } from "@/types/records";
 import { createClient } from "@/utils/supabase/client";
 
 import { billItemsQuery, type BillItem, type CashierTable } from "./cashier-query";
 import { billSubtotal, lineSubtotalInCents } from "./bill-totals";
 
-type Order = Database["public"]["Tables"]["orders"]["Row"];
+type Order = StoredRow<"orders">;
 type Payment = Database["public"]["Enums"]["payment_method"];
 const payments: Record<Payment, string> = { cash: "Dinheiro", card: "Cartão", pix: "Pix" };
 const statuses = { pending: "Recebido", preparing: "Preparando", ready: "Pronto", delivered: "Entregue" };

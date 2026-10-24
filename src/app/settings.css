@@ -1,0 +1,52 @@
+@media screen {
+  html .settings-workspace { display: grid; gap: 28px; padding-bottom: 80px; }
+  html .settings-page-heading h1 { margin: 10px 0 12px; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; }
+  html .settings-page-heading p { margin: 0; color: var(--muted); }
+  html .settings-workspace-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; align-items: start; }
+  html .settings-section-nav { position: sticky; top: 100px; display: grid; gap: 8px; }
+  html .settings-section-nav > button { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 76px; padding: 16px; border: 0; border-radius: 18px; background: transparent; color: var(--muted); text-align: left; cursor: pointer; transition: background 200ms, color 200ms; }
+  html .settings-section-nav > button[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand); }
+  html .settings-section-nav > button:hover { background: var(--surface-soft); }
+  html .settings-section-nav > button:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+  html .settings-section-nav > button > svg { flex-shrink: 0; }
+  html .settings-section-nav strong, html .settings-section-nav small { display: block; }
+  html .settings-section-nav strong { font-size: 15px; }
+  html .settings-section-nav small { margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+  html .settings-section-card { display: grid; gap: 28px; min-width: 0; }
+  html .settings-section-heading h2 { margin: 0; font-size: 28px; font-weight: 700; font-family: var(--font-system); }
+  html .settings-section-heading p { margin: 8px 0 0; font-size: 14px; }
+  html .settings-fieldset { display: grid; gap: 16px; margin: 0; padding: 24px 0 0; min-width: 0; border: 0; border-top: 1px solid var(--line); }
+  html .settings-fieldset > legend { padding: 0 12px 0 0; font-weight: 600; font-size: 16px; color: var(--foreground); }
+  html .settings-fieldset > p { margin: 0; font-size: 14px; }
+  html .settings-fieldset > button { justify-self: start; min-height: 44px; }
+  html .settings-switch-row { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 68px; cursor: pointer; }
+  html .settings-switch-row strong { display: block; font-size: 15px; font-weight: 600; }
+  html .settings-switch-row small { display: block; color: var(--muted); margin-top: 6px; font-size: 13px; line-height: 1.5; }
+  html .settings-switch-row input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--brand); cursor: pointer; }
+  html .settings-fields-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  html .settings-context-note { display: grid; gap: 12px; padding: 20px; border-radius: 18px; background: var(--surface-soft); }
+  html .settings-context-note p { margin: 0; font-size: 14px; }
+  html .settings-context-note > button, html .settings-context-note > a { justify-self: start; text-align: left; }
+  html .settings-coordinate-details summary { color: var(--brand); cursor: pointer; padding: 12px 0; }
+  html .settings-coordinate-details .settings-fields-grid { margin-top: 12px; }
+  html .settings-save-bar { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 25; display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 20px 24px; border: 1px solid var(--line); border-radius: 22px; background: var(--header-surface); backdrop-filter: blur(16px); box-shadow: var(--shadow); }
+  html .settings-save-bar strong, html .settings-save-bar small { display: block; }
+  html .settings-save-bar strong { font-size: 14px; }
+  html .settings-save-bar small { margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  html .settings-save-bar > button { flex-shrink: 0; min-height: 46px; }
+  @media (max-width: 900px) {
+    html .settings-workspace-layout { grid-template-columns: 1fr; gap: 20px; }
+    html .settings-section-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    html .settings-section-nav > button { background: var(--surface); min-height: 72px; }
+  }
+  @media (max-width: 640px) {
+    html .settings-workspace { gap: 20px; }
+    html .settings-section-nav > button { padding: 12px; gap: 10px; min-height: 64px; }
+    html .settings-section-nav small { display: none; }
+    html .settings-section-nav strong { font-size: 13px; }
+    html .settings-fields-grid { grid-template-columns: 1fr; gap: 16px; }
+    html .settings-save-bar { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }
+    html .settings-save-bar small { display: none; }
+    html .settings-save-bar > button { width: 100%; }
+  }
+}

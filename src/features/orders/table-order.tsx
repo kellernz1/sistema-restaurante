@@ -3,22 +3,25 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ProductCard } from "@/components/product-card";
+
 import { OrderTypeBadge } from "@/components/order-type-badge";
 import { TABLE_STATUS_LABELS } from "@/features/tables/table-status";
 import { uuid } from "@/lib/uuid";
 import type { Database } from "@/types/database.types";
+import type { StoredRow } from "@/types/records";
 import { createClient } from "@/utils/supabase/client";
 
 type Tables = Database["public"]["Tables"];
-type Order = Tables["orders"]["Row"];
-type Product = Tables["products"]["Row"];
-type SentItem = Tables["order_items"]["Row"] & { products: { name: string } | null };
+type Order = StoredRow<"orders">;
+type Product = StoredRow<"products">;
+type SentItem = StoredRow<"order_items"> & { products: { name: string } | null };
 type CartItem = { id: string; product: Product; quantity: number; notes: string };
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const itemLabels = { pending: "Recebido", preparing: "Preparando", ready: "Pronto", delivered: "Entregue" };
 
 export function TableOrder({ initialTable, initialOrder, products, categories }: {
-  initialTable: Tables["tables"]["Row"];
+  initialTable: StoredRow<"tables">;
   initialOrder: Order | null;
   products: Product[];
   categories: Tables["categories"]["Row"][];
@@ -145,10 +148,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
         {categories.map((category) => {
           const categoryProducts = filtered.filter((product) => product.category_id === category.id);
           return categoryProducts.length ? <section key={category.id}><h3>{category.name}</h3>
-            <div className="menu-products">{categoryProducts.map((product) => <article className="menu-product" key={product.id}>
-              <div><strong>{product.name}</strong><p>{product.description}</p><span>{money.format(product.price)}</span></div>
-              <button className="ghost-button" disabled={disabled} onClick={() => setCart((current) => [...current, { id: uuid(), product, quantity: 1, notes: "" }])} aria-label={`Adicionar ${product.name}`}>Adicionar</button>
-            </article>)}</div></section> : null;
+            <div className="menu-products">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} disabled={disabled} onAdd={() => setCart((current) => [...current, { id: uuid(), product, quantity: 1, notes: "" }])} />)}</div></section> : null;
         })}
       </section>
       <section className="order-panel"><h2>Novo pedido</h2>

@@ -14,7 +14,7 @@ export function generateDatabaseTypes() {
 
   const destination = path.join(ROOT, "src", "types", "database.types.ts");
   const temporary = `${destination}.tmp`;
-  fs.writeFileSync(temporary, result.stdout, "utf8");
+  fs.writeFileSync(temporary, result.stdout.replace(/[ \t]+$/gm, ""), "utf8");
   fs.renameSync(temporary, destination);
   console.log(`Generated ${path.relative(ROOT, destination)}.`);
 }

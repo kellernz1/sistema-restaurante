@@ -6,6 +6,30 @@ const fields = ["street", "number", "neighborhood", "city", "state", "zip_code",
 const blank = (now: number): Session => ({ state: "type", context: { cart: [] }, needs_human: false, opted_out: false, last_message_at: new Date(now).toISOString() });
 const buttons = (body: string, entries: [string, string][]): Reply => ({ kind: "buttons", body, buttons: entries.map(([id, title]) => ({ id, title })) });
 
+export function transitionToMenuLink(previous: Session, input: Input, env: Environment): Transition {
+  const value = input.text.trim().toLocaleLowerCase("pt-BR");
+  // Keep consent and handoff handling shared, but never resume a conversational cart.
+  const result = transition({ ...previous, state: "welcome", context: { cart: [] } }, input, env);
+  if (["parar", "sair", "atendente", "cancelar"].includes(value)
+    || result.session.needs_human || result.session.opted_out
+    || !env.settings.is_accepting_orders || !env.settings.whatsapp_enabled) return result;
+
+  const raw = input.text.trim();
+  const table = raw.startsWith("MESA-") && env.settings.dine_in_qr_enabled
+    ? env.tables.find((entry) => entry.qr_token === raw.slice(5) && entry.status !== "closing")
+    : undefined;
+  result.session = { ...result.session, state: "type", context: { cart: [] } };
+  const replies: Reply[] = [];
+  if (table) {
+    replies.push({ kind: "text", body: `Olá! Faça seu pedido pelo cardápio da mesa ${table.table_number}:\n${env.appUrl}/t/${encodeURIComponent(table.qr_token)}\n\nEscolha os pratos, confira os itens e finalize na página. Para falar com a equipe, digite atendente.` });
+  } else if (env.settings.pickup_enabled || env.settings.delivery_enabled) {
+    replies.push({ kind: "text", body: `Olá! Acesse nosso cardápio e faça seu pedido:\n${env.appUrl}/order\n\nNa página você escolhe os pratos, ${env.settings.pickup_enabled && env.settings.delivery_enabled ? "retirada ou entrega" : env.settings.pickup_enabled ? "retirada" : "entrega"}, informa seus dados e finaliza o pedido. Para falar com a equipe, digite atendente.${env.settings.dine_in_qr_enabled ? "\n\nEstá no restaurante? Use o QR code da sua mesa para pedir." : ""}\nDigite parar para pausar as mensagens.` });
+  } else {
+    replies.push({ kind: "text", body: env.settings.dine_in_qr_enabled ? "Para fazer seu pedido, acesse o cardápio pelo QR code da sua mesa. Se precisar de ajuda, digite atendente." : text.closed });
+  }
+  return { session: result.session, replies };
+}
+
 export function prompt(session: Session, env: Environment): Reply[] {
   const c = session.context;
   switch (session.state) {

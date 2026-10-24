@@ -1,24 +1,41 @@
 "use client";
 
-import { type Dispatch, type SetStateAction, useState } from "react";
+import { ProductCard } from "@/components/product-card";
 
-export type CatalogProduct = { id: string; category_id: string; name: string; price: number; description: string | null };
+import { type Dispatch, type SetStateAction, useRef, useState } from "react";
+
+export type CatalogProduct = { id: string; category_id: string; name: string; price: number; description: string | null; image_version?: string | null };
 export type CatalogCategory = { id: string; name: string };
 export type CartLine = { id: string; product: CatalogProduct; quantity: number; notes: string };
 export const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 export function cartSubtotal(cart: CartLine[]) { return cart.reduce((sum, item) => sum + Math.round(item.product.price * 100) * item.quantity, 0) / 100; }
 
-export function ProductCatalog({ products, categories, disabled, cartCount, onAdd }: {
-  products: CatalogProduct[]; categories: CatalogCategory[]; disabled: boolean; cartCount: number; onAdd: (product: CatalogProduct) => void;
+export function ProductCatalog({ products, categories, disabled, cartCount, onAdd, pageSize }: {
+  products: CatalogProduct[]; categories: CatalogCategory[]; disabled: boolean; cartCount: number; onAdd: (product: CatalogProduct) => void; pageSize?: number;
 }) {
   const [search, setSearch] = useState("");
-  const visible = products.filter((product) => `${product.name} ${product.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")));
-  return <section className="order-panel"><h2>Cardápio</h2><label className="field-group">Buscar produto<input className="order-input" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome ou descrição" /></label>
+  const [categoryId, setCategoryId] = useState("");
+  const [page, setPage] = useState(1);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const filtered = products.filter((product) => (!pageSize || !categoryId || product.category_id === categoryId) && `${product.name} ${product.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")));
+  const ordered = categories.flatMap((category) => filtered.filter((product) => product.category_id === category.id));
+  const totalPages = pageSize ? Math.max(1, Math.ceil(ordered.length / pageSize)) : 1;
+  const currentPage = Math.min(page, totalPages);
+  const visible = pageSize ? ordered.slice((currentPage - 1) * pageSize, currentPage * pageSize) : filtered;
+  function changePage(next: number) {
+    setPage(next);
+    heading.current?.focus({ preventScroll: true });
+    heading.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }
+  return <section className="order-panel paginated-catalog"><h2 ref={heading} tabIndex={-1}>Cardápio</h2><label className="field-group">Buscar produto<input className="order-input" type="search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Nome ou descrição" /></label>
+    {pageSize && <div className="catalog-page-filters"><label className="field-group">Categoria<select className="order-input" value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setPage(1); }}><option value="">Todas as categorias</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><p role="status">{ordered.length} {ordered.length === 1 ? "produto" : "produtos"} · {visible.length ? `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, ordered.length)}` : "0"} nesta página</p></div>}
     {!visible.length && <p>Nenhum produto encontrado.</p>}
     {categories.map((category) => {
       const entries = visible.filter((product) => product.category_id === category.id);
-      return entries.length ? <section key={category.id}><h3>{category.name}</h3>{entries.map((product) => <article className="menu-product" key={product.id}><div><strong>{product.name}</strong><p>{product.description}</p><span>{money.format(product.price)}</span></div><button className="ghost-button" disabled={disabled || cartCount >= 50} aria-label={`Adicionar ${product.name}`} onClick={() => onAdd(product)}>Adicionar</button></article>)}</section> : null;
-    })}</section>;
+      return entries.length ? <section key={category.id}><h3>{category.name}</h3><div className="menu-products">{entries.map((product) => <ProductCard key={product.id} product={product} disabled={disabled || cartCount >= 50} onAdd={() => onAdd(product)} />)}</div></section> : null;
+    })}
+    {pageSize && totalPages > 1 && <nav className="catalog-pagination" aria-label="Páginas do cardápio"><button type="button" className="ghost-button" disabled={currentPage === 1} onClick={() => changePage(currentPage - 1)}>‹ Anterior</button><span role="status">Página {currentPage} de {totalPages}</span><button type="button" className="ghost-button" disabled={currentPage === totalPages} onClick={() => changePage(currentPage + 1)}>Próxima ›</button></nav>}
+  </section>;
 }
 
 export function CartEditor({ cart, setCart, busy }: { cart: CartLine[]; setCart: Dispatch<SetStateAction<CartLine[]>>; busy: boolean }) {

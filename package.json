@@ -11,6 +11,7 @@
     "local:env": "node scripts/local/env.mjs",
     "local:start": "node scripts/local/start.mjs",
     "local:stop": "node scripts/local/stop.mjs",
+    "local:share:stop": "node scripts/local/stop-customer-preview.mjs",
     "local:info": "node scripts/local/info.mjs",
     "db:reset": "node scripts/local/reset.mjs",
     "db:backup": "node scripts/local/backup.mjs",
@@ -32,6 +33,7 @@
     "qrcode": "^1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "sharp": "0.35.5",
     "zod": "^4.6.7"
   },
   "devDependencies": {

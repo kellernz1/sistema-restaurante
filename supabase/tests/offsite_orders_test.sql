@@ -8,7 +8,7 @@ insert into public.tables(table_number, capacity) values (999996, 2);
 insert into phase9_context(product_id, table_id, table_status)
   select p.id, t.id, t.status from public.products p cross join public.tables t where p.name = '__phase9_product__' and t.table_number = 999996;
 insert into public.restaurant_settings(id, is_accepting_orders, pickup_enabled, delivery_enabled, delivery_fee, min_delivery_order)
-  values (true, true, true, true, 5.50, 20) on conflict(id) do update set is_accepting_orders = true, pickup_enabled = true, delivery_enabled = true, delivery_fee = 5.50, min_delivery_order = 20;
+  values (true, true, true, true, 5.50, 20) on conflict(id) do update set delivery_fee_mode = 'fixed', is_accepting_orders = true, pickup_enabled = true, delivery_enabled = true, delivery_fee = 5.50, min_delivery_order = 20;
 
 do $$ begin
   if not exists(select 1 from public.profiles where role = 'cashier') or not exists(select 1 from public.profiles where role = 'waiter') then raise exception 'Seed cashier and waiter users first'; end if;

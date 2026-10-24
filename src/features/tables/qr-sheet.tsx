@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import QRCode from "qrcode";
+import { flushSync } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ArrowButton, PillButton } from "@/components/ui";
 import { createClient } from "@/utils/supabase/client";
 
 type QrTable = { id: string; table_number: number; qr_token: string };
@@ -28,11 +30,33 @@ export function QrSheet({ initialTables, appUrl }: { initialTables: QrTable[]; a
   const [tables, setTables] = useState(initialTables);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [printTableId, setPrintTableId] = useState<string | null>(null);
   const [readyUrls, setReadyUrls] = useState(new Set<string>());
   const onReady = useCallback((url: string) => {
     setReadyUrls((current) => current.has(url) ? current : new Set([...current, url]));
   }, []);
   const lock = useRef(false);
+  useEffect(() => {
+    const reset = () => setPrintTableId(null);
+    window.addEventListener("afterprint", reset);
+    return () => window.removeEventListener("afterprint", reset);
+  }, []);
+
+  function printTable(id: string | null) {
+    flushSync(() => setPrintTableId(id));
+    window.print();
+  }
+
+  async function download(table: QrTable) {
+    try {
+      const svg = await QRCode.toString(`${appUrl}/t/${table.qr_token}?src=qr`, { type: "svg", errorCorrectionLevel: "M", margin: 4, width: 1024 });
+      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+      const anchor = document.createElement("a");
+      anchor.href = url; anchor.download = `mesa-${table.table_number}-qr.svg`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { setNotice("Não foi possível baixar o QR. Tente novamente."); }
+  }
 
   async function rotate(table: QrTable) {
     if (lock.current || !window.confirm(`Renovar o QR da Mesa ${table.table_number}? Os códigos e etiquetas NFC antigos deixarão de funcionar.`)) return;
@@ -46,14 +70,14 @@ export function QrSheet({ initialTables, appUrl }: { initialTables: QrTable[]; a
     finally { lock.current = false; setBusy(false); }
   }
 
-  return <section className="qr-sheet"><header className="qr-screen-only"><span className="eyebrow">Administração</span><h1>QR codes das mesas</h1><p>Confira o endereço do restaurante antes de imprimir. Cada mesa tem seu próprio código.</p><button className="primary-button" disabled={busy || !tables.length || tables.some((table) => !readyUrls.has(`${appUrl}/t/${table.qr_token}?src=qr`))} onClick={() => window.print()}>Imprimir folha A4</button></header>
+  return <section className="qr-sheet" data-print-table={printTableId ?? undefined}><header className="qr-screen-only section-heading"><div><span className="eyebrow">Administração</span><h1>QR codes das mesas</h1><p>Confira o endereço do restaurante antes de imprimir. Cada mesa tem seu próprio código.</p></div><ArrowButton disabled={busy || !tables.length || tables.some((table) => !readyUrls.has(`${appUrl}/t/${table.qr_token}?src=qr`))} onClick={() => printTable(null)}>Imprimir folha A4</ArrowButton></header>
     {notice && <p className="table-notice table-notice-info qr-screen-only" role="status">{notice}</p>}
     {!tables.length && <p>Nenhuma mesa cadastrada.</p>}
     <div className="qr-grid">{tables.map((table) => {
       const url = `${appUrl}/t/${table.qr_token}?src=qr`;
-      return <article className="qr-card" key={table.id}><span className="eyebrow">Mesa Certa</span><h2>Mesa {table.table_number}</h2><p>Escaneie para pedir</p><QrImage key={url} url={url} tableNumber={table.table_number} onReady={onReady} />
+      return <article className="qr-card" key={table.id} data-print-selected={printTableId === table.id}><span className="eyebrow">Mesa Certa</span><h2>Mesa {table.table_number}</h2><p>Escaneie para pedir</p><div className="qr-artwork"><QrImage key={url} url={url} tableNumber={table.table_number} onReady={onReady} /></div>
         <a href={url} className="qr-url" rel="noreferrer">{url}</a><p className="qr-screen-only">NFC: {`${appUrl}/t/${table.qr_token}?src=nfc`}</p>
-        <button className="ghost-button qr-screen-only" disabled={busy} onClick={() => void rotate(table)}>Renovar token</button></article>;
+        <div className="lineup-actions qr-screen-only"><PillButton disabled={busy || !readyUrls.has(url)} onClick={() => void download(table)}>Baixar</PillButton><ArrowButton disabled={busy || !readyUrls.has(url)} onClick={() => printTable(table.id)}>Imprimir</ArrowButton></div><ArrowButton className="qr-screen-only qr-rotate" disabled={busy} onClick={() => void rotate(table)}>Renovar token</ArrowButton></article>;
     })}</div>
   </section>;
 }

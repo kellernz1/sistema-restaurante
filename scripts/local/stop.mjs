@@ -2,6 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { isProcessRunning, isWindows, LOCAL_STATE_DIR, run, runSupabase } from "./lib.mjs";
+import { stopCustomerPreview } from "./stop-customer-preview.mjs";
+
+stopCustomerPreview();
 
 const stateFile = path.join(LOCAL_STATE_DIR, "processes.json");
 const state = fs.existsSync(stateFile)

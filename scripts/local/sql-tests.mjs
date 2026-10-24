@@ -9,6 +9,9 @@ const testFiles = [
   "offsite_orders_test.sql",
   "whatsapp_bot_test.sql",
   "local_security_test.sql",
+  "cashier_orders_test.sql",
+  "employee_access_test.sql",
+  "distance_delivery_test.sql",
 ];
 
 export async function runSqlTests() {

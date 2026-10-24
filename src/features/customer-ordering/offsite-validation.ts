@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { tableOrderSchema } from "./validation.ts";
+import { mapLinkSchema } from "./delivery-location.ts";
 
 export function normalizePhone(value: string) {
   const cleaned = value.replace(/[\s().-]/g, "");
@@ -18,7 +19,21 @@ export const addressSchema = z.strictObject({
   state: z.enum(["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]),
   zip_code: z.string().transform((value) => value.replace(/[-.\s]/g, "")).pipe(z.string().regex(/^\d{8}$/)),
   reference: z.string().trim().max(200).default(""),
+  location_url: mapLinkSchema.optional(),
+  delivery_quote_id: z.uuid().optional(),
 });
+
+// A map point can be used by itself; any written delivery details are optional.
+const locatedAddressSchema = addressSchema.extend({
+  street: z.string().trim().max(120).default(""),
+  number: z.string().trim().max(20).default(""),
+  neighborhood: z.string().trim().max(80).default(""),
+  city: z.string().trim().max(80).default(""),
+  state: z.union([addressSchema.shape.state, z.literal("")]).default(""),
+  zip_code: z.string().transform((value) => value.replace(/[-.\s]/g, "")).pipe(z.string().regex(/^(?:\d{8})?$/)).default(""),
+  location_url: mapLinkSchema,
+});
+export const deliveryAddressSchema = z.union([addressSchema, locatedAddressSchema]);
 
 const fields = {
   items: tableOrderSchema.shape.items,
@@ -28,7 +43,7 @@ const fields = {
 };
 export const offsiteOrderSchema = z.discriminatedUnion("order_type", [
   z.strictObject({ ...fields, order_type: z.literal("pickup") }),
-  z.strictObject({ ...fields, order_type: z.literal("delivery"), delivery_address: addressSchema }),
+  z.strictObject({ ...fields, order_type: z.literal("delivery"), delivery_address: deliveryAddressSchema }),
 ]).refine((value) => value.cash_change_for === undefined || value.payment_method === "cash", { message: "Troco exige pagamento em dinheiro." });
 
 export const orderActionSchema = z.strictObject({

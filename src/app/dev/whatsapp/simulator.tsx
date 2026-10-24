@@ -67,7 +67,7 @@ export function WhatsAppSimulator() {
           {messages.map((message) => (
             <article className={`simulator-bubble simulator-bubble-${message.side}`} key={message.id}>
               <small>{message.side === "customer" ? "Cliente" : "Bot"}</small>
-              <p>{message.text}</p>
+              <p>{message.text.split(/(https?:\/\/[^\s]+)/g).map((part, index) => /^https?:\/\//.test(part) ? <a key={index} href={part} target="_blank" rel="noopener noreferrer">{part}</a> : part)}</p>
               {message.reply?.kind === "buttons" ? (
                 <div className="simulator-options">
                   {message.reply.buttons.map((button) => <button disabled={pending} key={button.id} onClick={() => send(button.id)}>{button.title}</button>)}

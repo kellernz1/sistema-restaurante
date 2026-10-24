@@ -9,10 +9,10 @@ import { sendWhatsApp } from "./client";
 import { text } from "./messages.pt-BR";
 import { assertReply, webhookSchema } from "./protocol";
 import { mockAllowed } from "./security";
-import { prompt, transition } from "./state-machine";
+import { prompt, transitionToMenuLink } from "./state-machine";
 import type { Context, Environment, Input, Reply, Session } from "./types";
 
-const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json;
+const json = (value: object): NonNullable<Json> => JSON.parse(JSON.stringify(value)) as NonNullable<Json>;
 type Job = Tables<"whatsapp_messages">;
 export function checkWhatsAppMode() {
   if (process.env.WHATSAPP_MOCK === "true" && !mockAllowed(process.env.NODE_ENV, process.env.WHATSAPP_MOCK, process.env.APP_MODE)) {
@@ -33,7 +33,7 @@ export async function ingestWebhook(value: unknown) {
   const parsed = webhookSchema.parse(value);
   const db = createAdminClient();
   const phones = new Map<string, string>();
-  const messages = new Map<string, { wa_message_id: string; phone: string; direction: string; payload: Json }>();
+  const messages = new Map<string, { wa_message_id: string; phone: string; direction: string; payload: NonNullable<Json> }>();
   const remember = (phone: string, at: string) => { if (!phones.has(phone) || at < phones.get(phone)!) phones.set(phone, at); };
   for (const entry of parsed.entry) for (const change of entry.changes) {
     if (change.value.metadata.phone_number_id !== process.env.WHATSAPP_PHONE_NUMBER_ID) continue;
@@ -90,7 +90,7 @@ async function incoming(job: Job) {
   const stored = row.context as unknown as Partial<Context>;
   const session: Session = { state: row.state, context: { ...stored, cart: stored.cart ?? [] }, needs_human: row.needs_human, opted_out: row.opted_out, last_message_at: row.last_message_at };
   const env = await environment(job.phone);
-  const result = transition(session, job.payload as unknown as Input, env);
+  const result = transitionToMenuLink(session, job.payload as unknown as Input, env);
   const commit = async (order?: Json) => {
     result.replies.forEach(assertReply);
     await commitWhatsAppTurn(job.id, job.lease_token!, json({ ...result.session,

@@ -2,14 +2,14 @@ import "server-only";
 
 import { after } from "next/server";
 
-import type { Tables } from "@/types/database.types";
+import type { StoredRow } from "@/types/records";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { drainWhatsApp } from "@/features/whatsapp/handlers";
 import { notificationMessage } from "@/features/whatsapp/messages.pt-BR";
 
 export type CustomerEvent = "accepted" | "rejected" | "ready" | "out_for_delivery" | "completed";
 
-export async function notifyCustomer(order: Tables<"orders">, event: CustomerEvent): Promise<void> {
+export async function notifyCustomer(order: StoredRow<"orders">, event: CustomerEvent): Promise<void> {
   if (order.source !== "whatsapp" || !order.customer_phone) return;
   try {
     const db = createAdminClient();

@@ -1,4 +1,10 @@
 @import "tailwindcss";
+@import "./screen-theme.css";
+@import "./lineup.css";
+@import "./theme-picker.css";
+@import "./menu-management.css";
+@import "./employees.css";
+@import "./settings.css";
 
 :root {
   --background: #f4f1ea;

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { ThemePicker } from "@/components/theme-picker";
+import { themeInitialization } from "@/lib/theme-initialization";
 
 
 import "./globals.css";
@@ -14,9 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeInitialization }} />
         {children}
+        <ThemePicker />
       </body>
     </html>
   );

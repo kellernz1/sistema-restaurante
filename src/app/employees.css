@@ -1,0 +1,29 @@
+@media screen {
+  html :is(.settings-stack, .employee-management) { display: grid; gap: 28px; }
+  html .settings-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  html .settings-tabs a { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 20px; border-radius: 999px; text-decoration: none; color: var(--muted); font-size: .9rem; }
+  html .settings-tabs a[aria-current="page"] { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+  html .employee-layout { display: grid; gap: 24px; align-items: start; }
+  html .employee-layout-editing { grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr); }
+  html .employee-editor { display: grid; gap: 22px; position: sticky; top: 96px; }
+  html .employee-editor small { color: var(--muted); font-weight: 400; font-size: .78rem; }
+  html .employee-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; margin-bottom: 12px; }
+  html .employee-filters > label:first-child { flex: 1; min-width: 180px; }
+  html .employee-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+  html .employee-row:last-child { border: 0; padding-bottom: 0; }
+  html .employee-copy { min-width: 0; }
+  html .employee-copy h2 { margin: 0; font-size: 1.1rem; }
+  html .employee-copy h2 small { display: inline-block; color: var(--muted); font-size: .72rem; font-weight: 400; }
+  html .employee-copy p { margin: 7px 0 12px; font-size: .85rem; overflow-wrap: anywhere; }
+  html .employee-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  html .employee-row > .cashier-actions { flex-shrink: 0; }
+  @media (max-width: 1100px) {
+    html .employee-layout-editing { grid-template-columns: 1fr; }
+    html .employee-editor { position: static; grid-row: 1; }
+  }
+  @media (max-width: 640px) {
+    html .employee-row { align-items: flex-start; flex-direction: column; gap: 12px; }
+    html .employee-filters > label { width: 100%; }
+    html .employee-filters > label:first-child { flex-basis: 100%; min-width: 0; }
+  }
+}
