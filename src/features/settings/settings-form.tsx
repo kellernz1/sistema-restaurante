@@ -11,6 +11,8 @@ import { Store, Truck, MapPin, MessageCircle, Printer } from "lucide-react";
 import type { StoredRow } from "@/types/records";
 import { createClient } from "@/utils/supabase/client";
 
+import { PrintingSettings } from "@/features/printing/printing-settings";
+import { CashPolicySettings } from "@/features/cash-sessions/policy-settings";
 import { PaymentSettings } from "@/features/payments/payment-settings";
 import { settingsSchema } from "./settings-schema";
 import { coordinatesMapLink } from "@/features/customer-ordering/delivery-location";
@@ -20,6 +22,7 @@ const switches = { kitchen_auto_print_enabled: "Impressão automática na cozinh
 const numbers = { min_delivery_order: "Pedido mínimo para entrega (PYG)", estimated_pickup_minutes: "Previsão de retirada (minutos)", estimated_delivery_minutes: "Previsão de entrega (minutos)", delivery_fee: "Taxa fixa de entrega (PYG)", delivery_distance_step_km: "Tamanho de cada faixa (km)", delivery_distance_step_fee: "Valor por faixa (PYG)" };
 const sections = [
   { id: "payments", label: "Pagamentos e câmbio", description: "Formas e cotação do real", icon: Store },
+  { id: "counter", label: "Balcão e dia comercial", description: "Senhas, pagamento e espera", icon: Store },
   { id: "operations", label: "Atendimento", description: "Pedidos, retirada e mesas", icon: Store },
   { id: "delivery", label: "Entrega e taxas", description: "Valores, distância e prazo", icon: Truck },
   { id: "location", label: "Localização", description: "Ponto de saída do restaurante", icon: MapPin },
@@ -97,7 +100,14 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
       <nav className="settings-section-nav" aria-label={t("Categorias das configurações")}>{sections.map(({ id, label, description, icon: Icon }) => <button key={id} id={`settings-nav-${id}`} type="button" aria-pressed={section === id} aria-controls="settings-content" onClick={() => changeSection(id)}><Icon size={21} aria-hidden="true" /><span><strong>{t(label)}</strong><small>{t(description)}</small></span></button>)}</nav>
       <section id="settings-content" className="order-panel settings-section-card" aria-labelledby={`settings-nav-${section}`}>
         <header className="settings-section-heading"><h2 ref={panelHeading} tabIndex={-1}>{t(selected.label)}</h2><p>{t(selected.description)}</p></header>
-        {section === "payments" && <PaymentSettings />}
+        {section === "payments" && <><PaymentSettings /><CashPolicySettings /></>}
+        {section === "counter" && <>
+          <label className="field-group">{t("Nome do restaurante")}<input className="order-input" maxLength={80} value={form.restaurant_name} disabled={busy} onChange={(event)=>setForm({...form,restaurant_name:event.target.value})} /></label>
+          <label className="field-group">{t("Fuso do dia comercial")}<input className="order-input" value={form.business_timezone} disabled={busy} onChange={(event)=>setForm({...form,business_timezone:event.target.value})} /></label>
+          <label className="field-group">{t("Início do dia comercial")}<input className="order-input" type="time" step="60" value={form.business_day_start.slice(0,5)} disabled={busy} onChange={(event)=>setForm({...form,business_day_start:event.target.value})} /></label>
+          <label className="field-group">{t("Pagamento no balcão")}<select className="order-input" value={form.counter_payment_timing} disabled={busy} onChange={(event)=>setForm({...form,counter_payment_timing:event.target.value})}><option value="at_order">{t("Pagar ao pedir")}</option><option value="at_end">{t("Pagar no final")}</option></select></label>
+          {(["counter_green_minutes","counter_yellow_minutes"] as const).map((key)=><label className="field-group" key={key}>{t(key==="counter_green_minutes"?"Verde até (minutos)":"Amarelo até (minutos)")}<input className="order-input" type="number" min="0" step="1" value={form[key]} disabled={busy} onChange={(event)=>setForm({...form,[key]:Number(event.target.value)})} /></label>)}
+        </>}
         {section === "operations" && <>
           <fieldset className="settings-fieldset"><legend>{t("País padrão dos telefones")}</legend><select className="order-input" disabled={busy} value={form.default_phone_country} onChange={(event) => setForm((current) => ({...current,default_phone_country:event.target.value}))}><option value="PY">{t("Paraguai (+595)")}</option><option value="BR">{t("Brasil (+55)")}</option></select></fieldset><fieldset className="settings-fieldset"><legend>{t("Recebimento de pedidos")}</legend>{t(renderSwitch("is_accepting_orders", t("Abra ou pause os novos pedidos em todos os canais.")))}{t(renderSwitch("pickup_enabled", t("Permita que o cliente peça e retire no restaurante.")))}</fieldset>
           <fieldset className="settings-fieldset"><legend>{t("Mesas e QR codes")}</legend>{t(renderSwitch("dine_in_qr_enabled", t("Receba pedidos pelo QR code ou NFC da mesa.")))}{t(renderSwitch("require_confirmation_for_qr", t("A equipe confirma o primeiro pedido antes de iniciar o preparo.")))}</fieldset>
@@ -117,7 +127,7 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
           {locationNotice && <p className="table-notice table-notice-info" role="status">{t(locationNotice)}</p>}
           <details className="settings-coordinate-details"><summary>{t("Ajustar coordenadas manualmente")}</summary><div className="settings-fields-grid">{(["delivery_origin_latitude", "delivery_origin_longitude"] as const).map((key) => <label className="field-group" key={key}>{t(key.endsWith("latitude") ? t("Latitude") : t("Longitude"))}<input className="order-input" type="number" step="0.000001" min={key.endsWith("latitude") ? -90 : -180} max={key.endsWith("latitude") ? 90 : 180} disabled={busy} value={form[key] ?? ""} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value === "" ? null : Number(event.target.value) }))} /></label>)}</div></details>
         </>}
-        {section === "printing" && <fieldset className="settings-fieldset"><legend>{t("Comandas da cozinha")}</legend>{t(renderSwitch("kitchen_auto_print_enabled", t("Processe automaticamente as comandas confirmadas. A fila e a impressão manual continuam disponíveis quando desativada.")))}<div className="settings-context-note"><p>{t("Abra a tela da cozinha no computador que usará a impressora e clique em Ativar neste computador.")}</p><p>{t("Sem impressora, você pode testar escolhendo Salvar como PDF. Para sair direto no papel, sem janela, será necessário configurar a impressora e o modo de impressão do computador.")}</p><a className="back-link" href="/kitchen">{t("Abrir cozinha ›")}</a></div></fieldset>}
+        {section === "printing" && <><PrintingSettings /><fieldset className="settings-fieldset">{renderSwitch("kitchen_auto_print_enabled", "Processe automaticamente as comandas confirmadas.")}</fieldset></>}
         {section === "whatsapp" && <fieldset className="settings-fieldset"><legend>{t("Pedidos pelo WhatsApp")}</legend>{t(renderSwitch("whatsapp_enabled", t("Envie o link do cardápio para o cliente montar o pedido.")))}<div className="settings-context-note"><p>{t("Os pedidos recebidos pelo link aparecem na Central de pedidos.")}</p><p>{t("Para pausar todos os canais, use a opção Aceitar novos pedidos em Atendimento.")}</p></div></fieldset>}
       </section>
     </div>

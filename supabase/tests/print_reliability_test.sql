@@ -1,0 +1,101 @@
+begin;
+create temporary table print_reliability_context(order_id uuid,product_id uuid,job_id uuid,copy_id uuid,owner_id uuid,token uuid,kitchen_id uuid,admin_id uuid,request_id uuid);
+grant all on print_reliability_context to authenticated,service_role;
+update public.print_jobs set archived_at=now(),reviewed_at=now();
+update public.print_processor_lease set expires_at='-infinity';
+delete from public.print_worker_heartbeats;
+update public.print_devices set driver='browser';
+insert into public.categories(name) values('__print_reliability__');
+with p as(insert into public.products(category_id,name,price) select id,'__print_reliability__',25000 from public.categories where name='__print_reliability__' returning id)
+insert into print_reliability_context(product_id,owner_id,kitchen_id,admin_id,request_id)
+ select id,gen_random_uuid(),(select id from public.profiles where role='kitchen' and is_active limit 1),(select id from public.profiles where role='admin' and is_active limit 1),gen_random_uuid() from p;
+insert into public.orders(order_type,source,status,customer_name,customer_phone) values('pickup','waiter','open','__print_reliability__','+595981999903');
+update print_reliability_context set order_id=(select id from public.orders where customer_name='__print_reliability__');
+insert into public.order_items(order_id,product_id,quantity,unit_price) select order_id,product_id,2,0 from print_reliability_context;
+set constraints all immediate;
+update print_reliability_context set job_id=(select id from public.print_jobs where order_id=print_reliability_context.order_id);
+select set_config('request.jwt.claim.role','authenticated',true);
+select set_config('request.jwt.claim.sub',(select kitchen_id::text from print_reliability_context),true);
+set local role authenticated;
+do $$ declare c print_reliability_context; j jsonb; begin
+ select * into c from print_reliability_context;
+ j:=public.claim_print_job(c.owner_id,'browser');
+ if j->>'id'<>c.job_id::text then raise exception 'Wrong fixture claimed'; end if;
+ update print_reliability_context set token=(j->>'claim_token')::uuid;
+ begin perform public.request_print(gen_random_uuid(),'kitchen',c.order_id); raise exception 'Full order accepted during processing'; exception when check_violation then null; end;
+ begin perform public.request_print(gen_random_uuid(),null,null,c.job_id); raise exception 'Job reprint accepted during processing'; exception when check_violation then null; end;
+ perform public.finish_print_job(c.job_id,c.owner_id,(j->>'claim_token')::uuid,'uncertain');
+ begin perform public.request_print(gen_random_uuid(),'kitchen',c.order_id); raise exception 'Full order accepted during live uncertain transport'; exception when check_violation then null; end;
+ begin perform public.request_print(gen_random_uuid(),null,null,c.job_id); raise exception 'Job accepted during live uncertain transport'; exception when check_violation then null; end;
+ begin perform public.decide_print_job(c.job_id,'discard',gen_random_uuid()); raise exception 'Kitchen discarded a job'; exception when insufficient_privilege then null; end;
+ begin perform public.assert_print_document_idle(c.order_id,'kitchen',c.job_id); raise exception 'Private guard exposed'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.print_processor_lease set expires_at='-infinity';
+set local role authenticated;
+do $$ declare c print_reliability_context; copy uuid; j jsonb; marker public.print_item_state; review_key uuid:=gen_random_uuid(); begin
+ select * into c from print_reliability_context;
+ copy:=public.request_print(c.request_id,null,null,c.job_id);
+ if copy<>public.request_print(c.request_id,null,null,c.job_id) then raise exception 'Reprint request not idempotent'; end if;
+ j:=public.claim_print_job(c.owner_id,'browser');
+ perform public.finish_print_job(copy,c.owner_id,(j->>'claim_token')::uuid,'sent');
+ perform public.finish_print_job(copy,c.owner_id,(j->>'claim_token')::uuid,'sent');
+ select st.* into marker from public.print_item_state st join public.order_items i on i.id=st.item_id where i.order_id=c.order_id;
+ if marker.forwarded_quantity<>2 or marker.printed_copies<>1 then raise exception 'First copy changed units or duplicate acknowledgement'; end if;
+ copy:=public.request_print(gen_random_uuid(),null,null,copy);
+ j:=public.claim_print_job(c.owner_id,'browser');
+ perform public.finish_print_job(copy,c.owner_id,(j->>'claim_token')::uuid,'sent');
+ select st.* into marker from public.print_item_state st join public.order_items i on i.id=st.item_id where i.order_id=c.order_id;
+ if marker.forwarded_quantity<>2 or marker.printed_copies<>2 then raise exception 'Reprint inflated forwarded units'; end if;
+ if not exists(select 1 from public.print_job_reviews where job_id=c.job_id and actor_id=c.kitchen_id and decision='reprint') then raise exception 'Reprint reviewer missing'; end if;
+ perform public.decide_print_job(c.job_id,'printed',review_key);
+ perform public.decide_print_job(c.job_id,'printed',review_key);
+ if (select count(*) from public.print_job_reviews where job_id=c.job_id and decision='printed')<>1 then raise exception 'Review not idempotent'; end if;
+end $$;
+reset role;
+insert into public.order_items(order_id,product_id,quantity,unit_price,notes) select order_id,product_id,1,0,'New only' from print_reliability_context;
+update print_reliability_context set copy_id=(select id from public.print_jobs where order_id=print_reliability_context.order_id and additional);
+select set_config('request.jwt.claim.sub',(select admin_id::text from print_reliability_context),true);
+set local role authenticated;
+do $$ declare c print_reliability_context; before_count bigint; begin
+ select * into c from print_reliability_context;
+ if (select jsonb_array_length(snapshot->'items') from public.print_jobs where id=c.copy_id)<>1 then raise exception 'Additional lost unit semantics'; end if;
+ select count(*) into before_count from public.print_jobs;
+ perform public.decide_print_job(c.copy_id,'discard',c.request_id);
+ perform public.decide_print_job(c.copy_id,'discard',c.request_id);
+ if (select count(*) from public.print_jobs)<>before_count then raise exception 'Discard created print work'; end if;
+ if not exists(select 1 from public.print_jobs where id=c.copy_id and archived_at is not null and reviewed_by=c.admin_id and review_decision='discard') then raise exception 'Discard metadata missing'; end if;
+ begin perform public.request_print(gen_random_uuid(),null,null,c.copy_id); raise exception 'Archived job reprinted'; exception when check_violation then null; end;
+ if public.claim_print_job(c.owner_id,'browser') is not null then raise exception 'Archived pending job dispatched'; end if;
+end $$;
+reset role;
+-- A pending file job older than the configurable threshold requires an active file worker.
+insert into public.print_jobs(destination,kind,snapshot,device,created_at)
+ select 'cashier','test','{}',jsonb_set(to_jsonb(d),'{driver}','"file"'),now()-interval '2 minutes' from public.print_devices d limit 1;
+set local role authenticated;
+do $$ begin
+ if (public.print_worker_health()->>'stalled_jobs')::integer<1 then raise exception 'Missing stale pending alert'; end if;
+ update public.print_settings set stall_seconds=3600 where id;
+ if (public.print_worker_health()->>'stalled_jobs')::integer<>0 then raise exception 'Configurable threshold ignored'; end if;
+ update public.print_settings set stall_seconds=60 where id;
+end $$;
+reset role;
+select set_config('request.jwt.claim.role','service_role',true);
+set local role service_role;
+select public.print_worker_heartbeat((select owner_id from print_reliability_context),'4A.1','file');
+reset role;
+select set_config('request.jwt.claim.role','authenticated',true);
+set local role authenticated;
+do $$ begin if (public.print_worker_health()->>'stalled_jobs')::integer<>0 then raise exception 'Active worker not detected'; end if; end $$;
+reset role;
+update public.print_worker_heartbeats set last_seen_at=now()-interval '40 seconds';
+set local role authenticated;
+do $$ begin if (public.print_worker_health()->>'stalled_jobs')::integer<1 then raise exception 'Dead worker not detected'; end if; end $$;
+reset role;
+set local role anon;
+do $$ begin
+ begin perform public.print_worker_health(); raise exception 'Public worker health exposed'; exception when insufficient_privilege then null; end;
+ begin perform * from public.print_job_reviews; raise exception 'Public audit exposed'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+rollback;

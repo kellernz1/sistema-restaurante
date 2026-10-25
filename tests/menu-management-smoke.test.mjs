@@ -50,7 +50,7 @@ test("administrator manages photos and availability without changing order histo
     for (const product of products.data ?? []) assert.ifError((await service.from("products").delete().eq("id", product.id)).error);
     assert.ifError((await service.from("categories").delete().eq("id", categoryId)).error);
   });
-  assert.ifError((await service.from("categories").insert({ id: categoryId, name: "__menu_http_test__" })).error);
+  assert.ifError((await service.from("categories").insert({ id: categoryId, name: `__menu_http_test__${categoryId}` })).error);
   const fields = { name: "__menu_test_dish__", category_id: categoryId, price: 12350, description: "Test dish", is_active: true };
   const response = await mutate("/api/staff/products", "POST", fields, admin.cookie);
   assert.equal(response.status, 201, await response.clone().text());

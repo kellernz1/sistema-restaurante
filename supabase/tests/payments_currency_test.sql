@@ -1,5 +1,7 @@
 -- Transactional acceptance: no fixture or financial history survives this suite.
 begin;
+-- Existing ordering/payment scenarios use the supported optional-session policy; mandatory binding is covered by cash_sessions_test.
+update public.cash_session_policy set require_open_session=false where id;
 create temporary table payment_test_context(admin_id uuid,cashier_id uuid,waiter_id uuid,product_id uuid,order_id uuid,rate_id uuid,request_id uuid);
 grant all on payment_test_context to authenticated,service_role;
 insert into payment_test_context(admin_id,cashier_id,waiter_id,request_id)
@@ -75,7 +77,7 @@ do $$ begin
 end $$;
 reset role;
 -- Waiter/blocked/anonymous callers cannot collect or inspect financial records.
--- A second order covers disabled methods, stale rates and cash in BRL.
+-- A second order covers disabled methods, stale rates and rejection of cash in BRL.
 with o as (insert into public.orders(order_type,source,customer_name,customer_phone,status) values('pickup','waiter','Cash BRL test','+595981999988','open') returning id)
  update payment_test_context set order_id=(select id from o);
 insert into public.order_items(order_id,product_id,quantity,unit_price) select order_id,product_id,1,0 from payment_test_context;
@@ -88,8 +90,9 @@ do $$ declare ctx payment_test_context; current_rate uuid; result jsonb; begin
  begin perform public.record_order_payments(ctx.order_id,gen_random_uuid(),jsonb_build_array(jsonb_build_object('method','card','currency','PYG','amount_pyg',25000,'original_amount',25000))); raise exception 'Disabled card accepted'; exception when invalid_parameter_value then null; end;
  begin perform public.record_order_payments(ctx.order_id,gen_random_uuid(),jsonb_build_array(jsonb_build_object('method','pix','currency','BRL','amount_pyg',25000,'original_amount',1800,'rate_id',ctx.rate_id))); raise exception 'Stale rate accepted'; exception when check_violation then null; end;
  current_rate:=(public.payment_configuration()->'rate'->>'id')::uuid;
- result:=public.record_order_payments(ctx.order_id,gen_random_uuid(),jsonb_build_array(jsonb_build_object('method','cash','currency','BRL','amount_pyg',25000,'original_amount',2000,'rate_id',current_rate)));
- if result->'order'->>'status'<>'closed' or (select sum(change_pyg) from public.payments where order_id=ctx.order_id)<>5000 then raise exception 'BRL cash change must be in PYG'; end if;
+ begin perform public.record_order_payments(ctx.order_id,gen_random_uuid(),jsonb_build_array(jsonb_build_object('method','cash','currency','BRL','amount_pyg',25000,'original_amount',2000,'rate_id',current_rate))); raise exception 'BRL cash accepted'; exception when invalid_parameter_value then null; end;
+ result:=public.record_order_payments(ctx.order_id,gen_random_uuid(),jsonb_build_array(jsonb_build_object('method','cash','currency','PYG','amount_pyg',25000,'original_amount',30000)));
+ if result->'order'->>'status'<>'closed' or (select sum(change_pyg) from public.payments where order_id=ctx.order_id)<>5000 then raise exception 'PYG cash change failed'; end if;
  begin insert into public.payments(order_id) values(ctx.order_id); raise exception 'Direct payment write accepted'; exception when insufficient_privilege then null; end;
 end $$;
 reset role;

@@ -1,5 +1,7 @@
 # Automatic kitchen printing
 
+> Superseded by block 4A: see [printing-architecture.md](printing-architecture.md) for the current queue, shared layouts, browser/file drivers, additional items, configuration, review rules and manual tests. The paragraphs below describe the retired queue for historical context only. Do not activate stale browser tabs or use the retired `/api/staff/kitchen-print` endpoint; it now returns 410. The current file processor is launched by `local:start` and works without a visible browser page.
+
 Confirming a pending order creates one durable `kitchen_print_jobs` entry in the same transaction as the order status change. Newly opened staff orders also enqueue a ticket. No historical backfill occurs. The initial job is unique per order. Additional items added to an already-open order do not create an extra automatic job in this version; use manual printing when needed. The receipt loads the current complete order, quantities and observations.
 
 In Settings → Impressão, administrators can enable/disable automatic queue processing. On the actual kitchen computer, open `/kitchen` with a kitchen/admin account and choose “Ativar neste computador”. This browser preference persists locally. Keep the page open and visible. The authenticated worker polls every five seconds, and a database lease permits one active automatic terminal at a time. Automatic jobs wait if no terminal is active. Do not enable multiple computers; another terminal can take over after an inactive lease expires.

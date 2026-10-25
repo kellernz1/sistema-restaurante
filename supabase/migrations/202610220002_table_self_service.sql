@@ -94,7 +94,7 @@ begin
   select * into target from public.orders where id = p_order_id and order_type = 'dine_in' and source in ('qr', 'nfc') and status = 'pending_confirmation' for update;
   if not found then raise exception 'Order already reviewed' using errcode = 'P0001'; end if;
   update public.orders set status = case when p_accept then 'open'::public.order_status else 'cancelled'::public.order_status end,
-    cancel_reason = case when p_accept then null else 'Pedido nÃ£o confirmado pelo atendimento' end,
+    cancel_reason = case when p_accept then null else 'Pedido não confirmado pelo atendimento' end,
     waiter_id = case when p_accept then auth.uid() else waiter_id end
     where id = target.id;
 end;

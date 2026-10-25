@@ -1,0 +1,25 @@
+.counter-workspace { display: grid; grid-template-columns: minmax(0,1fr) minmax(320px,440px); gap: 24px; align-items: start; }
+.counter-categories { display: flex; gap: 12px; flex-wrap: wrap; margin: 20px 0; }
+.counter-categories button { min-height: 56px; }
+.counter-products { display: grid; grid-template-columns: repeat(auto-fill,minmax(155px,1fr)); gap: 14px; }
+.counter-products button { min-height: 110px; text-align: left; display: flex; flex-direction: column; gap: 14px; cursor: pointer; }
+.counter-products button:focus-visible { outline: 3px solid #2997ff; outline-offset: 3px; }
+.counter-cart { position: sticky; top: 80px; max-height: calc(100dvh - 100px); overflow: auto; }
+.counter-cart fieldset { border: 0; padding: 0; min-width: 0; }
+.counter-cart article { padding: 16px 0; }
+.counter-cart .cashier-actions input { width: 70px; }
+.counter-total { position: sticky; bottom: -1px; padding: 18px 0; background: inherit; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; z-index: 2; }
+.counter-total strong { font-size: 24px; }
+.counter-payment-row { display: grid; gap: 10px; margin: 16px 0; }
+.counter-queue { margin-top: 36px; }
+.counter-ready { border-radius: 24px; padding: 24px; margin: 16px 0; border-left: 6px solid; }
+.counter-wait-green { border-color: #268446; }
+.counter-wait-yellow { border-color: #c58b00; }
+.counter-wait-red { border-color: #d53737; }
+.counter-ticket { font-size: clamp(28px,4vw,46px); font-weight: 750; letter-spacing: -.03em; }
+.counter-confirmation { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 28px; margin: 20px 0 24px; }
+.counter-confirmation-label { min-width: 0; overflow-wrap: anywhere; }
+.counter-confirmation-label p { margin: 8px 0 0; }
+.counter-confirmation > .primary-button { flex-shrink: 0; }
+
+@media(max-width:800px) { .counter-workspace { grid-template-columns: 1fr; } .counter-cart { position: static; max-height: none; } .counter-total { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface,#fff); padding: 14px 20px; box-shadow: 0 -4px 20px #0001; } .counter-desk { padding-bottom: 110px; } }

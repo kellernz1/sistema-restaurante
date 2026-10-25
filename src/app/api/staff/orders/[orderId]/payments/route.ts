@@ -22,6 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ord
     const input = paymentRequestSchema.safeParse(await readPublicBody(request));
     if (!id.success || !input.success) throw new PublicApiError(400, "Pagamento inválido.");
     const { data, error } = await db.rpc("record_order_payments", { p_order_id: id.data, p_request_id: input.data.request_id, p_lines: input.data.lines });
+    if (error?.message.includes("Open cash session required")) throw new PublicApiError(409,"Abra o caixa antes de registrar pagamentos.");
     if (error) throw new PublicApiError(409, "Confira o saldo, as formas habilitadas e a cotação atual antes de tentar novamente.");
     const result = data as { order: StoredRow<"orders"> } | null;
     if (result?.order?.status === "closed") await notifyCustomer(result.order, "completed");

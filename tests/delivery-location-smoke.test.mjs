@@ -55,7 +55,7 @@ test("public checkout persists the delivery map pin with its address", { skip: !
   const locationOrder = await locationResponse.json();
   const stored = await db.from("orders").select("delivery_address").eq("public_token", locationOrder.tracking_path.split("/").at(-1)).single();
   assert.ifError(stored.error);
-  assert.equal(stored.data.delivery_address.street, "");
+  assert.equal(stored.data.delivery_address.street, null);
   assert.equal(stored.data.delivery_address.reference, "Portão azul");
   assert.equal(stored.data.delivery_address.location_url, location);
   assert.equal((await send({ ...payload, delivery_address: {} })).status, 400);

@@ -14,10 +14,12 @@
     "local:share:stop": "node scripts/local/stop-customer-preview.mjs",
     "local:admin-share:stop": "node scripts/local/stop-admin-preview.mjs",
     "local:info": "node scripts/local/info.mjs",
+    "db:validate-clean": "node scripts/local/validate-clean-db.mjs",
     "db:reset": "node scripts/local/reset.mjs",
     "db:backup": "node scripts/local/backup.mjs",
     "db:restore": "node scripts/local/restore.mjs",
     "types": "node scripts/local/types.mjs",
+    "print:worker": "node scripts/print-worker.mjs",
     "test:sql": "node scripts/local/sql-tests.mjs",
     "test:smoke": "node scripts/smoke-test.mjs",
     "test:all": "node scripts/run-all-tests.mjs",
@@ -25,7 +27,9 @@
     "seed:demo": "node scripts/seed-demo.mjs",
     "seed:clear-demo": "node scripts/clear-demo.mjs",
     "lint": "eslint .",
-    "test:whatsapp": "vitest run"
+    "test:whatsapp": "vitest run",
+    "check:text": "node scripts/check-text.mjs",
+    "test:visual": "node scripts/visual-smoke.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -47,6 +51,7 @@
     "@types/react-dom": "19.3.0",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
+    "playwright-core": "1.64.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "vitest": "^5.0.5"

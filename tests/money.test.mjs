@@ -22,6 +22,8 @@ test("exact decimal exchange uses the least covering cent or configured upward s
 test("payment payloads reject unsafe amounts, extra totals and fractional minor units", () => {
   const request = { request_id: "12345678-1234-4234-8234-123456789abc", lines: [{ method: "transfer", currency: "PYG", original_amount: 25000, amount_pyg: 25000 }] };
   assert.equal(paymentRequestSchema.safeParse(request).success, true);
+  assert.equal(paymentRequestSchema.safeParse({ ...request, lines: [{ ...request.lines[0], method: "cash", currency: "BRL" }] }).success, false);
+  assert.equal(paymentRequestSchema.safeParse({ ...request, lines: [{ ...request.lines[0], method: "cash", currency: "PYG" }] }).success, true);
   for (const value of [-1, 0.5, Infinity, MAX_MONEY + 1]) assert.equal(paymentRequestSchema.safeParse({ ...request, lines: [{ ...request.lines[0], original_amount: value }] }).success, false);
   assert.equal(paymentRequestSchema.safeParse({ ...request, total: 0 }).success, false);
   assert.equal(exchangeRateSchema.safeParse({ rate: "1400.12345678", rounding: "none" }).success, true);

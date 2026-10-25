@@ -8,10 +8,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     if (!tableTokenSchema.safeParse(token).success) throw new PublicApiError(404, "Link de acompanhamento inválido.");
     await publicQuota(request, "tracking-read", 1800);
     const db = createAdminClient();
-    const order = await db.from("orders").select("id, order_number, order_type, status, total_amount, delivery_fee, cancel_reason, payment_method, cash_change_for")
+    const order = await db.from("orders").select("id, is_counter, counter_ticket, order_number, order_type, status, total_amount, delivery_fee, cancel_reason, payment_method, cash_change_for")
       .eq("public_token", token).maybeSingle();
     if (order.error) throw order.error;
     if (!order.data) throw new PublicApiError(404, "Pedido não encontrado.");
+    if (order.data.is_counter) return publicJson({ is_counter:true, counter_ticket:order.data.counter_ticket, status:order.data.status });
     const [items, settings] = await Promise.all([
       db.from("order_items").select("id, quantity, unit_price, status, products(name)").eq("order_id", order.data.id).order("created_at"),
       db.from("restaurant_settings").select("estimated_pickup_minutes, estimated_delivery_minutes").eq("id", true).single(),

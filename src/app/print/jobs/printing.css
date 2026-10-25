@@ -1,0 +1,6 @@
+.engine-print-document { margin: 24px auto; padding: 4mm; background: white; color: black; font-family: monospace; line-height: 1.4; overflow-wrap: anywhere; box-sizing: content-box; }
+.engine-print-document img { display: block; margin: 16px auto; max-width: 100%; height: auto; }
+.engine-print-document hr { border: 0; border-top: 1px dashed black; margin: 10px 0; }
+.counter-receipt-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 24px; }
+@media print { .counter-receipt-controls,.theme-picker,.language-picker { display:none !important; } .engine-print-document { margin:0; padding:0; } body { background:white !important; } }
+@page { size: auto; margin: 4mm; }

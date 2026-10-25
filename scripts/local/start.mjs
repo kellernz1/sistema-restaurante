@@ -24,7 +24,7 @@ const previous = fs.existsSync(stateFile)
   ? JSON.parse(fs.readFileSync(stateFile, "utf8"))
   : {};
 
-if (isProcessRunning(previous.app) || isProcessRunning(previous.worker)) {
+if (isProcessRunning(previous.app) || isProcessRunning(previous.worker) || isProcessRunning(previous.printWorker)) {
   throw new Error("The local app or worker is already running. Use `npm run local:stop` first.");
 }
 
@@ -65,9 +65,11 @@ const worker = startDetached(
   "whatsapp-worker",
   env,
 );
-fs.writeFileSync(stateFile, JSON.stringify({ app, worker, startedAt: new Date().toISOString() }, null, 2));
+const printWorker = startDetached([path.join(ROOT,"scripts","print-worker.mjs")],"print-worker",env);
+fs.writeFileSync(stateFile, JSON.stringify({ app, worker, printWorker, startedAt: new Date().toISOString() }, null, 2));
 
 console.log(`Local app started (PID ${app}).`);
 console.log(`WhatsApp worker started (PID ${worker}).`);
+console.log(`Print worker started (PID ${printWorker}).`);
 console.log(`Open ${env.NEXT_PUBLIC_APP_URL}`);
 console.log("Logs are stored in logs/. Run `npm run local:stop` for a clean shutdown.");

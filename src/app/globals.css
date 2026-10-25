@@ -1035,6 +1035,10 @@ textarea.order-input { resize: vertical; min-height: 74px; }
 .kitchen-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .8rem; color: var(--muted); }
 .kitchen-card h3 { margin: 0; font: 1.5rem Georgia, serif; overflow-wrap: anywhere; }
 .kitchen-product { margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.kitchen-order-items { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+.kitchen-order-items > li { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 8px; }
+.kitchen-order-items .ghost-button { justify-self: start; }
+.kitchen-item-status { color: var(--muted); font-size: .8rem; }
 .kitchen-notes { margin: 0; padding: 12px; border-left: 3px solid #b07b2e; border-radius: 4px; background: #fbf1de; color: #674615; font-size: .9rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .kitchen-elapsed { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: .78rem; }
 .kitchen-overdue { color: #95352e; font-weight: bold; }

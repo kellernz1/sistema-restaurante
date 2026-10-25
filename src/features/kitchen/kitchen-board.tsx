@@ -10,7 +10,8 @@ import { OrderTypeBadge } from "@/components/order-type-badge";
 import { createClient } from "@/utils/supabase/client";
 
 import { kitchenQuery, type KitchenItem, type KitchenStatus } from "./kitchen-query";
-import { KitchenPrintQueue } from "./print-queue";
+import { uuid } from "@/lib/uuid";
+import { groupKitchenOrders } from "./group-orders";
 
 const columns: { status: KitchenStatus; title: string }[] = [
   { status: "pending", title: "Recebidos" },
@@ -45,6 +46,9 @@ export function KitchenBoard({ initialItems, initialError }: {
   const [connectionError, setConnectionError] = useState("");
   const [notice, setNotice] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const batchRequest = useRef<{ orderId: string; request_id: string; action: "start" | "ready" } | null>(null);
+  const [uncertainBatch, setUncertainBatch] = useState(false);
+  const [batchId, setBatchId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
   const [now, setNow] = useState<number | null>(null);
   const [warningMinutes, setWarningMinutes] = useState(10);
@@ -154,12 +158,14 @@ export function KitchenBoard({ initialItems, initialError }: {
         body: JSON.stringify({ expected: item.status, status: nextStatus }),
       });
       if (!response.ok) throw new Error("Item changed");
+      return true;
     } catch {
       if (mounted.current) {
         // Only restore an existing card: a cancelled order must not reappear.
         setItems((current) => current.map((row) => row.id === item.id ? { ...row, status: item.status } : row));
         setNotice(t("Não foi possível alterar o item. Ele pode ter sido atualizado por outra pessoa. A fila será conferida novamente."));
       }
+      return false;
     } finally {
       pending.current.delete(item.id);
       if (mounted.current) {
@@ -168,6 +174,38 @@ export function KitchenBoard({ initialItems, initialError }: {
       }
     }
   }
+
+  async function submitBatch() {
+    const request = batchRequest.current;
+    if (!request || batchId) return;
+    setBatchId(request.orderId);
+    setNotice("");
+    try {
+      const response = await fetch(`/api/staff/orders/${request.orderId}/kitchen`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_id: request.request_id, action: request.action }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) {
+        if (response.status >= 500) throw new Error("Uncertain batch");
+        batchRequest.current = null;
+        setUncertainBatch(false);
+        setNotice(t("Pedido indisponível."));
+      } else { batchRequest.current = null; setUncertainBatch(false); }
+    } catch {
+      setUncertainBatch(true);
+      setNotice(t("Não foi possível confirmar a ação. Consulte o envio antes de continuar."));
+    } finally {
+      await refresh();
+      setBatchId(null);
+    }
+  }
+  async function advanceOrder(rows: KitchenItem[], finish: boolean) {
+    if (batchRequest.current || batchId || rows.some((item) => pending.current.has(item.id))) return;
+    batchRequest.current = { orderId: rows[0].orders.id, request_id: uuid(), action: finish ? "ready" : "start" };
+    await submitBatch();
+  }
+  const groupedOrders = groupKitchenOrders(items);
 
   return (
     <section className="kitchen-dashboard">
@@ -185,7 +223,7 @@ export function KitchenBoard({ initialItems, initialError }: {
           </button>
         </div>
       </div>
-      <KitchenPrintQueue />
+      {uncertainBatch && <button className="primary-button" disabled={!!batchId} onClick={() => void submitBatch()}>{t("Consultar envio")}</button>}
       <label className="kitchen-threshold">{t("Alertar após")}<select value={warningMinutes} onChange={(event) => setWarningMinutes(Number(event.target.value))}>
           {[5, 10, 15, 20, 30].map((value) => <option value={value} key={value}>{t(value)} {t(" minutos")}</option>)}
         </select>
@@ -194,24 +232,27 @@ export function KitchenBoard({ initialItems, initialError }: {
       {notice && <p className="table-notice table-notice-error" role="alert">{t(notice)}</p>}
       <div className="kitchen-columns" aria-label={t("Fila de produção")} aria-busy={refreshing}>
         {columns.map((column) => {
-          const columnItems = items.filter((item) => item.status === column.status);
+          const columnItems = groupedOrders.filter((group) => group.status === column.status);
           return <section className={`kitchen-column kitchen-column-${column.status}`} key={column.status}>
-            <h2>{t(column.title)}<span aria-label={t(`${columnItems.length} itens`)}>{t(columnItems.length)}</span></h2>
+            <h2>{t(column.title)}<span aria-label={t(`${columnItems.length} pedidos`)}>{t(columnItems.length)}</span></h2>
             {!columnItems.length && <p className="kitchen-empty">{t(error ? t("Atualize para conferir esta coluna.") : t("Nenhum item nesta etapa."))}</p>}
-            {columnItems.map((item) => {
-              const order = item.orders;
-              const isPending = pendingIds.includes(item.id);
-              return <article className="kitchen-card" key={item.id} aria-busy={isPending}>
-                <div className="kitchen-card-heading"><OrderTypeBadge type={order.order_type} /><span>#{order.order_number}</span></div>
+            {columnItems.map((group) => {
+              const order = group.items[0].orders;
+              const isPending = batchId === group.id || group.items.some((item) => pendingIds.includes(item.id));
+              return <article className="kitchen-card" key={group.id} aria-busy={isPending}>
+                <div className="kitchen-card-heading"><OrderTypeBadge type={order.order_type} /><span>{order.is_counter ? t("Senha {0}").replace("{0}", String(order.counter_ticket)) : `#${order.order_number}`}</span></div>
                 <h3>{order.order_type === "dine_in"
                   ? t(`Mesa ${order.tables?.table_number ?? t("não informada")}`)
-                  : order.customer_name?.trim().split(/\s+/)[0] || t("Cliente")}</h3>
-                <p className="kitchen-product"><strong>{item.quantity} ×</strong> {item.products?.name ?? t("Produto indisponível")}</p>
-                {item.notes && <p className="kitchen-notes"><strong>{t("Observações:")}</strong> {item.notes}</p>}
-                <ElapsedTime createdAt={item.created_at} now={now} warningMinutes={warningMinutes} />
-                {column.status !== "ready" && <button className="primary-button" disabled={isPending || !!error} onClick={() => void advance(item)}
-                  aria-label={t(`${column.status === "pending" ? t("Iniciar preparo") : t("Marcar pronto")}: ${item.products?.name ?? "item"}, pedido ${order.order_number}`)}>
-                  {t(isPending ? t("Salvando...") : column.status === "pending" ? t("Iniciar preparo") : t("Marcar pronto"))}
+                  : order.counter_name || order.customer_name?.trim().split(/\s+/)[0] || t("Cliente")}</h3>
+                <ul className="kitchen-order-items">{group.items.map((item) => <li key={item.id}>
+                  <p className="kitchen-product"><strong>{item.quantity} ×</strong> {item.products?.name ?? t("Produto indisponível")}</p>
+                  {item.notes && <p className="kitchen-notes"><strong>{t("Observações:")}</strong> {item.notes}</p>}
+                  <span className="kitchen-item-status">{t(item.status === "ready" ? "Pronto" : item.status === "preparing" ? "Preparando" : "Recebido")}</span>
+                  {item.status !== "ready" && <button className="ghost-button" disabled={isPending || !!batchId || uncertainBatch || !!error} onClick={() => void advance(item)}>{t(item.status === "pending" ? "Iniciar preparo" : "Marcar pronto")}</button>}
+                </li>)}</ul>
+                {column.status !== "ready" && <ElapsedTime createdAt={group.createdAt} now={now} warningMinutes={warningMinutes} />}
+                {column.status !== "ready" && <button className="primary-button" disabled={isPending || !!batchId || !!error} onClick={() => void advanceOrder(group.items, column.status === "preparing")}>
+                  {t(isPending ? "Salvando..." : column.status === "pending" ? "Iniciar pedido" : "Marcar tudo como pronto")}
                 </button>}
               </article>;
             })}

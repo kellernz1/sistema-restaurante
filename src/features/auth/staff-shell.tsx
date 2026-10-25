@@ -1,4 +1,6 @@
 "use client";
+import { CashSessionBar } from "@/features/cash-sessions/session-bar";
+import { PrintQueue } from "@/features/printing/print-queue";
 
 import { useTranslation } from "@/components/language-provider";
 
@@ -55,8 +57,9 @@ export function StaffShell({ children }: { children: ReactNode }) {
 
         <nav className="staff-navigation" aria-label={t("Navegação da equipe")}>
           {role && <Link href={ROLE_DASHBOARDS[role]}>{t("Meu painel")}</Link>}
+          {role && ["admin","cashier"].includes(role) && <Link href="/cashier/counter">{t("Balcão")}</Link>}
           {role && ["admin", "cashier", "waiter"].includes(role) && <Link href="/orders">{t("Pedidos")}</Link>}
-          {role === "admin" && <><Link href="/kitchen">{t("Cozinha")}</Link><Link href="/admin/menu">{t("Cardápio")}</Link><Link href="/admin/tables/qr">{t("QR codes")}</Link><Link href="/admin/settings">{t("Configurações")}</Link></>}
+          {role === "admin" && <><Link href="/kitchen">{t("Cozinha")}</Link><Link href="/admin/reports">{t("Relatórios")}</Link><Link href="/admin/menu">{t("Cardápio")}</Link><Link href="/admin/tables/qr">{t("QR codes")}</Link><Link href="/admin/settings">{t("Configurações")}</Link></>}
         </nav>
         <div className="staff-account">
           <div className="staff-identity">
@@ -80,7 +83,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
       </header>
 
       {logoutError ? <p className="header-error" role="alert">{t(logoutError)}</p> : null}
-      <main className="staff-content">{t(children)}</main>
+      <main className="staff-content">{["admin","cashier","kitchen"].includes(role) && <PrintQueue />}{["admin","cashier"].includes(role)&&<CashSessionBar/>}{t(children)}</main>
     </div>
   );
 }

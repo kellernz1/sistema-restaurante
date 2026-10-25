@@ -8,9 +8,9 @@ export function kitchenQuery(supabase: SupabaseClient<Database>) {
     .select(`
       id, quantity, status, notes, created_at,
       products(name),
-      orders!inner(id, order_number, order_type, customer_name, status, tables(table_number))
+      orders!inner(id, order_number, order_type, customer_name, is_counter, counter_ticket, counter_name, status, tables(table_number))
     `)
-    .eq("orders.status", "open")
+    .in("orders.status", ["open", "ready"])
     .in("status", ["pending", "preparing", "ready"])
     .order("created_at")
     .order("id");

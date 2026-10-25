@@ -1,5 +1,7 @@
 -- Verify old JWTs and null-role RPC paths fail closed. Fixtures roll back.
 begin;
+-- Existing ordering/payment scenarios use the supported optional-session policy; mandatory binding is covered by cash_sessions_test.
+update public.cash_session_policy set require_open_session=false where id;
 insert into public.exchange_rates(rate,rounding,created_by) select 1400,'none',id from public.profiles where role='admin' and is_active limit 1;
 create temporary table employee_access_context(admin_id uuid, cashier_id uuid);
 grant all on employee_access_context to authenticated, service_role;

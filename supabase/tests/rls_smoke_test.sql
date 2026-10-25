@@ -6,6 +6,8 @@
 -- This test always rolls back. A successful run ends with ROLLBACK and no error.
 
 begin;
+-- Existing ordering/payment scenarios use the supported optional-session policy; mandatory binding is covered by cash_sessions_test.
+update public.cash_session_policy set require_open_session=false where id;
 
 do $$
 begin

@@ -98,8 +98,9 @@ test("cashier can submit all channels and retries do not duplicate kitchen items
       assert.equal((await post(`/api/staff/items/${item.data.id}/status`, { expected, status }, kitchen)).status, 200);
     }
     if (type === "delivery") assert.equal((await post(`/api/staff/orders/${order.order_id}/transition`, { action: "dispatch" }, cashier)).status, 200);
-    assert.equal((await post(`/api/staff/orders/${order.order_id}/transition`, { action: "complete", payment_method: "pix" }, cashier)).status, 200);
+    // Declaring a method does not settle an order: the payment ledger is authoritative.
+    assert.equal((await post(`/api/staff/orders/${order.order_id}/transition`, { action: "complete", payment_method: "pix" }, cashier)).status, 409);
     const completed = await admin.from("orders").select("status, payment_status").eq("id", order.order_id).single();
-    assert.ifError(completed.error); assert.equal(completed.data.status, "closed"); assert.equal(completed.data.payment_status, "paid");
+    assert.ifError(completed.error); assert.notEqual(completed.data.status, "closed"); assert.notEqual(completed.data.payment_status, "paid");
   }
 });

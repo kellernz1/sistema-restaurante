@@ -1,5 +1,9 @@
 # Payments and base currency
 
+Block 5 adds operator cash sessions and payment-based daily reporting. See [cash sessions](cash-sessions.md); its rules supersede earlier exclusions of shifts and instructions that allowed payment without opening a session. Mandatory sessions are enabled by default.
+
+Printing update (block 4A): receipts now snapshot the existing payment ledger through the shared engine in [printing-architecture.md](printing-architecture.md), with on-demand output by default and optional output on full payment. Currency, FX rounding, payment validation and settlement rules are unchanged.
+
 ## Deployment and existing test data
 
 Apply migrations `202610240001` through `202610240006`, in order, while the app is stopped. The first migration commits the `transfer` enum before it is used. Back up the database first. Then regenerate types with `npm run types`, build and restart the app. Refresh all previously open customer/staff pages; their carts and payment selections can contain obsolete units.
@@ -34,7 +38,7 @@ For 25,000 Gs at 1,400 Gs/BRL, the required amount is BRL 17.86, or BRL 18.00 wi
 
 Configured FX rounding can itself produce a conversion surplus. For a noncash BRL line, `equivalent_pyg` credits the allocated Gs and `rounding_adjustment_pyg` separately preserves `round(original_cents * rate / 100) - equivalent_pyg`. This is an explicit rounding adjustment, not cash change. The server accepts **exactly** the calculated BRL amount; any additional noncash overpayment is rejected. PYG noncash originals must exactly match their allocation. Staff must explain the chosen rounding policy to customers.
 
-Pix settlement is exclusively BRL. Other methods may use either currency when the current rate is configured. Cash can be received in either supported currency, with any change always recorded in **PYG**. For cash in BRL, the original is converted with exact decimal arithmetic and rounded to whole Gs; the excess becomes `change_pyg`. For all payments, net credit is `equivalent_pyg - change_pyg`. New rate IDs are checked when recording: a stale BRL quote fails atomically and must be reviewed. Recorded payments retain their original rate and adjustment forever.
+Pix settlement is exclusively BRL. Cash settlement is exclusively PYG (migration `202610240011`); BRL cash is disabled in both payment interfaces and rejected by the server schema and PostgreSQL RPC. Historical recorded payments and completed idempotent retry responses remain unchanged. Transfer/card may use either currency when the current rate is configured. Cash change is always PYG. New rate IDs are checked when recording: a stale BRL quote fails atomically. Recorded payments retain their original rate and adjustment forever.
 
 ## Ledger, permissions and idempotency
 
@@ -50,14 +54,14 @@ Order/item mutations and payments serialize on order rows. Totals cannot be redu
 2. Public `/order`: add a 25,000 Gs product. Verify whole-Gs menu/cart/total. Pix shows approximately BRL 17.86. Transfer/card/cash show only Gs. Submitting creates a pending order and **no payment**.
 3. Confirm and prepare the order. At the normal completion stage, open its payment panel in `/orders`, or the table bill in `/cashier` for dine-in.
 4. Add transfer/PYG for 10,000 Gs and Pix/BRL for 15,000 Gs. Check the displayed conversion and remaining balance. Register and verify closure and the saved summary. Alternatively register the first line alone: the order remains pending and the second batch settles the remaining amount.
-5. Cash test: for 25,000 Gs, receive 30,000 Gs and verify 5,000 Gs change. Test cash/BRL and confirm change is still in Gs. Card/transfer/Pix cannot receive a manually inflated original.
+5. Cash test: for 25,000 Gs, receive 30,000 Gs and verify 5,000 Gs change. Verify BRL is disabled for cash and a forged cash/BRL payload is rejected. Card/transfer/Pix cannot receive a manually inflated original.
 6. Switch FX rounding to 0.50 and 1.00 steps. Verify the documented examples. Change the rate in another admin session before submitting an already-open BRL payment: it must be rejected until reviewed. Reopen a closed summary and verify the old applied rate remains.
 7. Disable a method; refresh customer/cashier screens and verify it is unavailable. A stale submission must fail server-side. Test blocked cashier, waiter and anonymous access.
 8. On an uncertain payment request, use **Consultar envio** to repeat the original UUID and payload. Do not create a second payment merely because the connection failed. The pending UUID/payload is also retained in session storage when available, so reopening the same order in the same browser tab offers the same request. Preserve the open payment screen until the result is resolved if browser storage is unavailable.
 
 ## Verification and exclusions
 
-Run `npm run lint`, `npm run build`, `npm run test:whatsapp`, `node --test tests/money.test.mjs tests/bill-totals.test.mjs tests/delivery-pricing.test.mjs tests/menu-management-validation.test.mjs tests/offsite-order-validation.test.mjs`, and `npm run test:sql` with the local seeded database running. SQL fixtures roll back and cover rates, snapshot immutability, conversion, split/partial settlement, cash change in both currencies, disabled methods, stale rates, retry payloads, direct-write/RLS boundaries and blocked roles.
+Run `npm run lint`, `npm run build`, `npm run test:whatsapp`, `node --test tests/money.test.mjs tests/bill-totals.test.mjs tests/delivery-pricing.test.mjs tests/menu-management-validation.test.mjs tests/offsite-order-validation.test.mjs`, and `npm run test:sql` with the local seeded database running. SQL fixtures roll back and cover rates, snapshot immutability, conversion, split/partial settlement, PYG cash change and rejection of BRL cash, disabled methods, stale rates, retry payloads, direct-write/RLS boundaries and blocked roles.
 
 Outside this block: shifts/cash reconciliation, USD, refunds/reversals, electronic invoices, manager approval, phone/address rules, printer integration and bank/Meta configuration. No printer layout/queue changes were made. Existing receipts inherit the shared money formatter. Physical printing and interactive browser acceptance still require manual checks. Do not treat a recorded Pix payment as bank-verified.
 

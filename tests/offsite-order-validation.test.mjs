@@ -49,7 +49,7 @@ test("rejection and completion require reason and payment respectively", () => {
 });
 
 test("settings reject negative prices, fractional times, and fractional guaranies", () => {
-  const settings = { default_phone_country:"PY", is_accepting_orders: true, dine_in_qr_enabled: true, require_confirmation_for_qr: true, pickup_enabled: true, delivery_enabled: true, whatsapp_enabled: false, kitchen_auto_print_enabled: false, delivery_fee: 5500, min_delivery_order: 20, estimated_pickup_minutes: 30, estimated_delivery_minutes: 50,
+  const settings = {restaurant_name:"Mesa Certa",business_timezone:"America/Asuncion",business_day_start:"05:00",counter_payment_timing:"at_order",counter_green_minutes:2,counter_yellow_minutes:5, default_phone_country:"PY", is_accepting_orders: true, dine_in_qr_enabled: true, require_confirmation_for_qr: true, pickup_enabled: true, delivery_enabled: true, whatsapp_enabled: false, kitchen_auto_print_enabled: false, delivery_fee: 5500, min_delivery_order: 20, estimated_pickup_minutes: 30, estimated_delivery_minutes: 50,
     delivery_fee_mode: "fixed", delivery_distance_step_km: 2, delivery_distance_step_fee: 6, delivery_origin_latitude: null, delivery_origin_longitude: null };
   assert.equal(settingsSchema.safeParse(settings).success, true);
   for (const extra of [{ delivery_fee: -1 }, { delivery_fee: 0.001 }, { estimated_pickup_minutes: 0 }, { estimated_delivery_minutes: 2.5 }, { min_delivery_order: NaN }]) assert.equal(settingsSchema.safeParse({ ...settings, ...extra }).success, false);

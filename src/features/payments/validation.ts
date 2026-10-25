@@ -6,7 +6,7 @@ export const paymentRequestSchema = z.strictObject({
   lines: z.array(z.strictObject({
     method: z.enum(["cash", "transfer", "card", "pix"]),
     currency: z.enum(["PYG", "BRL"]), original_amount: amount, amount_pyg: amount, rate_id: z.uuid().optional(),
-  }).refine((line) => line.method !== "pix" || line.currency === "BRL")).min(1).max(20),
+  }).refine((line) => (line.method !== "pix" || line.currency === "BRL") && (line.method !== "cash" || line.currency === "PYG"))).min(1).max(20),
 });
 export const exchangeRateSchema = z.strictObject({
   rate: z.string().regex(/^\d{1,9}(\.\d{1,8})?$/).refine((value) => Number(value) >= 0.01 && Number(value) <= 100000000),

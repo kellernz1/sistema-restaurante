@@ -1,0 +1,14 @@
+.cash-sessions { display: grid; gap: 22px; }
+.cash-forms { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px; }
+.cash-forms fieldset,.cash-sessions > fieldset { display: grid; gap: 16px; min-width: 0; }
+.cash-sessions fieldset > legend { float: left; width: 100%; padding: 0; font-size: 24px; font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; }
+.cash-sessions button { min-height: 48px; }
+.cash-report table { border-collapse: collapse; width: 100%; }
+.cash-report th,.cash-report td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--line); }
+.cash-denomination { display: grid; grid-template-columns: 1fr 100px; align-items: center; gap: 12px; margin: 12px 0; }
+.cash-events { display: grid; gap: 12px; list-style: none; padding: 0; margin: 16px 0 0; }
+.cash-events li { padding: 16px; border: 1px solid var(--line); border-radius: 16px; min-width: 0; }
+.cash-event-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; }
+.cash-event-heading time { color: var(--text-secondary, #6e6e73); font-size: 14px; }
+.cash-events p { margin: 8px 0 0; overflow-wrap: anywhere; }
+@media(max-width:800px){.cash-forms{grid-template-columns:1fr;}}

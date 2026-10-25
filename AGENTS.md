@@ -9,9 +9,14 @@
 
 ## Conventions
 
+- Preserve UTF-8 when editing accented text. Prefer apply_patch or explicit Node/Python UTF-8 reads/writes. Never pipe accented source through Windows shell commands that transcode implicitly; PowerShell reads/writes must specify UTF-8 explicitly. A successful build does not validate encoding.
+- Run `npm run check:text` before completing every block. For interface changes, run `npm run test:visual` against the running local stack and review screenshots in ignored `artifacts/visual/`. Report any unavailable browser/environment checks honestly. See `docs/text-and-visual-checks.md`.
+
 - Code, identifiers, comments, and commits are written in English.
 - User-facing interface text supports Brazilian Portuguese (`pt-BR`, default) and Spanish (`es`). Use `useTranslation` in Client Components and `getTranslation` in Server Components; add source text and Spanish translations to `src/lib/i18n/es.json`. Keep restaurant-entered menu content unchanged.
-- Currency uses `Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })`.
+- Base currency is PYG: monetary prices, fees and order totals are bounded whole-guarani `bigint` values. Use `src/lib/money.ts` for `Gs. 25.000` formatting and limits; never use cent arithmetic for PYG. BRL payment originals are integer cents.
+- Payments support cash (PYG only), transfer, card and Pix (BRL), enabled per restaurant. PostgreSQL is authoritative for split payments, exact BRL/PYG conversion, rounding and cash change. Exchange rates are append-only; recorded payments retain their historical rate. Do not recalculate historical payments or bypass the ledger.
+- Normalize customer phones through the shared libphonenumber helper to E.164, with explicit PY (+595) / BR (+55) selection and the configured default. Preserve the safe Brazilian ninth-digit identity rules and original WhatsApp transport recipient. See `docs/paraguay-contacts.md`.
 - Server Components are the default; Client Components are used only for browser interaction or Realtime.
 - Public customer flows never access Supabase directly; they use validated server endpoints.
 - The Supabase service-role key is server-only and must never be imported into a Client Component.
@@ -30,6 +35,8 @@
 
 ## Architecture Decisions
 
+- Cash sessions are operator-owned, with one open session per operator and mandatory payment linkage enabled by default. PostgreSQL serializes payment binding and closing; closed reports/history are immutable except audited admin reopening. Daily revenue follows payment business dates, net of cash change, including historical unassigned receipts. See `docs/cash-sessions.md`.
+
 - All ordering channels will use one shared server-side order creation service.
 - Supabase browser and server clients use the public anon key; privileged server-only work uses a separate admin client.
 - Session refresh and optimistic route protection run in the Next.js 16 `src/proxy.ts`; database RLS remains the authorization boundary.
@@ -37,6 +44,10 @@
 - Role-specific RLS policies use security-definer helpers to compare proposed updates with stored rows, preventing unauthorized column changes.
 - Customer-created orders use the service-role-only `create_customer_order(jsonb)` RPC.
 - Database types live in `src/types/database.types.ts` and must be regenerated after schema changes.
+- Every new block must validate the complete ordered migration chain and SQL suites in a clean, separate temporary database/instance. Never reset or delete the development database for validation. Use `npm run db:validate-clean`; document the boundary (SQL validation is not a full Auth/Realtime HTTP installation).
+- Counter service reuses pickup with `is_counter`, optional normalized name and an atomic per-business-day ticket. Timezone/cutoff default to America/Asuncion and 05:00. Pay-at-order creation and payments commit together; pay-at-end remains supported. Kitchen group actions are transactional and idempotent. See `docs/counter-flow.md`.
+- Printing separates immutable document snapshots from browser/file-test drivers. Claim/finish/reprint operations preserve RLS and share a PostgreSQL processor lease. Uncertain output is never automatically resent. Both request paths use the same document-busy guard; human decisions record actor/time and are audited. Only admin can archive/discard, and archived work cannot dispatch. Forwarded units count committed kitchen reservations; copy acknowledgements are separate. See `docs/printing-architecture.md`.
+- TCP/spooler drivers and silent hardware printing are not implemented. Do not claim physical printer compatibility from file/browser tests.
 - Public table endpoints validate strict Zod payloads and throttle through service-role-only PostgreSQL counters. Forwarding headers are trusted only when `PUBLIC_TRUST_PROXY=true` behind a proxy that overwrites them.
 - QR/NFC order creation revalidates `table_token` under the table lock in `create_customer_order`; rotating a token invalidates old links. Customer pages use polling and never mount the staff AuthProvider.
 - Staff review, request attendance, and token rotation use role-checked RPCs. Public service requests and bill status changes are atomic.
@@ -54,7 +65,7 @@
 - `local:env` generates `.env.local` with modern publishable/secret Supabase keys, `APP_MODE=local`, and a random worker secret. Secret keys stay server-only and all generated secrets, logs, and backups are git-ignored.
 - Daily commands are `local:start`, `local:stop`, and `local:info`. First-time provisioning uses `local:setup`; database recovery uses `db:backup`, `db:restore`, and confirmed `db:reset`.
 - Base operational records live in `supabase/seed.sql`. Optional records created by `seed:demo` carry `[DEMO]` markers or are tracked in the ignored demo manifest; `seed:clear-demo` removes only that set.
-- `local:start` also runs the authenticated WhatsApp queue worker. `/api/health` reports only application and database reachability. `test:smoke` covers the running local stack and SQL policies.
+- `local:start` runs the WhatsApp worker and the independent file-test print worker. Print RPC/driver waits have explicit deadlines, and workers send instance/version heartbeats. `/api/health` reports app/database reachability; authenticated `/api/staff/printing/health` reports print worker health and aged pending work (configurable default 60 seconds). `test:smoke` covers the running local stack and SQL policies.
 - Regenerate `.env.local` and reprint table QR codes whenever the reserved LAN IP changes. Real WhatsApp remains optional and requires a narrowly scoped public HTTPS tunnel for its webhook.
 
 ## Current Phase
@@ -69,7 +80,7 @@
 - Phase 8: implemented after user confirmation; lint, build, TypeScript, and 9 automated/smoke tests pass. Migration execution, live Supabase acceptance, and QR/NFC/print checks remain pending; see `docs/phase-8-validation.md` and `docs/qr-nfc-setup.md`.
 - Phase 9: implemented after user confirmation; lint, build, TypeScript, and 17 automated/HTTP smoke tests pass. Migration execution and live acceptance remain pending; see `docs/phase-9-validation.md`.
 - Phase 10: implemented after user confirmation; lint, build, TypeScript, 27 Vitest tests, and 21 native/HTTP tests pass. Migration execution, full mock flows against Supabase, and live Meta acceptance remain pending; see `docs/phase-10-validation.md` and `docs/whatsapp-setup.md`.
-- Local-first package: implemented statically; Docker-backed reset, seeds, SQL tests, LAN acceptance, and backup/restore remain pending on a machine with Docker Desktop.
+- Local-first package: Docker-backed local database, migrations, seeds and SQL tests have been exercised. Complete migration-chain validation uses an isolated temporary database. Physical printing, full restoration/power-loss acceptance and provider acceptance remain operational checks; see current block validation documents.
 - All planned implementation phases are present. Environment/database/provider acceptance is still required before production use.
 
 <!-- BEGIN:nextjs-agent-rules -->

@@ -43,7 +43,9 @@ function runNativeTests() {
   const files = fs.readdirSync(path.join(ROOT, "tests"))
     .filter((file) => file.endsWith(".test.mjs"))
     .map((file) => path.join("tests", file));
-  const result = spawnSync(process.execPath, ["--test", ...files], {
+  // HTTP suites share restaurant settings and the public menu in the local database.
+  // Run files sequentially so one suite cannot consume another suite's temporary products.
+  const result = spawnSync(process.execPath, ["--test", "--test-concurrency=1", ...files], {
     cwd: ROOT,
     env: { ...process.env, ...env, PUBLIC_TEST_URL: baseUrl },
     encoding: "utf8",

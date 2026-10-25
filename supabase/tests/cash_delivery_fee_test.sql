@@ -1,0 +1,27 @@
+begin;
+create temporary table cash_fee_context(cashier uuid,order_id uuid,session_id uuid);
+grant all on cash_fee_context to authenticated;
+insert into cash_fee_context(cashier) values(gen_random_uuid());
+insert into auth.users(id,email,raw_user_meta_data) select cashier,'__fee_'||cashier||'@test.local','{"full_name":"Cash fee test"}'::jsonb from cash_fee_context;
+update public.profiles set role='cashier',is_active=true where id=(select cashier from cash_fee_context);
+update public.cash_session_policy set require_open_session=true where id;
+update public.restaurant_settings set enabled_payment_methods=array['cash']::public.payment_method[] where id;
+insert into public.orders(order_type,source,status,customer_name,customer_phone,delivery_address,delivery_fee) values('delivery','waiter','open','__cash_fee__','+595981999906','{"street":"Test"}',6000);
+update cash_fee_context set order_id=(select id from public.orders where customer_name='__cash_fee__');
+insert into public.order_items(order_id,product_id,quantity,unit_price) select c.order_id,p.id,1,0 from cash_fee_context c cross join (select id from public.products where is_active limit 1) p;
+update public.order_items set status='ready' where order_id=(select order_id from cash_fee_context);
+update public.orders set status='out_for_delivery' where id=(select order_id from cash_fee_context);
+select set_config('request.jwt.claim.role','authenticated',true);
+select set_config('request.jwt.claim.sub',(select cashier::text from cash_fee_context),true);
+set local role authenticated;
+do $$ declare c cash_fee_context;r jsonb;total bigint;begin
+ select * into c from cash_fee_context;
+ r:=public.cash_session_command(gen_random_uuid(),'open','{"opening_amount":0}');update cash_fee_context set session_id=(r->>'session_id')::uuid;
+ select total_amount into total from public.orders where id=c.order_id;
+ perform public.record_order_payments(c.order_id,gen_random_uuid(),jsonb_build_array(jsonb_build_object('method','cash','currency','PYG','amount_pyg',1,'original_amount',1)));
+ if (select delivery_fee_pyg from public.payments where order_id=c.order_id)<>0 then raise exception 'Delivery fee recognized on partial payment';end if;
+ perform public.record_order_payments(c.order_id,gen_random_uuid(),jsonb_build_array(jsonb_build_object('method','cash','currency','PYG','amount_pyg',total-1,'original_amount',total-1)));
+ if (select sum(delivery_fee_pyg) from public.payments where order_id=c.order_id)<>6000 then raise exception 'Delivery fee counted more than once';end if;
+end $$;
+reset role;
+rollback;

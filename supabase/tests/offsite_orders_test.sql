@@ -1,5 +1,7 @@
 ﻿-- Run after all three migrations and seed. Fixtures roll back.
 begin;
+-- Legacy order scenarios use the configurable optional-session mode.
+update public.cash_session_policy set require_open_session=false where id;
 insert into public.exchange_rates(rate,rounding,created_by) select 1400,'none',id from public.profiles where role='admin' and is_active limit 1;
 create temporary table phase9_context(pickup_id uuid, delivery_id uuid, product_id uuid, table_id uuid, table_status public.table_status);
 grant select, update on phase9_context to service_role, authenticated;
