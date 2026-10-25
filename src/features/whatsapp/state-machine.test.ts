@@ -25,9 +25,9 @@ describe("WhatsApp order happy paths", () => {
     expect(result.session.context.payment_method).toBe("pix");
   });
   it("completes delivery collecting a full address and cash change", () => {
-    const result = drive(["oi", "delivery", ...browse, "Ana", "new_address", "Rua A", "10", "Centro", "São Paulo", "SP", "01001-000", "pular", "pular", "cash", "50", "confirm"]);
+    const result = drive(["oi", "delivery", ...browse, "Ana", "new_address", "Rua A", "10", "Centro", "Asunción", "pular", "pular", "cash", "50", "confirm"]);
     expect(result.submit).toBe(true); expect(result.session.context.cash_change_for).toBe(50);
-    expect(result.session.context.address?.zip_code).toBe("01001000");
+    expect(result.session.context.address?.city).toBe("Asunción");
   });
   it("completes local ordering by table number", () => {
     const result = drive(["oi", "dine_in", "1", ...browse, "Ana", "card", "confirm"]);

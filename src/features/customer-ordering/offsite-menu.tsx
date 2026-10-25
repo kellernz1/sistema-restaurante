@@ -1,5 +1,7 @@
 "use client";
 
+import { PhoneInput } from "@/components/phone-input";
+import { addressStorageKeys, type PhoneCountry } from "@/lib/phone";
 import { useTranslation } from "@/components/language-provider";
 
 
@@ -11,7 +13,7 @@ import { OrderTypeBadge } from "@/components/order-type-badge";
 import { uuid } from "@/lib/uuid";
 
 import { CartEditor, ProductCatalog, cartSubtotal, money, type CartLine, type CatalogCategory, type CatalogProduct } from "./menu-cart";
-import { deliveryAddressSchema, offsiteOrderSchema, phoneSchema } from "./offsite-validation";
+import { deliveryAddressSchema, offsiteOrderSchema, makePhoneSchema } from "./offsite-validation";
 import { customerApi } from "./public-client";
 import { FloatingCart } from "./floating-cart";
 import { DeliveryLocationPicker } from "./delivery-location-picker";
@@ -20,12 +22,12 @@ import { DeliveryQuoteSummary } from "./delivery-quote-summary";
 
 import { brl, brlCentsFor, paymentLabels, type PaymentConfig } from "@/lib/money";
 type Menu = { payment_configuration: PaymentConfig; products: CatalogProduct[]; categories: CatalogCategory[]; settings: {
-  is_accepting_orders: boolean; pickup_enabled: boolean; delivery_enabled: boolean; delivery_fee: number;
+  default_phone_country: PhoneCountry; is_accepting_orders: boolean; pickup_enabled: boolean; delivery_enabled: boolean; delivery_fee: number;
   min_delivery_order: number; estimated_pickup_minutes: number; estimated_delivery_minutes: number;
   delivery_fee_mode: string; delivery_distance_step_km: number; delivery_distance_step_fee: number;
 } };
 const blankAddress = { street: "", number: "", complement: "", neighborhood: "", city: "", state: "", zip_code: "", reference: "" };
-const addressLabels: Record<keyof typeof blankAddress, string> = { street: "Rua (opcional com localização)", number: "Número (opcional)", complement: "Complemento (opcional)", neighborhood: "Bairro (opcional com localização)", city: "Cidade (opcional com localização)", state: "UF (opcional com localização)", zip_code: "CEP (opcional com localização)", reference: "Referência (opcional)" };
+const addressLabels: Record<keyof typeof blankAddress, string> = { street: "Rua e número (opcional com localização)", number: "Número (opcional)", complement: "Complemento (opcional)", neighborhood: "Bairro (opcional com localização)", city: "Cidade (opcional com localização)", state: "UF (opcional com localização)", zip_code: "CEP (opcional com localização)", reference: "Referência (opcional)" };
 
 export function OffsiteMenu() {
   const t = useTranslation();
@@ -35,6 +37,7 @@ export function OffsiteMenu() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>();
   const [address, setAddress] = useState(blankAddress);
   const [locationUrl, setLocationUrl] = useState("");
   const [locationPending, setLocationPending] = useState(false);
@@ -67,13 +70,13 @@ export function OffsiteMenu() {
   }, [load]);
 
   function savedAddress() {
-    const parsed = phoneSchema.safeParse(phone);
+    const parsed = makePhoneSchema(phoneCountry ?? menu?.settings.default_phone_country ?? "PY").safeParse(phone);
     if (!parsed.success) return;
     try {
-      const stored = localStorage.getItem(`delivery-address:${parsed.data}`);
+      const stored = addressStorageKeys(parsed.data).map((key) => localStorage.getItem(key)).find(Boolean);
       if (!stored) return;
       const result = deliveryAddressSchema.safeParse(JSON.parse(stored));
-      if (result.success) { setAddress(result.data); setLocationUrl(result.data.location_url ?? ""); setNotice(t("Endereço salvo neste aparelho preenchido. Confira antes de enviar.")); }
+      if (result.success) { setAddress({ ...blankAddress, ...Object.fromEntries(Object.entries(result.data).map(([key,value]) => [key,value ?? ""])) }); setLocationUrl(result.data.location_url ?? ""); setNotice(t("Endereço salvo neste aparelho preenchido. Confira antes de enviar.")); }
     } catch { /* Local address reuse is optional. */ }
   }
 
@@ -88,12 +91,12 @@ export function OffsiteMenu() {
 
   async function submit() {
     if (lock.current || !quoteReady || locationPending || !accepting || !cart.length || belowMinimum) return;
-    const payload = offsiteOrderSchema.safeParse({ order_type: type, customer_name: name, customer_phone: phone,
+    const payload = offsiteOrderSchema.safeParse({ order_type: type, customer_name: name, customer_phone: phone, phone_country: phoneCountry ?? menu?.settings.default_phone_country,
       ...(type === "delivery" ? { delivery_address: { ...address, location_url: locationUrl.trim() || undefined, delivery_quote_id: distanceMode ? delivery.quote?.id ?? undefined : undefined } } : {}), payment_method: payment,
       ...(payment === "cash" && needsChange ? { cash_change_for: Number(change.replace(",", ".")) } : {}), notes,
       items: cart.map((line) => ({ product_id: line.product.id, quantity: line.quantity, notes: line.notes })),
     });
-    if (!payload.success) { setError(t("Confira nome, telefone com DDD e pagamento. Para entrega, envie uma localização válida ou preencha o endereço completo.")); return; }
+    if (!payload.success) { setError(t("Confira nome, país, telefone e pagamento. Para entrega, envie a localização ou informe rua e número.")); return; }
     if (payload.data.cash_change_for !== undefined && payload.data.cash_change_for < total) { setError(t("O valor para troco deve ser igual ou maior que o total.")); return; }
     lock.current = true; setBusy(true); setError("");
     try {
@@ -127,8 +130,8 @@ export function OffsiteMenu() {
       </div>}
       {step === 3 && <section className="order-panel checkout-form"><h2>{t("Dados para ")}{t(type === "delivery" ? "entrega" : "retirada")}</h2><OrderTypeBadge type={type} />
         <label className="field-group">{t("Nome")}<input className="order-input" autoComplete="name" maxLength={80} disabled={busy} value={name} onChange={(event) => setName(event.target.value)} /></label>
-        <label className="field-group">{t("Telefone com DDD")}<input className="order-input" type="tel" autoComplete="tel" maxLength={30} disabled={busy} value={phone} onChange={(event) => setPhone(event.target.value)} onBlur={savedAddress} /></label>
-        {type === "delivery" && <fieldset className="address-fields"><legend>{t("Endereço de entrega")}</legend><DeliveryLocationPicker value={locationUrl} onChange={setLocationUrl} disabled={busy} onPendingChange={setLocationPending} />{distanceMode && <DeliveryQuoteSummary {...delivery} />}<details className="delivery-written-address"><summary>{t("Adicionar endereço escrito ou referência (opcional com localização)")}</summary>{(Object.keys(blankAddress) as (keyof typeof blankAddress)[]).map((key) => <label className="field-group" key={key}>{addressLabels[key]}<input className="order-input" disabled={busy} value={address[key]} maxLength={key === "state" ? 2 : key === "zip_code" ? 9 : key === "number" ? 20 : key === "reference" ? 200 : 120} onChange={(event) => setAddress((current) => ({ ...current, [key]: key === "state" ? event.target.value.toUpperCase() : event.target.value }))} /></label>)}</details><label><input type="checkbox" checked={remember} disabled={busy} onChange={(event) => setRemember(event.target.checked)} /> {t(" Salvar endereço neste aparelho para este telefone")}</label><button className="ghost-button" disabled={busy} onClick={() => { const parsed = phoneSchema.safeParse(phone); if (parsed.success) { try { localStorage.removeItem(`delivery-address:${parsed.data}`); } catch { /* Storage is optional. */ } setRemember(false); setNotice(t("Endereço removido deste aparelho.")); } }}>{t("Esquecer endereço salvo")}</button></fieldset>}
+        <PhoneInput value={phone} country={phoneCountry} defaultCountry={menu.settings.default_phone_country} disabled={busy} onChange={(value,country) => {setPhone(value);setPhoneCountry(country);}} onBlur={savedAddress} />
+        {type === "delivery" && <fieldset className="address-fields"><legend>{t("Endereço de entrega")}</legend><DeliveryLocationPicker value={locationUrl} onChange={setLocationUrl} disabled={busy} onPendingChange={setLocationPending} />{distanceMode && <DeliveryQuoteSummary {...delivery} />}<details className="delivery-written-address"><summary>{t("Adicionar endereço escrito ou referência (opcional com localização)")}</summary>{(Object.keys(blankAddress).filter((key) => key !== "state" && key !== "zip_code") as (keyof typeof blankAddress)[]).map((key) => <label className="field-group" key={key}>{addressLabels[key]}<input className="order-input" disabled={busy} value={address[key]} maxLength={key === "state" ? 2 : key === "zip_code" ? 9 : key === "number" ? 20 : key === "reference" ? 200 : 120} onChange={(event) => setAddress((current) => ({ ...current, [key]: key === "state" ? event.target.value.toUpperCase() : event.target.value }))} /></label>)}</details><label><input type="checkbox" checked={remember} disabled={busy} onChange={(event) => setRemember(event.target.checked)} /> {t(" Salvar endereço neste aparelho para este telefone")}</label><button className="ghost-button" disabled={busy} onClick={() => { const parsed = makePhoneSchema(phoneCountry ?? menu?.settings.default_phone_country ?? "PY").safeParse(phone); if (parsed.success) { try { for (const key of addressStorageKeys(parsed.data)) localStorage.removeItem(key); } catch { /* Storage is optional. */ } setRemember(false); setNotice(t("Endereço removido deste aparelho.")); } }}>{t("Esquecer endereço salvo")}</button></fieldset>}
         <label className="field-group">{t("Pagamento ao receber")}<select className="order-input" disabled={busy} value={payment} onChange={(event) => setPayment(event.target.value as typeof payment)}>{menu.payment_configuration.enabled_methods.map((method) => <option key={method} value={method} disabled={method === "pix" && !menu.payment_configuration.rate}>{t(paymentLabels[method])}</option>)}</select></label>
         {payment === "pix" && <p>{t("Valor aproximado em reais")}: {menu.payment_configuration.rate ? brl.format(brlCentsFor(total, menu.payment_configuration.rate.rate, menu.payment_configuration.rate.rounding)) : t("Cotação indisponível. Escolha outra forma.")}</p>}
         {payment === "cash" && <><label><input type="checkbox" disabled={busy} checked={needsChange} onChange={(event) => setNeedsChange(event.target.checked)} /> {t(" Preciso de troco")}</label>{needsChange && <label className="field-group">{t("Troco para quanto?")}<input className="order-input" type="number" min={total} step="1" disabled={busy} value={change} onChange={(event) => setChange(event.target.value)} /></label>}</>}

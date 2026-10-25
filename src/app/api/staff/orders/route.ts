@@ -1,4 +1,5 @@
-import { cashierOrderSchema } from "@/features/cashier/order-validation";
+import { defaultPhoneCountry } from "@/lib/phone-settings";
+import { makeCashierOrderSchema } from "@/features/cashier/order-validation";
 import { createCashierOrder } from "@/lib/order-service";
 import { PublicApiError, publicError, publicJson, readPublicBody } from "@/lib/public-table-api";
 import { requireStaff } from "@/lib/staff-api";
@@ -6,7 +7,7 @@ import { requireStaff } from "@/lib/staff-api";
 export async function POST(request: Request) {
   try {
     const { userId } = await requireStaff(["admin", "cashier"]);
-    const input = cashierOrderSchema.safeParse(await readPublicBody(request));
+    const input = makeCashierOrderSchema(await defaultPhoneCountry()).safeParse(await readPublicBody(request));
     if (!input.success) throw new PublicApiError(400, "Confira mesa, itens, dados do cliente e pagamento.");
     try {
       const order = await createCashierOrder(userId, input.data.request_id, input.data.payload);

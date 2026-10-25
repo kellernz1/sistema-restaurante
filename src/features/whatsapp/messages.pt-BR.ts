@@ -26,7 +26,7 @@ export const text = {
   unavailable: "Um produto ficou indisponível. Remova-o reiniciando com menu ou peça ajuda a um atendente.",
   limit: "Seu carrinho chegou ao limite de 20 itens diferentes. Finalize ou reinicie com menu.",
   newAddress: "Novo endereço", more: "Ver mais", choose: "Escolher", skip: "Pular",
-  fields: { street: "Qual é a rua?", number: "Qual é o número?", neighborhood: "Qual é o bairro?", city: "Qual é a cidade?", state: "Qual é a UF (ex.: SP)?", zip_code: "Qual é o CEP?", complement: "Complemento? Digite pular se não houver.", reference: "Ponto de referência? Digite pular se não houver." },
+  fields: { street: "Qual é a rua e o número?", number: "Número separado (opcional). Digite pular se já informou.", neighborhood: "Qual é o bairro?", city: "Qual é a cidade?", state: "Qual é a UF (ex.: SP)?", zip_code: "Qual é o CEP?", complement: "Complemento? Digite pular se não houver.", reference: "Ponto de referência? Digite pular se não houver." },
   notifications: { accepted: "Pedido confirmado", rejected: "Pedido recusado", ready: "Pedido pronto", out_for_delivery: "Pedido saiu para entrega", completed: "Pedido concluído" },
   confirmation: "Pedido #{number} recebido! Previsão aproximada: {minutes} minutos. Acompanhe: {url}/track/{token}",
 };

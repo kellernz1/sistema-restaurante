@@ -3,7 +3,7 @@ import { addressSchema } from "../customer-ordering/offsite-validation";
 import { paginate, summary, text, totals, trim } from "./messages.pt-BR";
 import type { Context, Environment, Input, Reply, Session, Transition } from "./types";
 
-const fields = ["street", "number", "neighborhood", "city", "state", "zip_code", "complement", "reference"] as const;
+const fields = ["street", "number", "neighborhood", "city", "complement", "reference"] as const;
 const blank = (now: number): Session => ({ state: "type", context: { cart: [] }, needs_human: false, opted_out: false, last_message_at: new Date(now).toISOString() });
 const buttons = (body: string, entries: [string, string][]): Reply => ({ kind: "buttons", body, buttons: entries.map(([id, title]) => ({ id, title })) });
 
@@ -42,7 +42,7 @@ export function prompt(session: Session, env: Environment): Reply[] {
     case "notes": return [buttons(text.notes, [["skip", text.skip]])];
     case "cart": return [...summary(c, env), buttons(text.cart, [["add", "Adicionar mais"], ["finish", "Finalizar"], ["cancelar", "Cancelar"]])];
     case "name": return [{ kind: "text", body: text.name }];
-    case "addresses": return [paginate([...env.addresses.map((item) => ({ id: `address:${item.id}`, title: `${item.address.street}, ${item.address.number}`, description: item.address.neighborhood })), { id: "new_address", title: text.newAddress }], c.page ?? 0, "addresses", text.addresses)];
+    case "addresses": return [paginate([...env.addresses.map((item) => ({ id: `address:${item.id}`, title: `${item.address.street}, ${item.address.number}`, description: item.address.neighborhood ?? undefined })), { id: "new_address", title: text.newAddress }], c.page ?? 0, "addresses", text.addresses)];
     case "address": return [{ kind: "text", body: text.fields[fields[c.address_index ?? 0]] }];
     case "payment": return [buttons(text.payment, [["cash", "Dinheiro"], ["card", "Cartão"], ["pix", "Pix"]])];
     case "change": return [{ kind: "text", body: text.change }];
@@ -126,7 +126,7 @@ export function transition(previous: Session, input: Input, env: Environment): T
     case "address": {
       if (input.location) { c.location = `${input.location.latitude},${input.location.longitude}`; prefix.push({ kind: "text", body: text.location }); break; }
       const field = fields[c.address_index ?? 0];
-      const entry = ["complement", "reference"].includes(field) && value === "pular" ? "" : field === "state" ? raw.toUpperCase() : raw;
+      const entry = field !== "street" && value === "pular" ? "" : raw;
       const check = addressSchema.shape[field].safeParse(entry);
       if (!check.success) { valid = false; break; }
       c.address = { ...c.address, [field]: check.data }; c.address_index = (c.address_index ?? 0) + 1;

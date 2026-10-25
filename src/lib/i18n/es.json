@@ -856,5 +856,16 @@
   "Pedido mínimo para entrega (PYG)": "Pedido mínimo para entrega (PYG)",
   "Taxa fixa de entrega (PYG)": "Tarifa fija de entrega (PYG)",
   "Valor por faixa (PYG)": "Importe por tramo (PYG)",
-  "Saldo após estes pagamentos": "Saldo después de estos pagos"
+  "Saldo após estes pagamentos": "Saldo después de estos pagos",
+  "Telefone": "Teléfono",
+  "Telefone inválido.": "Teléfono inválido.",
+  "País do telefone": "País del teléfono",
+  "País padrão dos telefones": "País predeterminado de los teléfonos",
+  "Paraguai (+595)": "Paraguay (+595)",
+  "Brasil (+55)": "Brasil (+55)",
+  "Paraguai ou Brasil: selecione o país ou cole o número com + e código internacional.": "Paraguay o Brasil: seleccione el país o pegue el número con + y código internacional.",
+  "Rua e número": "Calle y número",
+  "Rua e número (opcional com localização)": "Calle y número (opcional con ubicación)",
+  "Confira nome, país, telefone e pagamento. Para entrega, envie a localização ou informe rua e número.": "Revise nombre, país, teléfono y pago. Para entrega, envíe la ubicación o indique calle y número.",
+  "Telefone de teste": "Teléfono de prueba"
 }

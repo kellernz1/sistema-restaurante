@@ -1,6 +1,8 @@
 "use client";
 
 import { useTranslation } from "@/components/language-provider";
+import { PhoneInput } from "@/components/phone-input";
+import type { PhoneCountry } from "@/lib/phone";
 
 
 import Link from "next/link";
@@ -17,9 +19,10 @@ function replyText(reply: SimulatorReply) {
   return reply.body;
 }
 
-export function WhatsAppSimulator() {
+export function WhatsAppSimulator({ defaultCountry }: { defaultCountry: PhoneCountry }) {
   const t = useTranslation();
-  const [phone, setPhone] = useState("+5511999990099");
+  const [phone, setPhone] = useState(defaultCountry === "BR" ? "+5511999990099" : "+595981123499");
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>();
   const [text, setText] = useState("menu");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
@@ -33,7 +36,7 @@ export function WhatsAppSimulator() {
     setMessages((current) => [...current, { id: uuid(), side: "customer", text: clean }]);
     setText("");
     try {
-      const result = await sendSimulatorMessage({ phone, text: clean, messageId: uuid() });
+      const result = await sendSimulatorMessage({ phone, phone_country:phoneCountry ?? defaultCountry, text: clean, messageId: uuid() });
       setMessages((current) => [
         ...current,
         ...result.replies.map((reply) => ({ id: uuid(), side: "bot" as const, text: replyText(reply), reply })),
@@ -62,10 +65,10 @@ export function WhatsAppSimulator() {
       </header>
 
       <section className="simulator-phone" aria-label={t("Conversa simulada")}>
-        <label className="field-group">
-          <span>{t("Telefone de teste em formato internacional")}</span>
-          <input className="order-input" value={phone} onChange={(event) => setPhone(event.target.value)} disabled={pending} />
-        </label>
+        <div className="field-group">
+          <span>{t("Telefone de teste")}</span>
+          <PhoneInput value={phone} country={phoneCountry} defaultCountry={defaultCountry} onChange={(value,country) => {setPhone(value);setPhoneCountry(country);}} disabled={pending} />
+        </div>
         <div className="simulator-chat" aria-live="polite">
           {messages.length === 0 ? <p className="simulator-empty">{t("Envie “menu” para iniciar o atendimento.")}</p> : null}
           {messages.map((message) => (

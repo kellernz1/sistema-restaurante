@@ -17,7 +17,7 @@ test("GPS coordinates become a fixed map pin with valid geographic bounds", () =
 
 test("checkout preserves optional location and still validates the delivery address", () => {
   const address = { street: "Rua A", number: "10", neighborhood: "Centro", city: "São Paulo", state: "SP", zip_code: "01001-000", location_url: coordinatesMapLink(-23.55, -46.63) };
-  const payload = { order_type: "delivery", customer_name: "Ana", customer_phone: "11999999999", payment_method: "pix", delivery_address: address, items: [{ product_id: "12345678-1234-4234-8234-123456789abc", quantity: 1, notes: "" }] };
+  const payload = { order_type: "delivery", customer_name: "Ana", phone_country:"BR", customer_phone: "11999999999", payment_method: "pix", delivery_address: address, items: [{ product_id: "12345678-1234-4234-8234-123456789abc", quantity: 1, notes: "" }] };
   assert.equal(offsiteOrderSchema.parse(payload).delivery_address.location_url, address.location_url);
   assert.equal(addressSchema.safeParse({ ...address, location_url: "https://evil.test" }).success, false);
   assert.equal(addressSchema.safeParse({ ...address, street: "" }).success, false);
@@ -28,10 +28,10 @@ test("checkout preserves optional location and still validates the delivery addr
 
 test("a map location replaces the required written address, but delivery cannot have neither", () => {
   const location_url = coordinatesMapLink(-23.55, -46.63);
-  assert.equal(deliveryAddressSchema.parse({ location_url }).street, "");
+  assert.equal(deliveryAddressSchema.parse({ location_url }).street, null);
   assert.equal(deliveryAddressSchema.safeParse({ location_url, number: "", zip_code: "", state: "" }).success, true);
   assert.equal(deliveryAddressSchema.safeParse({ location_url, reference: "Portão azul" }).success, true);
   assert.equal(deliveryAddressSchema.safeParse({}).success, false);
   assert.equal(deliveryAddressSchema.safeParse({ street: "", location_url: "https://evil.test" }).success, false);
-  assert.equal(deliveryAddressSchema.safeParse({ location_url, zip_code: "123" }).success, false);
+  assert.equal(deliveryAddressSchema.safeParse({ location_url, zip_code: "123" }).success, true);
 });

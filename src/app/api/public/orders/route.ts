@@ -1,11 +1,12 @@
-import { offsiteOrderSchema } from "@/features/customer-ordering/offsite-validation";
+import { defaultPhoneCountry } from "@/lib/phone-settings";
+import { makeOffsiteOrderSchema } from "@/features/customer-ordering/offsite-validation";
 import { createCustomerOrder } from "@/lib/order-service";
 import { PublicApiError, publicError, publicJson, publicQuota, readPublicBody } from "@/lib/public-table-api";
 
 export async function POST(request: Request) {
   try {
     await publicQuota(request, "offsite-write-ip", 30);
-    const parsed = offsiteOrderSchema.safeParse(await readPublicBody(request));
+    const parsed = makeOffsiteOrderSchema(await defaultPhoneCountry()).safeParse(await readPublicBody(request));
     if (!parsed.success) throw new PublicApiError(400, "Confira telefone, endereço, pagamento e itens do pedido.");
     await publicQuota(request, "offsite-write-phone", 10, parsed.data.customer_phone);
     try {

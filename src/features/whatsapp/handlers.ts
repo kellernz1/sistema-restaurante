@@ -1,3 +1,4 @@
+import { normalizePhone, whatsappIdentity } from "@/lib/phone";
 import "server-only";
 
 import { addressSchema } from "@/features/customer-ordering/offsite-validation";
@@ -20,11 +21,14 @@ export function checkWhatsAppMode() {
   }
 }
 
-export async function enqueueInput(id: string, phone: string, input: Input, receivedAt: string) {
+export async function enqueueInput(id: string, phone: string, input: Input, receivedAt: string, recipient?: string) {
+  const identity = whatsappIdentity(recipient ?? phone);
+  if (identity.phone !== normalizePhone(phone)) throw new Error("Recipient identity mismatch");
+  phone = identity.phone;
   const db = createAdminClient();
   const conversation = await db.from("whatsapp_conversations").upsert({ phone, last_message_at: receivedAt }, { onConflict: "phone", ignoreDuplicates: true });
   if (conversation.error) throw conversation.error;
-  const result = await db.from("whatsapp_messages").upsert({ wa_message_id: id, phone, direction: "in", payload: json({ ...input, received_at: receivedAt }) }, { onConflict: "wa_message_id", ignoreDuplicates: true }).select("id");
+  const result = await db.from("whatsapp_messages").upsert({ wa_message_id: id, phone, direction: "in", payload: json({ ...input, received_at: receivedAt, provider_recipient:identity.recipient }) }, { onConflict: "wa_message_id", ignoreDuplicates: true }).select("id");
   if (result.error) throw result.error;
   return result.data[0]?.id ?? null;
 }
@@ -39,12 +43,12 @@ export async function ingestWebhook(value: unknown) {
     if (change.value.metadata.phone_number_id !== process.env.WHATSAPP_PHONE_NUMBER_ID) continue;
     for (const message of change.value.messages ?? []) {
       const timestamp = Math.min(Date.now(), Number(message.timestamp) * 1000);
-      const phone = `+${message.from}`; const receivedAt = new Date(timestamp).toISOString();
+      const identity=whatsappIdentity(message.from); const phone=identity.phone; const receivedAt = new Date(timestamp).toISOString();
       remember(phone, receivedAt);
-      messages.set(message.id, { wa_message_id: message.id, phone, direction: "in", payload: json({ text: message.interactive?.button_reply?.id ?? message.interactive?.list_reply?.id ?? message.text?.body ?? "", ...(message.location ? { location: message.location } : {}), received_at: receivedAt }) });
+      messages.set(message.id, { wa_message_id: message.id, phone, direction: "in", payload: json({ provider_recipient:identity.recipient, text: message.interactive?.button_reply?.id ?? message.interactive?.list_reply?.id ?? message.text?.body ?? "", ...(message.location ? { location: message.location } : {}), received_at: receivedAt }) });
     }
     for (const event of change.value.statuses ?? []) {
-      const phone = `+${event.recipient_id}`;
+      const phone = whatsappIdentity(event.recipient_id).phone;
       remember(phone, new Date().toISOString());
       const id = `status:${event.id}:${event.status}`;
       messages.set(id, { wa_message_id: id, phone, direction: "status", payload: json(event) });
@@ -58,6 +62,7 @@ export async function ingestWebhook(value: unknown) {
 }
 
 async function environment(phone: string): Promise<Environment> {
+  phone=normalizePhone(phone);
   const db = createAdminClient();
   const results = await Promise.all([
     db.from("restaurant_settings").select("*").eq("id", true).single(),
@@ -87,6 +92,8 @@ async function incoming(job: Job) {
   const conversation = await db.from("whatsapp_conversations").select("*").eq("phone", job.phone).single();
   if (conversation.error) throw conversation.error;
   const row = conversation.data;
+  const inbound=job.payload as {provider_recipient?:string;received_at?:string};
+  if(inbound.provider_recipient && inbound.received_at){const updated=await db.rpc("remember_whatsapp_recipient",{p_phone:job.phone,p_recipient:inbound.provider_recipient,p_at:inbound.received_at});if(updated.error)throw updated.error;}
   const stored = row.context as unknown as Partial<Context>;
   const session: Session = { state: row.state, context: { ...stored, cart: stored.cart ?? [] }, needs_human: row.needs_human, opted_out: row.opted_out, last_message_at: row.last_message_at };
   const env = await environment(job.phone);
@@ -114,7 +121,7 @@ async function incoming(job: Job) {
 
 async function outbound(job: Job) {
   const db = createAdminClient();
-  const conversation = await db.from("whatsapp_conversations").select("last_message_at, needs_human, opted_out").eq("phone", job.phone).single();
+  const conversation = await db.from("whatsapp_conversations").select("last_message_at, needs_human, opted_out, provider_recipient").eq("phone", job.phone).single();
   if (conversation.error) throw conversation.error;
   let reply = job.payload as unknown as Reply;
   const handoff = reply.kind === "text" && reply.handoff;
@@ -126,7 +133,7 @@ async function outbound(job: Job) {
     await release(job); return;
   }
   try {
-    const providerId = await sendWhatsApp(job.phone, reply);
+    const providerId = await sendWhatsApp(conversation.data.provider_recipient ? `+${conversation.data.provider_recipient}` : job.phone, reply);
     const updated = await db.from("whatsapp_messages").update({ status: "sent", provider_id: providerId, payload: json(reply), lease_until: null }).eq("id", job.id).eq("lease_token", job.lease_token!);
     if (updated.error) throw updated.error;
   } catch {

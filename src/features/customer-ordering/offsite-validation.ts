@@ -4,37 +4,21 @@ import { z } from "zod";
 import { tableOrderSchema } from "./validation.ts";
 import { mapLinkSchema } from "./delivery-location.ts";
 
-export function normalizePhone(value: string) {
-  const cleaned = value.replace(/[\s().-]/g, "");
-  if (cleaned.startsWith("+")) return cleaned;
-  if (/^\d{10,11}$/.test(cleaned)) return `+55${cleaned}`;
-  if (/^55\d{10,11}$/.test(cleaned)) return `+${cleaned}`;
-  return cleaned;
+import { normalizePhone, type PhoneCountry } from "../../lib/phone.ts";
+export { normalizePhone } from "../../lib/phone.ts";
+export function makePhoneSchema(country: PhoneCountry = "PY") {
+ return z.string().max(40).transform((value,ctx) => { try { return normalizePhone(value,country); } catch { ctx.addIssue({code:"custom",message:"Telefone inválido."}); return z.NEVER; } });
 }
-
-export const phoneSchema = z.string().max(30).transform(normalizePhone).pipe(z.string().regex(/^\+[1-9]\d{7,14}$/));
+export const phoneSchema = makePhoneSchema();
+const optionalText = (max: number) => z.string().trim().max(max).nullish().transform((value) => value || null);
 export const addressSchema = z.strictObject({
-  street: z.string().trim().min(2).max(120), number: z.string().trim().min(1).max(20),
-  complement: z.string().trim().max(100).default(""), neighborhood: z.string().trim().min(2).max(80),
-  city: z.string().trim().min(2).max(80),
-  state: z.enum(["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]),
-  zip_code: z.string().transform((value) => value.replace(/[-.\s]/g, "")).pipe(z.string().regex(/^\d{8}$/)),
-  reference: z.string().trim().max(200).default(""),
-  location_url: mapLinkSchema.optional(),
-  delivery_quote_id: z.uuid().optional(),
+ street: z.string().trim().min(2).max(120), number: optionalText(40),
+ complement: optionalText(100), neighborhood: optionalText(80), city: optionalText(80),
+ state: optionalText(80), zip_code: optionalText(20), reference: optionalText(200),
+ location_url: mapLinkSchema.optional(), delivery_quote_id:z.uuid().optional(),
 });
-
-// A map point can be used by itself; any written delivery details are optional.
-const locatedAddressSchema = addressSchema.extend({
-  street: z.string().trim().max(120).default(""),
-  number: z.string().trim().max(20).default(""),
-  neighborhood: z.string().trim().max(80).default(""),
-  city: z.string().trim().max(80).default(""),
-  state: z.union([addressSchema.shape.state, z.literal("")]).default(""),
-  zip_code: z.string().transform((value) => value.replace(/[-.\s]/g, "")).pipe(z.string().regex(/^(?:\d{8})?$/)).default(""),
-  location_url: mapLinkSchema,
-});
-export const deliveryAddressSchema = z.union([addressSchema, locatedAddressSchema]);
+const locatedAddressSchema=addressSchema.extend({street:optionalText(120),location_url:mapLinkSchema});
+export const deliveryAddressSchema=z.union([addressSchema,locatedAddressSchema]);
 
 const fields = {
   items: tableOrderSchema.shape.items,
@@ -42,10 +26,17 @@ const fields = {
   notes: z.string().trim().max(500).optional(), payment_method: z.enum(["cash", "transfer", "card", "pix"]),
   cash_change_for: z.number().int().min(0).max(MAX_MONEY).optional(),
 };
-export const offsiteOrderSchema = z.discriminatedUnion("order_type", [
-  z.strictObject({ ...fields, order_type: z.literal("pickup") }),
-  z.strictObject({ ...fields, order_type: z.literal("delivery"), delivery_address: deliveryAddressSchema }),
-]).refine((value) => value.cash_change_for === undefined || value.payment_method === "cash", { message: "Troco exige pagamento em dinheiro." });
+export function makeOffsiteOrderSchema(defaultCountry: PhoneCountry = "PY") {
+ return z.discriminatedUnion("order_type", [
+  z.strictObject({ ...fields, customer_phone: z.string().max(40), phone_country:z.enum(["PY","BR"]).optional(), order_type: z.literal("pickup") }),
+  z.strictObject({ ...fields, customer_phone: z.string().max(40), phone_country:z.enum(["PY","BR"]).optional(), order_type: z.literal("delivery"), delivery_address: deliveryAddressSchema }),
+]).refine((value) => value.cash_change_for === undefined || value.payment_method === "cash", { message: "Troco exige pagamento em dinheiro." }).transform((value,ctx) => {
+ const parsed=makePhoneSchema(value.phone_country ?? defaultCountry).safeParse(value.customer_phone);
+ if(!parsed.success){ctx.addIssue({code:"custom",message:"Telefone inválido."});return z.NEVER;}
+ const {phone_country,...result}=value;void phone_country;return {...result,customer_phone:parsed.data};
+ });
+}
+export const offsiteOrderSchema=makeOffsiteOrderSchema();
 
 export const orderActionSchema = z.strictObject({
   action: z.enum(["accept", "reject", "ready", "dispatch", "complete"]),

@@ -2,6 +2,7 @@ import { MAX_MONEY } from "../../lib/money.ts";
 import { z } from "zod";
 
 export const settingsSchema = z.strictObject({
+  default_phone_country: z.enum(["PY", "BR"]),
   is_accepting_orders: z.boolean(), dine_in_qr_enabled: z.boolean(), require_confirmation_for_qr: z.boolean(),
   pickup_enabled: z.boolean(), delivery_enabled: z.boolean(), whatsapp_enabled: z.boolean(),
   kitchen_auto_print_enabled: z.boolean(),

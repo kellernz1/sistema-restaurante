@@ -47,14 +47,14 @@ isOneToOne: false
                   ]
                 },"customer_addresses": {
                   Row: {
-                    "city": string,"complement": string | null,"created_at": string,"customer_id": string,"id": string,"label": string | null,"neighborhood": string,"number": string,"reference": string | null,"state": string,"street": string,"zip_code": string
+                    "city": string | null,"complement": string | null,"created_at": string,"customer_id": string,"id": string,"label": string | null,"neighborhood": string | null,"number": string | null,"reference": string | null,"state": string | null,"street": string | null,"zip_code": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "city": string,"complement"?: string | null,"created_at"?: string,"customer_id": string,"id"?: string,"label"?: string | null,"neighborhood": string,"number": string,"reference"?: string | null,"state": string,"street": string,"zip_code": string
+                    "city"?: string | null,"complement"?: string | null,"created_at"?: string,"customer_id": string,"id"?: string,"label"?: string | null,"neighborhood"?: string | null,"number"?: string | null,"reference"?: string | null,"state"?: string | null,"street"?: string | null,"zip_code"?: string | null
                   }
                   Update: {
-                    "city"?: string,"complement"?: string | null,"created_at"?: string,"customer_id"?: string,"id"?: string,"label"?: string | null,"neighborhood"?: string,"number"?: string,"reference"?: string | null,"state"?: string,"street"?: string,"zip_code"?: string
+                    "city"?: string | null,"complement"?: string | null,"created_at"?: string,"customer_id"?: string,"id"?: string,"label"?: string | null,"neighborhood"?: string | null,"number"?: string | null,"reference"?: string | null,"state"?: string | null,"street"?: string | null,"zip_code"?: string | null
                   }
                   Relationships: [
                     {
@@ -351,14 +351,14 @@ isOneToOne: false
                   ]
                 },"restaurant_settings": {
                   Row: {
-                    "delivery_distance_step_fee": number,"delivery_distance_step_km": number,"delivery_enabled": boolean,"delivery_fee": number,"delivery_fee_mode": string,"delivery_origin_latitude": number | null,"delivery_origin_longitude": number | null,"dine_in_qr_enabled": boolean,"enabled_payment_methods": (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes": number,"estimated_pickup_minutes": number,"id": boolean,"is_accepting_orders": boolean,"kitchen_auto_print_enabled": boolean,"min_delivery_order": number,"pickup_enabled": boolean,"require_confirmation_for_qr": boolean,"whatsapp_enabled": boolean,"delivery_pricing_snapshot": Json | null
+                    "default_phone_country": string,"delivery_distance_step_fee": number,"delivery_distance_step_km": number,"delivery_enabled": boolean,"delivery_fee": number,"delivery_fee_mode": string,"delivery_origin_latitude": number | null,"delivery_origin_longitude": number | null,"dine_in_qr_enabled": boolean,"enabled_payment_methods": (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes": number,"estimated_pickup_minutes": number,"id": boolean,"is_accepting_orders": boolean,"kitchen_auto_print_enabled": boolean,"min_delivery_order": number,"pickup_enabled": boolean,"require_confirmation_for_qr": boolean,"whatsapp_enabled": boolean,"delivery_pricing_snapshot": Json | null
                   }
                   ComputedFields: "delivery_pricing_snapshot"
                   Insert: {
-                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"enabled_payment_methods"?: (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
+                    "default_phone_country"?: string,"delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"enabled_payment_methods"?: (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
                   }
                   Update: {
-                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"enabled_payment_methods"?: (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
+                    "default_phone_country"?: string,"delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"enabled_payment_methods"?: (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
                   }
                   Relationships: [
 
@@ -399,14 +399,14 @@ isOneToOne: false
                   ]
                 },"whatsapp_conversations": {
                   Row: {
-                    "context": NonNullable<Json>,"last_message_at": string,"lease_token": string | null,"lease_until": string | null,"needs_human": boolean,"opted_out": boolean,"phone": string,"state": string
+                    "context": NonNullable<Json>,"last_message_at": string,"lease_token": string | null,"lease_until": string | null,"needs_human": boolean,"opted_out": boolean,"phone": string,"provider_recipient": string | null,"provider_recipient_at": string | null,"state": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "context"?: NonNullable<Json>,"last_message_at"?: string,"lease_token"?: string | null,"lease_until"?: string | null,"needs_human"?: boolean,"opted_out"?: boolean,"phone": string,"state"?: string
+                    "context"?: NonNullable<Json>,"last_message_at"?: string,"lease_token"?: string | null,"lease_until"?: string | null,"needs_human"?: boolean,"opted_out"?: boolean,"phone": string,"provider_recipient"?: string | null,"provider_recipient_at"?: string | null,"state"?: string
                   }
                   Update: {
-                    "context"?: NonNullable<Json>,"last_message_at"?: string,"lease_token"?: string | null,"lease_until"?: string | null,"needs_human"?: boolean,"opted_out"?: boolean,"phone"?: string,"state"?: string
+                    "context"?: NonNullable<Json>,"last_message_at"?: string,"lease_token"?: string | null,"lease_until"?: string | null,"needs_human"?: boolean,"opted_out"?: boolean,"phone"?: string,"provider_recipient"?: string | null,"provider_recipient_at"?: string | null,"state"?: string
                   }
                   Relationships: [
 
@@ -683,6 +683,9 @@ isOneToOne: false
 "payment_configuration":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"phone_identity":
+{ Args: { "p_country"?: string,"p_value": string }; Returns: string
+                           },
 "recompute_order_total":
 { Args: { "p_order_id": string }; Returns: number
                            },
@@ -691,6 +694,9 @@ isOneToOne: false
                            },
 "release_kitchen_printer":
 { Args: { "p_terminal_id": string }; Returns: undefined
+                           },
+"remember_whatsapp_recipient":
+{ Args: { "p_at": string,"p_phone": string,"p_recipient": string }; Returns: undefined
                            },
 "require_pyg":
 { Args: { "p_value": string }; Returns: number

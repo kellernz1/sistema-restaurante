@@ -43,7 +43,7 @@ begin
     if sqlerrm = 'Below minimum accepted' then raise; end if;
   end;
   begin
-    perform public.create_customer_order(payload || jsonb_build_object('delivery_address',jsonb_build_object('street','Rua Teste')));
+    perform public.create_customer_order(payload || jsonb_build_object('delivery_address',jsonb_build_object('reference','Portón azul')));
     raise exception 'Incomplete address accepted';
   exception when check_violation then null; end;
 end $$;

@@ -5,25 +5,25 @@ import { addressSchema, normalizePhone, offsiteOrderSchema, orderActionSchema } 
 import { settingsSchema } from "../src/features/settings/settings-schema.ts";
 
 const productId = "12345678-1234-4234-8234-123456789abc";
-const pickup = { order_type: "pickup", customer_name: " Ana ", customer_phone: "(11) 99999-1234", payment_method: "pix", items: [{ product_id: productId, quantity: 2 }] };
+const pickup = { order_type: "pickup", customer_name: " Ana ", phone_country:"BR", customer_phone: "(11) 99999-1234", payment_method: "pix", items: [{ product_id: productId, quantity: 2 }] };
 const address = { street: "Rua A", number: "10", neighborhood: "Centro", city: "São Paulo", state: "SP", zip_code: "01001-000" };
 const delivery = { ...pickup, order_type: "delivery", delivery_address: address };
 
 test("normalizes Brazilian phones and preserves explicit international E.164", () => {
-  assert.equal(normalizePhone("(11) 99999-1234"), "+5511999991234");
-  assert.equal(normalizePhone("5511999991234"), "+5511999991234");
+  assert.equal(normalizePhone("(11) 99999-1234", "BR"), "+5511999991234");
+  assert.equal(normalizePhone("5511999991234", "BR"), "+5511999991234");
   assert.equal(normalizePhone("+1 (212) 555-1234"), "+12125551234");
   assert.equal(offsiteOrderSchema.parse(pickup).customer_name, "Ana");
 });
 
 test("requires a complete delivery address and hides delivery fields from pickup payloads", () => {
-  assert.equal(offsiteOrderSchema.parse(delivery).delivery_address.zip_code, "01001000");
+  assert.equal(offsiteOrderSchema.parse(delivery).delivery_address.zip_code, "01001-000");
   assert.equal(offsiteOrderSchema.safeParse({ ...delivery, delivery_address: undefined }).success, false);
   assert.equal(offsiteOrderSchema.safeParse({ ...pickup, delivery_address: address }).success, false);
-  for (const key of ["street", "number", "neighborhood", "city", "state", "zip_code"]) {
+  for (const key of ["street"]) {
     assert.equal(addressSchema.safeParse({ ...address, [key]: "" }).success, false, key);
   }
-  assert.equal(addressSchema.safeParse({ ...address, state: "ZZ" }).success, false);
+  assert.equal(addressSchema.safeParse({ ...address, state: "Central" }).success, true);
 });
 
 test("rejects manipulated totals, fees, source, order types, prices, payment and phone", () => {
@@ -49,7 +49,7 @@ test("rejection and completion require reason and payment respectively", () => {
 });
 
 test("settings reject negative prices, fractional times, and fractional guaranies", () => {
-  const settings = { is_accepting_orders: true, dine_in_qr_enabled: true, require_confirmation_for_qr: true, pickup_enabled: true, delivery_enabled: true, whatsapp_enabled: false, kitchen_auto_print_enabled: false, delivery_fee: 5500, min_delivery_order: 20, estimated_pickup_minutes: 30, estimated_delivery_minutes: 50,
+  const settings = { default_phone_country:"PY", is_accepting_orders: true, dine_in_qr_enabled: true, require_confirmation_for_qr: true, pickup_enabled: true, delivery_enabled: true, whatsapp_enabled: false, kitchen_auto_print_enabled: false, delivery_fee: 5500, min_delivery_order: 20, estimated_pickup_minutes: 30, estimated_delivery_minutes: 50,
     delivery_fee_mode: "fixed", delivery_distance_step_km: 2, delivery_distance_step_fee: 6, delivery_origin_latitude: null, delivery_origin_longitude: null };
   assert.equal(settingsSchema.safeParse(settings).success, true);
   for (const extra of [{ delivery_fee: -1 }, { delivery_fee: 0.001 }, { estimated_pickup_minutes: 0 }, { estimated_delivery_minutes: 2.5 }, { min_delivery_order: NaN }]) assert.equal(settingsSchema.safeParse({ ...settings, ...extra }).success, false);

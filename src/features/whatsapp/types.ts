@@ -1,9 +1,10 @@
+import type { CustomerAddress } from "../customer-ordering/offsite-validation";
 export type Reply =
   | { kind: "text"; body: string; handoff?: boolean; fallback_template?: { name: string; parameters: string[] } }
   | { kind: "buttons"; body: string; buttons: { id: string; title: string }[] }
   | { kind: "list"; body: string; rows: { id: string; title: string; description?: string }[] }
   | { kind: "template"; name: string; parameters: string[] };
-export type Address = { street: string; number: string; complement: string; neighborhood: string; city: string; state: string; zip_code: string; reference: string };
+export type Address = CustomerAddress;
 export type Context = {
   order_type?: "dine_in" | "pickup" | "delivery"; table_id?: string; table_token?: string;
   cart: { product_id: string; quantity: number; notes: string }[];

@@ -1,5 +1,7 @@
 "use client";
 
+import { PhoneInput } from "@/components/phone-input";
+import { type PhoneCountry } from "@/lib/phone";
 import { useTranslation } from "@/components/language-provider";
 
 
@@ -20,9 +22,9 @@ import { cashierOrderSchema } from "@/features/cashier/order-validation";
 import { useDeliveryQuote } from "@/features/customer-ordering/use-delivery-quote";
 import { DeliveryQuoteSummary } from "@/features/customer-ordering/delivery-quote-summary";
 
-const emptyAddress = { street: "", number: "", complement: "", neighborhood: "", city: "", state: "SP", zip_code: "", reference: "" };
+const emptyAddress = { street: "", number: "", complement: "", neighborhood: "", city: "", state: "", zip_code: "", reference: "" };
 const addressLabels: Record<keyof typeof emptyAddress, string> = {
-  street: "Rua", number: "Número", complement: "Complemento (opcional)", neighborhood: "Bairro", city: "Cidade", state: "UF", zip_code: "CEP", reference: "Referência (opcional)",
+  street: "Rua e número", number: "Número (opcional)", complement: "Complemento (opcional)", neighborhood: "Bairro", city: "Cidade", state: "UF", zip_code: "CEP", reference: "Referência (opcional)",
 };
 type Submission = z.infer<typeof cashierOrderSchema>;
 type Created = { order_id: string; order_number: number; total_amount: number };
@@ -38,6 +40,7 @@ export function CashierNewOrder({ tables, products, categories, settings }: {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>();
   const [address, setAddress] = useState(emptyAddress);
   const [locationUrl, setLocationUrl] = useState("");
   const [payment, setPayment] = useState("pix");
@@ -64,7 +67,7 @@ export function CashierNewOrder({ tables, products, categories, settings }: {
         order_type: type, notes,
         items: cart.map((line) => ({ product_id: line.product.id, quantity: line.quantity, notes: line.notes })),
         ...(type === "dine_in" ? { table_id: tableId } : {
-          customer_name: name, customer_phone: phone, payment_method: payment,
+          customer_name: name, customer_phone: phone, phone_country: phoneCountry ?? settings.default_phone_country, payment_method: payment,
           ...(type === "delivery" ? { delivery_address: { ...address, location_url: locationUrl.trim() || undefined, delivery_quote_id: distanceMode ? delivery.quote?.id ?? undefined : undefined } } : {}),
           ...(payment === "cash" && change !== "" ? { cash_change_for: Number(change) } : {}),
         }),
@@ -101,8 +104,8 @@ export function CashierNewOrder({ tables, products, categories, settings }: {
       <div className="cashier-actions" role="group" aria-label={t("Tipo do pedido")}>{([['dine_in', t("Mesa")], ['pickup', t("Retirada")], ['delivery', t("Entrega")]] as const).map(([value, label]) =>
         <button type="button" className="ghost-button" key={value} disabled={disabled} aria-pressed={type === value} onClick={() => { setType(value); setError(""); }}>{t(label)}</button>)}</div>
       {type === "dine_in" ? <label className="field-group">{t("Mesa")}<select className="order-input" disabled={disabled} value={tableId} onChange={(event) => setTableId(event.target.value)}><option value="">{t("Selecione uma mesa")}</option>{tables.map((table) => <option key={table.id} value={table.id} disabled={table.status === "closing"}>{t("Mesa ")}{table.table_number} · {t(TABLE_STATUS_LABELS[table.status])}</option>)}</select><small>{t("Uma mesa livre abre uma comanda; uma mesa ocupada recebe os novos itens.")}</small></label>
-        : <><div className="cashier-customer-fields"><label className="field-group">{t("Nome do cliente")}<input className="order-input" disabled={disabled} maxLength={80} value={name} onChange={(event) => setName(event.target.value)} /></label><label className="field-group">{t("Telefone com DDD")}<input type="tel" className="order-input" disabled={disabled} maxLength={30} value={phone} onChange={(event) => setPhone(event.target.value)} /></label></div>
-          {type === "delivery" && <fieldset className="address-fields"><legend>{t("Endereço de entrega")}</legend><label className="field-group">{t("Link da localização do cliente")}<input className="order-input" type="url" maxLength={2048} value={locationUrl} disabled={disabled} onChange={(event) => setLocationUrl(event.target.value)} /></label>{distanceMode && <DeliveryQuoteSummary {...delivery} />}{(Object.keys(emptyAddress) as (keyof typeof emptyAddress)[]).map((key) => <label className="field-group" key={key}>{addressLabels[key]}<input className="order-input" disabled={disabled} maxLength={key === "state" ? 2 : key === "zip_code" ? 9 : key === "number" ? 20 : key === "reference" ? 200 : 120} value={address[key]} onChange={(event) => setAddress((current) => ({ ...current, [key]: key === "state" ? event.target.value.toUpperCase() : event.target.value }))} /></label>)}</fieldset>}
+        : <><div className="cashier-customer-fields"><label className="field-group">{t("Nome do cliente")}<input className="order-input" disabled={disabled} maxLength={80} value={name} onChange={(event) => setName(event.target.value)} /></label><PhoneInput value={phone} country={phoneCountry} defaultCountry={settings.default_phone_country === "BR" ? "BR" : "PY"} disabled={disabled} onChange={(value,country) => {setPhone(value);setPhoneCountry(country);}}  /></div>
+          {type === "delivery" && <fieldset className="address-fields"><legend>{t("Endereço de entrega")}</legend><label className="field-group">{t("Link da localização do cliente")}<input className="order-input" type="url" maxLength={2048} value={locationUrl} disabled={disabled} onChange={(event) => setLocationUrl(event.target.value)} /></label>{distanceMode && <DeliveryQuoteSummary {...delivery} />}{(Object.keys(emptyAddress).filter((key) => key !== "state" && key !== "zip_code") as (keyof typeof emptyAddress)[]).map((key) => <label className="field-group" key={key}>{addressLabels[key]}<input className="order-input" disabled={disabled} maxLength={key === "state" ? 2 : key === "zip_code" ? 9 : key === "number" ? 20 : key === "reference" ? 200 : 120} value={address[key]} onChange={(event) => setAddress((current) => ({ ...current, [key]: key === "state" ? event.target.value.toUpperCase() : event.target.value }))} /></label>)}</fieldset>}
           <label className="field-group">{t("Forma de pagamento")}<select className="order-input" disabled={disabled} value={payment} onChange={(event) => setPayment(event.target.value)}>{settings.enabled_payment_methods.map((method) => <option key={method} value={method}>{t(paymentLabels[method])}</option>)}</select></label>
           {payment === "cash" && <label className="field-group">{t("Troco para (opcional)")}<input className="order-input" type="number" min={subtotal + fee} step="1" disabled={disabled} value={change} onChange={(event) => setChange(event.target.value)} /></label>}
           <p>{t("O pagamento será registrado no fechamento do pedido.")}</p></>}
