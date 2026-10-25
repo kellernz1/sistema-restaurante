@@ -18,7 +18,8 @@ import { DeliveryLocationPicker } from "./delivery-location-picker";
 import { useDeliveryQuote } from "./use-delivery-quote";
 import { DeliveryQuoteSummary } from "./delivery-quote-summary";
 
-type Menu = { products: CatalogProduct[]; categories: CatalogCategory[]; settings: {
+import { brl, brlCentsFor, paymentLabels, type PaymentConfig } from "@/lib/money";
+type Menu = { payment_configuration: PaymentConfig; products: CatalogProduct[]; categories: CatalogCategory[]; settings: {
   is_accepting_orders: boolean; pickup_enabled: boolean; delivery_enabled: boolean; delivery_fee: number;
   min_delivery_order: number; estimated_pickup_minutes: number; estimated_delivery_minutes: number;
   delivery_fee_mode: string; delivery_distance_step_km: number; delivery_distance_step_fee: number;
@@ -38,7 +39,7 @@ export function OffsiteMenu() {
   const [locationUrl, setLocationUrl] = useState("");
   const [locationPending, setLocationPending] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [payment, setPayment] = useState<"cash" | "card" | "pix">("pix");
+  const [payment, setPayment] = useState<"cash" | "transfer" | "card" | "pix">("pix");
   const [needsChange, setNeedsChange] = useState(false);
   const [change, setChange] = useState("");
   const [notes, setNotes] = useState("");
@@ -81,7 +82,7 @@ export function OffsiteMenu() {
   const delivery = useDeliveryQuote(locationUrl.trim(), distanceMode && step === 3 && !created, `${menu?.settings.delivery_distance_step_km}:${menu?.settings.delivery_distance_step_fee}`);
   const fee = type === "delivery" ? distanceMode ? delivery.quote?.fee ?? 0 : menu?.settings.delivery_fee ?? 0 : 0;
   const quoteReady = !distanceMode || !!delivery.quote;
-  const total = (Math.round(subtotal * 100) + Math.round(fee * 100)) / 100;
+  const total = subtotal + fee;
   const belowMinimum = type === "delivery" && subtotal < (menu?.settings.min_delivery_order ?? 0);
   const accepting = !!menu?.settings.is_accepting_orders && (type === "pickup" ? menu.settings.pickup_enabled : menu.settings.delivery_enabled);
 
@@ -128,11 +129,12 @@ export function OffsiteMenu() {
         <label className="field-group">{t("Nome")}<input className="order-input" autoComplete="name" maxLength={80} disabled={busy} value={name} onChange={(event) => setName(event.target.value)} /></label>
         <label className="field-group">{t("Telefone com DDD")}<input className="order-input" type="tel" autoComplete="tel" maxLength={30} disabled={busy} value={phone} onChange={(event) => setPhone(event.target.value)} onBlur={savedAddress} /></label>
         {type === "delivery" && <fieldset className="address-fields"><legend>{t("Endereço de entrega")}</legend><DeliveryLocationPicker value={locationUrl} onChange={setLocationUrl} disabled={busy} onPendingChange={setLocationPending} />{distanceMode && <DeliveryQuoteSummary {...delivery} />}<details className="delivery-written-address"><summary>{t("Adicionar endereço escrito ou referência (opcional com localização)")}</summary>{(Object.keys(blankAddress) as (keyof typeof blankAddress)[]).map((key) => <label className="field-group" key={key}>{addressLabels[key]}<input className="order-input" disabled={busy} value={address[key]} maxLength={key === "state" ? 2 : key === "zip_code" ? 9 : key === "number" ? 20 : key === "reference" ? 200 : 120} onChange={(event) => setAddress((current) => ({ ...current, [key]: key === "state" ? event.target.value.toUpperCase() : event.target.value }))} /></label>)}</details><label><input type="checkbox" checked={remember} disabled={busy} onChange={(event) => setRemember(event.target.checked)} /> {t(" Salvar endereço neste aparelho para este telefone")}</label><button className="ghost-button" disabled={busy} onClick={() => { const parsed = phoneSchema.safeParse(phone); if (parsed.success) { try { localStorage.removeItem(`delivery-address:${parsed.data}`); } catch { /* Storage is optional. */ } setRemember(false); setNotice(t("Endereço removido deste aparelho.")); } }}>{t("Esquecer endereço salvo")}</button></fieldset>}
-        <label className="field-group">{t("Pagamento ao receber")}<select className="order-input" disabled={busy} value={payment} onChange={(event) => setPayment(event.target.value as typeof payment)}><option value="pix">{t("Pix")}</option><option value="card">{t("Cartão")}</option><option value="cash">{t("Dinheiro")}</option></select></label>
-        {payment === "cash" && <><label><input type="checkbox" disabled={busy} checked={needsChange} onChange={(event) => setNeedsChange(event.target.checked)} /> {t(" Preciso de troco")}</label>{needsChange && <label className="field-group">{t("Troco para quanto?")}<input className="order-input" type="number" min={total} step="0.01" disabled={busy} value={change} onChange={(event) => setChange(event.target.value)} /></label>}</>}
+        <label className="field-group">{t("Pagamento ao receber")}<select className="order-input" disabled={busy} value={payment} onChange={(event) => setPayment(event.target.value as typeof payment)}>{menu.payment_configuration.enabled_methods.map((method) => <option key={method} value={method} disabled={method === "pix" && !menu.payment_configuration.rate}>{t(paymentLabels[method])}</option>)}</select></label>
+        {payment === "pix" && <p>{t("Valor aproximado em reais")}: {menu.payment_configuration.rate ? brl.format(brlCentsFor(total, menu.payment_configuration.rate.rate, menu.payment_configuration.rate.rounding)) : t("Cotação indisponível. Escolha outra forma.")}</p>}
+        {payment === "cash" && <><label><input type="checkbox" disabled={busy} checked={needsChange} onChange={(event) => setNeedsChange(event.target.checked)} /> {t(" Preciso de troco")}</label>{needsChange && <label className="field-group">{t("Troco para quanto?")}<input className="order-input" type="number" min={total} step="1" disabled={busy} value={change} onChange={(event) => setChange(event.target.value)} /></label>}</>}
         <label className="field-group">{t("Observações (opcional)")}<textarea className="order-input" maxLength={500} disabled={busy} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
         <p>{t("Produtos ")}{t(money.format(subtotal))} {t(" · Entrega ")}{t(quoteReady ? money.format(fee) : "a calcular")}</p><p className="order-total">{t("Total estimado")}<strong>{t(money.format(total))}</strong></p><p>{t("Os valores e a disponibilidade serão conferidos ao enviar.")}</p>
-        <div className="cashier-actions"><button className="ghost-button" disabled={busy} onClick={() => setStep(2)}>{t("Revisar itens")}</button><button className="primary-button" disabled={busy || !quoteReady || locationPending || loading || !accepting || !cart.length || belowMinimum} onClick={() => void submit()}>{t(busy ? t("Enviando...") : t("Confirmar pedido"))}</button></div>
+        <div className="cashier-actions"><button className="ghost-button" disabled={busy} onClick={() => setStep(2)}>{t("Revisar itens")}</button><button className="primary-button" disabled={busy || !quoteReady || locationPending || loading || !accepting || !cart.length || belowMinimum || !menu.payment_configuration.enabled_methods.includes(payment) || (payment === "pix" && !menu.payment_configuration.rate)} onClick={() => void submit()}>{t(busy ? t("Enviando...") : t("Confirmar pedido"))}</button></div>
       </section>}
     </>}
   </main>;

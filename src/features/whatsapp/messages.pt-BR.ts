@@ -31,11 +31,11 @@ export const text = {
   confirmation: "Pedido #{number} recebido! Previsão aproximada: {minutes} minutos. Acompanhe: {url}/track/{token}",
 };
 export function trim(value: string, length: number) { let result = ""; for (const character of value) { if (result.length + character.length > length) break; result += character; } return result; }
-const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+import { money } from "@/lib/money";
 export function totals(context: Context, env: Environment) {
-  const subtotal = context.cart.reduce((sum, line) => sum + Math.round((env.products.find((p) => p.id === line.product_id)?.price ?? 0) * 100) * line.quantity, 0) / 100;
+  const subtotal = context.cart.reduce((sum, line) => sum + (env.products.find((p) => p.id === line.product_id)?.price ?? 0) * line.quantity, 0);
   const fee = context.order_type === "delivery" ? env.settings.delivery_fee : 0;
-  return { subtotal, fee, total: (Math.round(subtotal * 100) + Math.round(fee * 100)) / 100 };
+  return { subtotal, fee, total: subtotal + fee };
 }
 export function paginate(rows: { id: string; title: string; description?: string }[], page: number, scope: string, body: string): Reply {
   const offset = Math.max(0, Math.min(page, Math.max(0, Math.ceil(rows.length / 9) - 1))) * 9;
@@ -54,7 +54,7 @@ export function summary(context: Context, env: Environment): Reply[] {
   const { fee, total } = totals(context, env);
   chunk += `\nEntrega: ${money.format(fee)}\nTotal estimado: ${money.format(total)}`;
   const types = { dine_in: "Local", pickup: "Retirada", delivery: "Entrega" };
-  const payments = { cash: "Dinheiro", card: "Cartão", pix: "Pix" };
+  const payments = { cash: "Dinheiro", transfer: "Transferência", card: "Cartão", pix: "Pix" };
   if (context.order_type) chunk += `\n${types[context.order_type]}${context.order_type === "dine_in" ? ` · Mesa ${env.tables.find((table) => table.id === context.table_id)?.table_number ?? "-"}` : ""}`;
   if (context.customer_name) chunk += `\nCliente: ${trim(context.customer_name, 80)}`;
   if (context.payment_method) chunk += `\nPagamento ao receber: ${payments[context.payment_method]}`;

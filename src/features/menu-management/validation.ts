@@ -1,10 +1,11 @@
+import { MAX_MONEY } from "../../lib/money.ts";
 import { z } from "zod";
 
 export const productSchema = z.strictObject({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(1000).nullable(),
   category_id: z.uuid(),
-  price: z.number().finite().min(0).max(999999.99).multipleOf(0.01),
+  price: z.number().int().min(0).max(MAX_MONEY),
   is_active: z.boolean(),
 });
 export const productPatchSchema = z.union([

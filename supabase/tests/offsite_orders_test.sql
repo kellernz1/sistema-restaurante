@@ -1,14 +1,15 @@
 ﻿-- Run after all three migrations and seed. Fixtures roll back.
 begin;
+insert into public.exchange_rates(rate,rounding,created_by) select 1400,'none',id from public.profiles where role='admin' and is_active limit 1;
 create temporary table phase9_context(pickup_id uuid, delivery_id uuid, product_id uuid, table_id uuid, table_status public.table_status);
 grant select, update on phase9_context to service_role, authenticated;
 insert into public.categories(name) values ('__phase9_category__');
-insert into public.products(category_id, name, price) select id, '__phase9_product__', 12.35 from public.categories where name = '__phase9_category__';
+insert into public.products(category_id, name, price) select id, '__phase9_product__', 1235 from public.categories where name = '__phase9_category__';
 insert into public.tables(table_number, capacity) values (999996, 2);
 insert into phase9_context(product_id, table_id, table_status)
   select p.id, t.id, t.status from public.products p cross join public.tables t where p.name = '__phase9_product__' and t.table_number = 999996;
 insert into public.restaurant_settings(id, is_accepting_orders, pickup_enabled, delivery_enabled, delivery_fee, min_delivery_order)
-  values (true, true, true, true, 5.50, 20) on conflict(id) do update set delivery_fee_mode = 'fixed', is_accepting_orders = true, pickup_enabled = true, delivery_enabled = true, delivery_fee = 5.50, min_delivery_order = 20;
+  values (true, true, true, true, 550, 2000) on conflict(id) do update set delivery_fee_mode = 'fixed', is_accepting_orders = true, pickup_enabled = true, delivery_enabled = true, delivery_fee = 550, min_delivery_order = 2000;
 
 do $$ begin
   if not exists(select 1 from public.profiles where role = 'cashier') or not exists(select 1 from public.profiles where role = 'waiter') then raise exception 'Seed cashier and waiter users first'; end if;
@@ -24,11 +25,11 @@ begin
   payload := jsonb_build_object('order_type','pickup','source','web','customer_name','Phase 9','customer_phone','+5511999999997','payment_method','pix',
     'items',jsonb_build_array(jsonb_build_object('product_id',product,'quantity',2,'unit_price',0)));
   result := public.create_customer_order(payload);
-  if result.status <> 'pending_confirmation' or result.total_amount <> 24.70 or result.table_id is not null or result.customer_id is null then raise exception 'Pickup creation failed'; end if;
+  if result.status <> 'pending_confirmation' or result.total_amount <> 2470 or result.table_id is not null or result.customer_id is null then raise exception 'Pickup creation failed'; end if;
   update phase9_context set pickup_id = result.id;
-  payload := payload || jsonb_build_object('order_type','delivery','payment_method','cash','cash_change_for',50,'delivery_address',jsonb_build_object('street','Rua Teste','number','10','neighborhood','Centro','city','São Paulo','state','SP','zip_code','01001000'));
+  payload := payload || jsonb_build_object('order_type','delivery','payment_method','cash','cash_change_for',5000,'delivery_address',jsonb_build_object('street','Rua Teste','number','10','neighborhood','Centro','city','São Paulo','state','SP','zip_code','01001000'));
   result := public.create_customer_order(payload);
-  if result.delivery_fee <> 5.50 or result.total_amount <> 30.20 or result.table_id is not null then raise exception 'Delivery fee or total failed'; end if;
+  if result.delivery_fee <> 550 or result.total_amount <> 3020 or result.table_id is not null then raise exception 'Delivery fee or total failed'; end if;
   if not exists(select 1 from public.customer_addresses where customer_id = result.customer_id and street = 'Rua Teste') then raise exception 'Address not saved'; end if;
   update phase9_context set delivery_id = result.id;
   begin

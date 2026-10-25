@@ -1,0 +1,2 @@
+-- Enum additions must commit before the next migration uses them.
+alter type public.payment_method add value if not exists 'transfer';

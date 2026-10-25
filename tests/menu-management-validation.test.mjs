@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { productSchema, productPatchSchema } from "../src/features/menu-management/validation.ts";
 
-const product = { name: " Prato do dia ", description: null, category_id: "12345678-1234-4234-8234-123456789abc", price: 23.90, is_active: true };
+const product = { name: " Prato do dia ", description: null, category_id: "12345678-1234-4234-8234-123456789abc", price: 23900, is_active: true };
 
 test("product editing validates names, categories and exact currency precision", () => {
   assert.equal(productSchema.parse(product).name, "Prato do dia");

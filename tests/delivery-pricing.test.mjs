@@ -4,7 +4,7 @@ import { distanceDeliveryFee, mapCoordinates } from "../src/features/customer-or
 
 test("delivery charges one full band and rounds each additional band upward", () => {
   for (const [meters, fee] of [[0, 6], [1999, 6], [2000, 6], [2000.1, 12], [4000, 12], [4001, 18], [6000, 18]]) assert.equal(distanceDeliveryFee(meters, 2, 6), fee);
-  assert.equal(distanceDeliveryFee(1501, 1.5, 4.25), 8.5);
+  assert.equal(distanceDeliveryFee(1501, 1.5, 4250), 8500);
   assert.equal(distanceDeliveryFee(5000, 2, 0), 0);
   assert.throws(() => distanceDeliveryFee(-1, 2, 6));
   assert.throws(() => distanceDeliveryFee(1000, 0, 6));

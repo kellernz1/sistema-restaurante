@@ -1,17 +1,18 @@
 -- Isolated fixtures; all order creation and updates roll back.
 begin;
+insert into public.exchange_rates(rate,rounding,created_by) select 1400,'none',id from public.profiles where role='admin' and is_active limit 1;
 create temporary table cashier_test_context(actor_id uuid, waiter_id uuid, product_id uuid, table_id uuid, pickup_id uuid, delivery_id uuid);
 grant all on cashier_test_context to service_role, authenticated;
 insert into public.categories(name) values ('__cashier_test_category__');
 insert into public.products(category_id, name, price)
-  select id, '__cashier_test_product__', 12.35 from public.categories where name = '__cashier_test_category__';
+  select id, '__cashier_test_product__', 1235 from public.categories where name = '__cashier_test_category__';
 insert into public.tables(table_number, capacity) values (999993, 2);
 insert into cashier_test_context(actor_id, waiter_id, product_id, table_id)
   select (select id from public.profiles where role = 'cashier' limit 1),
     (select id from public.profiles where role = 'waiter' limit 1), p.id, t.id
     from public.products p cross join public.tables t where p.name = '__cashier_test_product__' and t.table_number = 999993;
 update public.restaurant_settings set delivery_fee_mode = 'fixed', is_accepting_orders = true, pickup_enabled = true, delivery_enabled = true,
-  dine_in_qr_enabled = false, require_confirmation_for_qr = true, delivery_fee = 5.50, min_delivery_order = 20 where id = true;
+  dine_in_qr_enabled = false, require_confirmation_for_qr = true, delivery_fee = 550, min_delivery_order = 2000 where id = true;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select set_config('request.jwt.claim.role', 'service_role', true);
 select set_config('request.jwt.claim.sub', '', true);
@@ -24,7 +25,7 @@ begin
   payload := jsonb_build_object('order_type','dine_in','table_id',ctx.table_id,
     'items',jsonb_build_array(jsonb_build_object('product_id',ctx.product_id,'quantity',2,'notes','No onions')));
   result := public.create_cashier_order(ctx.actor_id,request,payload);
-  if result.total_amount <> 24.70 or result.status <> 'open' or result.waiter_id <> ctx.actor_id or result.source <> 'waiter' then
+  if result.total_amount <> 2470 or result.status <> 'open' or result.waiter_id <> ctx.actor_id or result.source <> 'waiter' then
     raise exception 'Table order failed';
   end if;
   again := public.create_cashier_order(ctx.actor_id,request,payload);
@@ -35,7 +36,7 @@ begin
     raise exception 'Changed payload reused request ID';
   exception when invalid_parameter_value then null; end;
   again := public.create_cashier_order(ctx.actor_id,gen_random_uuid(),payload);
-  if again.id <> result.id or again.total_amount <> 49.40 then raise exception 'Occupied table did not receive items'; end if;
+  if again.id <> result.id or again.total_amount <> 4940 then raise exception 'Occupied table did not receive items'; end if;
   update public.tables set status = 'closing' where id = ctx.table_id;
   begin
     perform public.create_cashier_order(ctx.actor_id,gen_random_uuid(),payload);
@@ -50,12 +51,12 @@ begin
   payload := jsonb_build_object('order_type','pickup','customer_name','Cashier test','customer_phone','+5511999990086','payment_method','pix',
     'items',jsonb_build_array(jsonb_build_object('product_id',ctx.product_id,'quantity',2)));
   result := public.create_cashier_order(ctx.actor_id,gen_random_uuid(),payload);
-  if result.status <> 'open' or result.total_amount <> 24.70 or result.payment_status <> 'pending' then raise exception 'Pickup not confirmed or marked paid early'; end if;
+  if result.status <> 'open' or result.total_amount <> 2470 or result.payment_status <> 'pending' then raise exception 'Pickup not confirmed or marked paid early'; end if;
   update cashier_test_context set pickup_id = result.id;
-  payload := payload || jsonb_build_object('order_type','delivery','payment_method','cash','cash_change_for',50,
+  payload := payload || jsonb_build_object('order_type','delivery','payment_method','cash','cash_change_for',5000,
     'delivery_address',jsonb_build_object('street','Rua Teste','number','10','neighborhood','Centro','city','São Paulo','state','SP','zip_code','01001000'));
   result := public.create_cashier_order(ctx.actor_id,gen_random_uuid(),payload);
-  if result.status <> 'open' or result.total_amount <> 30.20 or result.delivery_fee <> 5.50 then raise exception 'Delivery total failed'; end if;
+  if result.status <> 'open' or result.total_amount <> 3020 or result.delivery_fee <> 550 then raise exception 'Delivery total failed'; end if;
   update cashier_test_context set delivery_id = result.id;
   begin
     perform public.create_cashier_order(ctx.actor_id,gen_random_uuid(),payload || jsonb_build_object('cash_change_for',10));

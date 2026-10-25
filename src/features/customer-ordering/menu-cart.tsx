@@ -10,8 +10,9 @@ import { type Dispatch, type SetStateAction, useRef, useState } from "react";
 export type CatalogProduct = { id: string; category_id: string; name: string; price: number; description: string | null; image_version?: string | null };
 export type CatalogCategory = { id: string; name: string };
 export type CartLine = { id: string; product: CatalogProduct; quantity: number; notes: string };
-export const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-export function cartSubtotal(cart: CartLine[]) { return cart.reduce((sum, item) => sum + Math.round(item.product.price * 100) * item.quantity, 0) / 100; }
+export { money } from "@/lib/money";
+import { money } from "@/lib/money";
+export function cartSubtotal(cart: CartLine[]) { return cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0); }
 
 export function ProductCatalog({ products, categories, disabled, cartCount, onAdd, pageSize, categoryPages = false }: {
   products: CatalogProduct[]; categories: CatalogCategory[]; disabled: boolean; cartCount: number; onAdd: (product: CatalogProduct) => void; pageSize?: number; categoryPages?: boolean;

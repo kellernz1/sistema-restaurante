@@ -1,4 +1,6 @@
 "use client";
+import { money, MAX_MONEY } from "@/lib/money";
+
 
 import { useTranslation } from "@/components/language-provider";
 
@@ -9,13 +11,15 @@ import { Store, Truck, MapPin, MessageCircle, Printer } from "lucide-react";
 import type { StoredRow } from "@/types/records";
 import { createClient } from "@/utils/supabase/client";
 
+import { PaymentSettings } from "@/features/payments/payment-settings";
 import { settingsSchema } from "./settings-schema";
 import { coordinatesMapLink } from "@/features/customer-ordering/delivery-location";
 import { customerApi } from "@/features/customer-ordering/public-client";
 
 const switches = { kitchen_auto_print_enabled: "Impressão automática na cozinha", is_accepting_orders: "Aceitar novos pedidos", pickup_enabled: "Permitir retirada", delivery_enabled: "Permitir entrega", dine_in_qr_enabled: "Permitir QR/NFC nas mesas", require_confirmation_for_qr: "Exigir confirmação do primeiro pedido QR/NFC", whatsapp_enabled: "Habilitar pedidos pelo WhatsApp" };
-const numbers = { min_delivery_order: "Pedido mínimo para entrega (R$)", estimated_pickup_minutes: "Previsão de retirada (minutos)", estimated_delivery_minutes: "Previsão de entrega (minutos)", delivery_fee: "Taxa fixa de entrega (R$)", delivery_distance_step_km: "Tamanho de cada faixa (km)", delivery_distance_step_fee: "Valor por faixa (R$)" };
+const numbers = { min_delivery_order: "Pedido mínimo para entrega (PYG)", estimated_pickup_minutes: "Previsão de retirada (minutos)", estimated_delivery_minutes: "Previsão de entrega (minutos)", delivery_fee: "Taxa fixa de entrega (PYG)", delivery_distance_step_km: "Tamanho de cada faixa (km)", delivery_distance_step_fee: "Valor por faixa (PYG)" };
 const sections = [
+  { id: "payments", label: "Pagamentos e câmbio", description: "Formas e cotação do real", icon: Store },
   { id: "operations", label: "Atendimento", description: "Pedidos, retirada e mesas", icon: Store },
   { id: "delivery", label: "Entrega e taxas", description: "Valores, distância e prazo", icon: Truck },
   { id: "location", label: "Localização", description: "Ponto de saída do restaurante", icon: MapPin },
@@ -27,7 +31,8 @@ type SettingsSection = typeof sections[number]["id"];
 export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_settings"> }) {
   const t = useTranslation();
   const [db] = useState(createClient);
-  const { id, ...initialFields } = initial;
+  const { id, enabled_payment_methods, ...initialFields } = initial;
+  void enabled_payment_methods;
   void id;
   const [form, setForm] = useState(initialFields);
   const [section, setSection] = useState<SettingsSection>("operations");
@@ -78,7 +83,7 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
   }
   function renderNumber(key: keyof typeof numbers) {
     const minutes = key.startsWith("estimated");
-    return <label className="field-group" key={key}>{t(numbers[key])}<input className="order-input" type="number" disabled={busy} value={Number.isNaN(form[key]) ? "" : t(form[key])} min={minutes ? 1 : key === "delivery_distance_step_km" ? 0.1 : 0} max={minutes ? 1440 : key === "delivery_distance_step_km" ? 100 : key === "delivery_distance_step_fee" ? 9999.99 : 999999.99} step={minutes ? 1 : 0.01} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value === "" ? NaN : Number(event.target.value) }))} /></label>;
+    return <label className="field-group" key={key}>{t(numbers[key])}<input className="order-input" type="number" disabled={busy} value={Number.isNaN(form[key]) ? "" : t(form[key])} min={minutes ? 1 : key === "delivery_distance_step_km" ? 0.1 : 0} max={minutes ? 1440 : key === "delivery_distance_step_km" ? 100 : key === "delivery_distance_step_fee" ? MAX_MONEY : MAX_MONEY} step={key === "delivery_distance_step_km" ? 0.01 : 1} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value === "" ? NaN : Number(event.target.value) }))} /></label>;
   }
   function changeSection(next: SettingsSection) {
     setSection(next);
@@ -92,6 +97,7 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
       <nav className="settings-section-nav" aria-label={t("Categorias das configurações")}>{sections.map(({ id, label, description, icon: Icon }) => <button key={id} id={`settings-nav-${id}`} type="button" aria-pressed={section === id} aria-controls="settings-content" onClick={() => changeSection(id)}><Icon size={21} aria-hidden="true" /><span><strong>{t(label)}</strong><small>{t(description)}</small></span></button>)}</nav>
       <section id="settings-content" className="order-panel settings-section-card" aria-labelledby={`settings-nav-${section}`}>
         <header className="settings-section-heading"><h2 ref={panelHeading} tabIndex={-1}>{t(selected.label)}</h2><p>{t(selected.description)}</p></header>
+        {section === "payments" && <PaymentSettings />}
         {section === "operations" && <>
           <fieldset className="settings-fieldset"><legend>{t("Recebimento de pedidos")}</legend>{t(renderSwitch("is_accepting_orders", t("Abra ou pause os novos pedidos em todos os canais.")))}{t(renderSwitch("pickup_enabled", t("Permita que o cliente peça e retire no restaurante.")))}</fieldset>
           <fieldset className="settings-fieldset"><legend>{t("Mesas e QR codes")}</legend>{t(renderSwitch("dine_in_qr_enabled", t("Receba pedidos pelo QR code ou NFC da mesa.")))}{t(renderSwitch("require_confirmation_for_qr", t("A equipe confirma o primeiro pedido antes de iniciar o preparo.")))}</fieldset>
@@ -101,7 +107,7 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
           <fieldset className="settings-fieldset"><legend>{t("Disponibilidade e prazo")}</legend>{t(renderSwitch("delivery_enabled", t("Permita pedidos para entrega no endereço do cliente.")))}<div className="settings-fields-grid">{t(renderNumber("min_delivery_order"))}{t(renderNumber("estimated_delivery_minutes"))}</div></fieldset>
           <fieldset className="settings-fieldset"><legend>{t("Taxa de entrega")}</legend><label className="field-group">{t("Forma de cobrança")}<select className="order-input" disabled={busy} value={form.delivery_fee_mode} onChange={(event) => setForm((current) => ({ ...current, delivery_fee_mode: event.target.value }))}><option value="fixed">{t("Taxa fixa")}</option><option value="distance">{t("Por distância pelas ruas")}</option></select></label>
             <div className="settings-fields-grid">{form.delivery_fee_mode === "fixed" ? renderNumber("delivery_fee") : <>{t(renderNumber("delivery_distance_step_km"))}{t(renderNumber("delivery_distance_step_fee"))}</>}</div>
-            {form.delivery_fee_mode === "distance" && <div className="settings-context-note"><p>{t("Até ")}{t(form.delivery_distance_step_km)} km: {t(new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(form.delivery_distance_step_fee))}{t(". Cada nova faixa acrescenta o mesmo valor.")}</p><p>{t("O cálculo usa a rota pelas ruas a partir do restaurante.")}</p><button type="button" className="back-link" onClick={() => changeSection("location")}>{t("Configurar ponto de saída ›")}</button></div>}
+            {form.delivery_fee_mode === "distance" && <div className="settings-context-note"><p>{t("Até ")}{t(form.delivery_distance_step_km)} km: {t(money.format(form.delivery_distance_step_fee))}{t(". Cada nova faixa acrescenta o mesmo valor.")}</p><p>{t("O cálculo usa a rota pelas ruas a partir do restaurante.")}</p><button type="button" className="back-link" onClick={() => changeSection("location")}>{t("Configurar ponto de saída ›")}</button></div>}
           </fieldset>
         </>}
         {section === "location" && <>

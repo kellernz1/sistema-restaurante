@@ -51,7 +51,7 @@ test("administrator manages photos and availability without changing order histo
     assert.ifError((await service.from("categories").delete().eq("id", categoryId)).error);
   });
   assert.ifError((await service.from("categories").insert({ id: categoryId, name: "__menu_http_test__" })).error);
-  const fields = { name: "__menu_test_dish__", category_id: categoryId, price: 12.35, description: "Test dish", is_active: true };
+  const fields = { name: "__menu_test_dish__", category_id: categoryId, price: 12350, description: "Test dish", is_active: true };
   const response = await mutate("/api/staff/products", "POST", fields, admin.cookie);
   assert.equal(response.status, 201, await response.clone().text());
   let product = (await response.json()).product; productId = product.id;
@@ -92,14 +92,14 @@ test("administrator manages photos and availability without changing order histo
     order_type: "pickup", customer_name: "__menu_test_customer__", customer_phone: phone, payment_method: "pix", items: [{ product_id: productId, quantity: 2 }],
   } }, admin.cookie);
   assert.equal(order.status, 201, await order.clone().text()); orderId = (await order.json()).order_id;
-  assert.equal((await mutate(path, "PATCH", { price: 99.90, is_active: false }, admin.cookie)).status, 200);
+  assert.equal((await mutate(path, "PATCH", { price: 99900, is_active: false }, admin.cookie)).status, 200);
   const unavailable = await (await fetch(`${base}/api/public/menu`)).json();
   assert.equal(unavailable.products.some((entry) => entry.id === productId), false);
   const removed = await mutate(path, "DELETE", undefined, admin.cookie);
   assert.equal(removed.status, 200); product = (await removed.json()).product;
   assert.equal(product.is_archived, true); assert.equal(product.is_active, false);
   const history = await service.from("order_items").select("unit_price, product_id").eq("order_id", orderId).single();
-  assert.ifError(history.error); assert.equal(history.data.unit_price, 12.35); assert.equal(history.data.product_id, productId);
+  assert.ifError(history.error); assert.equal(history.data.unit_price, 12350); assert.equal(history.data.product_id, productId);
   assert.equal((await mutate(path, "PATCH", { is_active: true }, admin.cookie)).status, 409);
   const restored = await mutate(path, "PATCH", { action: "restore" }, admin.cookie);
   assert.equal(restored.status, 200); assert.equal((await restored.json()).product.is_active, false);

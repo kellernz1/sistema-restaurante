@@ -11,6 +11,8 @@ export async function GET(request: Request) {
       db.from("categories").select("id, name").order("sort_order").order("name"),
     ]);
     if (settings.error || products.error || categories.error) throw settings.error ?? products.error ?? categories.error;
-    return publicJson({ settings: settings.data, products: products.data, categories: categories.data });
+    const configuration = await db.rpc("payment_configuration");
+    if (configuration.error) throw configuration.error;
+    return publicJson({ payment_configuration: configuration.data, settings: settings.data, products: products.data, categories: categories.data });
   } catch (error) { return publicError(error); }
 }

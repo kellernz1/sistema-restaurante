@@ -3,7 +3,7 @@ begin;
 create temporary table phase8_context(table_id uuid, token text, product_id uuid, order_id uuid, request_id uuid);
 grant select, update on phase8_context to service_role, authenticated;
 insert into public.categories(name) values ('__phase8_category__');
-insert into public.products(category_id, name, price) select id, '__phase8_product__', 12.35 from public.categories where name = '__phase8_category__';
+insert into public.products(category_id, name, price) select id, '__phase8_product__', 1235 from public.categories where name = '__phase8_category__';
 insert into public.tables(table_number, capacity) values (999997, 2);
 insert into phase8_context(table_id, token, product_id)
   select t.id, t.qr_token, p.id from public.tables t cross join public.products p
@@ -31,11 +31,11 @@ begin
   if public.consume_public_rate_limit('__phase8_limit__', 2, 600) then raise exception 'Limit not enforced'; end if;
   result := public.create_customer_order(jsonb_build_object('order_type', 'dine_in', 'source', 'qr', 'table_id', ctx.table_id, 'table_token', ctx.token,
     'items', jsonb_build_array(jsonb_build_object('product_id', ctx.product_id, 'quantity', 2, 'unit_price', 0))));
-  if result.status <> 'pending_confirmation' or result.total_amount <> 24.70 then raise exception 'Confirmation or price incorrect'; end if;
+  if result.status <> 'pending_confirmation' or result.total_amount <> 2470 then raise exception 'Confirmation or price incorrect'; end if;
   update phase8_context set order_id = result.id;
   second_order := public.create_customer_order(jsonb_build_object('order_type', 'dine_in', 'source', 'nfc', 'table_id', ctx.table_id, 'table_token', ctx.token,
     'items', jsonb_build_array(jsonb_build_object('product_id', ctx.product_id, 'quantity', 1))));
-  if second_order.id <> result.id or second_order.total_amount <> 37.05 then raise exception 'Did not join existing order'; end if;
+  if second_order.id <> result.id or second_order.total_amount <> 3705 then raise exception 'Did not join existing order'; end if;
   request_one := public.create_table_service_request(ctx.token, 'waiter');
   request_two := public.create_table_service_request(ctx.token, 'waiter');
   if request_one <> request_two then raise exception 'Duplicate open request'; end if;

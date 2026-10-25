@@ -13,6 +13,7 @@ const testFiles = [
   "employee_access_test.sql",
   "distance_delivery_test.sql",
   "kitchen_print_test.sql",
+  "payments_currency_test.sql",
 ];
 
 export async function runSqlTests() {

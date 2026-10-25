@@ -2,7 +2,7 @@ import { getTranslation } from "@/lib/i18n/server";
 import { ArrowLink, LineupCard } from "@/components/ui";
 import { createClient } from "@/utils/supabase/server";
 
-const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+import { money } from "@/lib/money";
 
 async function loadSummary() {
   const db = await createClient();
@@ -15,7 +15,7 @@ async function loadSummary() {
   const date = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const start = new Date(date + "T00:00:00-03:00");
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  let revenueCents = 0;
+  let revenuePyg = 0;
   let revenueError = false;
   for (let offset = 0; ; offset += 1000) {
     const { data, error } = await db.from("orders").select("id, total_amount")
@@ -23,20 +23,20 @@ async function loadSummary() {
       .gte("closed_at", start.toISOString()).lt("closed_at", end.toISOString())
       .order("id").range(offset, offset + 999);
     if (error || !data) { revenueError = true; break; }
-    revenueCents += data.reduce((sum, order) => sum + Math.round(order.total_amount * 100), 0);
+    revenuePyg += data.reduce((sum, order) => sum + order.total_amount, 0);
     if (data.length < 1000) break;
   }
-  return { pending, preparing, ready, revenueCents, revenueError };
+  return { pending, preparing, ready, revenuePyg, revenueError };
 }
 
 export default async function AdminDashboard() {
   const t = await getTranslation();
-  const { pending, preparing, ready, revenueCents, revenueError } = await loadSummary();
+  const { pending, preparing, ready, revenuePyg, revenueError } = await loadSummary();
   const metrics = [
     { title: t("Novos pedidos"), description: t("Prontos para sua confirmação."), value: pending.error ? "—" : pending.count ?? 0, tone: "blue", href: "/orders" },
     { title: t("Em preparo"), description: t("O ritmo da sua cozinha, agora."), value: preparing.error ? "—" : preparing.count ?? 0, tone: "peach", href: "/orders" },
     { title: t("Prontos"), description: t("Tudo pronto para o próximo passo."), value: ready.error ? "—" : ready.count ?? 0, tone: "green", href: "/orders" },
-    { title: t("Faturamento do dia"), description: t("Pedidos pagos e encerrados hoje."), value: revenueError ? "—" : money.format(revenueCents / 100), tone: "lavender", href: "/cashier" },
+    { title: t("Faturamento do dia"), description: t("Pedidos pagos e encerrados hoje."), value: revenueError ? "—" : money.format(revenuePyg), tone: "lavender", href: "/cashier" },
   ];
   return <section className="dashboard-lineup">
     <header className="section-heading"><div><span className="eyebrow">{t("Visão geral")}</span><h1>{t("Meu painel")}</h1><p>{t("Seu restaurante. Em um olhar.")}</p></div><ArrowLink href="/orders">{t("Ver todos os pedidos")}</ArrowLink></header>

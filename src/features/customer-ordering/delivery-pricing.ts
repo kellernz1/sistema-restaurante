@@ -5,10 +5,10 @@ export type DeliveryPricing = {
 };
 
 export function distanceDeliveryFee(meters: number, stepKm: number, stepFee: number) {
-  if (!Number.isFinite(meters) || meters < 0 || !Number.isFinite(stepKm) || stepKm <= 0 || !Number.isFinite(stepFee) || stepFee < 0) throw new Error("Invalid delivery pricing");
+  if (!Number.isFinite(meters) || meters < 0 || !Number.isFinite(stepKm) || stepKm <= 0 || !Number.isSafeInteger(stepFee) || stepFee < 0) throw new Error("Invalid delivery pricing");
   const stepMeters = Math.round(stepKm * 1000);
   if (stepMeters < 1) throw new Error("Invalid delivery distance band");
-  return Math.max(1, Math.ceil(Math.ceil(meters) / stepMeters)) * Math.round(stepFee * 100) / 100;
+  return Math.max(1, Math.ceil(Math.ceil(meters) / stepMeters)) * stepFee;
 }
 
 export function mapCoordinates(value: string): { latitude: number; longitude: number } | null {

@@ -1,3 +1,4 @@
+import { MAX_MONEY } from "../../lib/money.ts";
 import { z } from "zod";
 
 import { tableOrderSchema } from "./validation.ts";
@@ -38,8 +39,8 @@ export const deliveryAddressSchema = z.union([addressSchema, locatedAddressSchem
 const fields = {
   items: tableOrderSchema.shape.items,
   customer_name: z.string().trim().min(2).max(80), customer_phone: phoneSchema,
-  notes: z.string().trim().max(500).optional(), payment_method: z.enum(["cash", "card", "pix"]),
-  cash_change_for: z.number().finite().min(0).max(999999.99).multipleOf(0.01).optional(),
+  notes: z.string().trim().max(500).optional(), payment_method: z.enum(["cash", "transfer", "card", "pix"]),
+  cash_change_for: z.number().int().min(0).max(MAX_MONEY).optional(),
 };
 export const offsiteOrderSchema = z.discriminatedUnion("order_type", [
   z.strictObject({ ...fields, order_type: z.literal("pickup") }),
@@ -49,7 +50,7 @@ export const offsiteOrderSchema = z.discriminatedUnion("order_type", [
 export const orderActionSchema = z.strictObject({
   action: z.enum(["accept", "reject", "ready", "dispatch", "complete"]),
   reason: z.string().trim().min(1).max(300).optional(),
-  payment_method: z.enum(["cash", "card", "pix"]).optional(),
+  payment_method: z.enum(["cash", "transfer", "card", "pix"]).optional(),
 }).refine((value) => value.action !== "reject" || !!value.reason, { message: "Informe o motivo da recusa." })
   .refine((value) => value.action !== "complete" || !!value.payment_method, { message: "Informe o pagamento." });
 

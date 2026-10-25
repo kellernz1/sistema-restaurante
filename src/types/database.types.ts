@@ -93,6 +93,26 @@ isOneToOne: false
                   Relationships: [
 
                   ]
+                },"exchange_rates": {
+                  Row: {
+                    "created_at": string,"created_by": string,"id": string,"rate": number,"rounding": string,"sequence": number,"valid_from": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"id"?: string,"rate": number,"rounding": string,"sequence"?: never,"valid_from"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"id"?: string,"rate"?: number,"rounding"?: string,"sequence"?: never,"valid_from"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "exchange_rates_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"kitchen_print_jobs": {
                   Row: {
                     "claim_token": string | null,"claimed_at": string | null,"claimed_by": string | null,"created_at": string,"dispatched_at": string | null,"error_message": string | null,"id": string,"order_id": string,"status": string,"terminal_id": string | null
@@ -165,6 +185,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"order_payment_submissions": {
+                  Row: {
+                    "actor_id": string,"order_id": string,"payload": NonNullable<Json>,"request_id": string,"result": Json | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"order_id": string,"payload": NonNullable<Json>,"request_id": string,"result"?: Json | null
+                  }
+                  Update: {
+                    "actor_id"?: string,"order_id"?: string,"payload"?: NonNullable<Json>,"request_id"?: string,"result"?: Json | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "order_payment_submissions_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "order_payment_submissions_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"orders": {
                   Row: {
                     "cancel_reason": string | null,"cash_change_for": number | null,"closed_at": string | null,"confirmed_at": string | null,"created_at": string,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_address": Json | null,"delivery_fee": number,"id": string,"notes": string | null,"order_number": number,"order_type": Database["public"]['Enums']["order_type"],"payment_method": Database["public"]['Enums']["payment_method"] | null,"payment_status": Database["public"]['Enums']["payment_status"],"public_token": string,"source": Database["public"]['Enums']["order_source"],"status": Database["public"]['Enums']["order_status"],"table_id": string | null,"total_amount": number,"waiter_id": string | null,"can_update_order": boolean | null
@@ -194,6 +240,44 @@ isOneToOne: false
       columns: ["waiter_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payments": {
+                  Row: {
+                    "change_pyg": number,"created_at": string,"currency": string,"equivalent_pyg": number,"exchange_rate": number | null,"exchange_rate_id": string | null,"id": string,"idempotency_key": string,"line_number": number,"method": Database["public"]['Enums']["payment_method"],"operator_id": string,"order_id": string,"original_amount": number,"rounding": string | null,"rounding_adjustment_pyg": number,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "change_pyg"?: number,"created_at"?: string,"currency": string,"equivalent_pyg": number,"exchange_rate"?: number | null,"exchange_rate_id"?: string | null,"id"?: string,"idempotency_key": string,"line_number": number,"method": Database["public"]['Enums']["payment_method"],"operator_id": string,"order_id": string,"original_amount": number,"rounding"?: string | null,"rounding_adjustment_pyg"?: number,"status"?: string
+                  }
+                  Update: {
+                    "change_pyg"?: number,"created_at"?: string,"currency"?: string,"equivalent_pyg"?: number,"exchange_rate"?: number | null,"exchange_rate_id"?: string | null,"id"?: string,"idempotency_key"?: string,"line_number"?: number,"method"?: Database["public"]['Enums']["payment_method"],"operator_id"?: string,"order_id"?: string,"original_amount"?: number,"rounding"?: string | null,"rounding_adjustment_pyg"?: number,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payments_exchange_rate_id_fkey"
+      columns: ["exchange_rate_id"]
+isOneToOne: false
+      referencedRelation: "exchange_rates"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_idempotency_key_fkey"
+      columns: ["idempotency_key"]
+isOneToOne: false
+      referencedRelation: "order_payment_submissions"
+      referencedColumns: ["request_id"]
+    },{
+      foreignKeyName: "payments_operator_id_fkey"
+      columns: ["operator_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
       referencedColumns: ["id"]
     }
                   ]
@@ -267,14 +351,14 @@ isOneToOne: false
                   ]
                 },"restaurant_settings": {
                   Row: {
-                    "delivery_distance_step_fee": number,"delivery_distance_step_km": number,"delivery_enabled": boolean,"delivery_fee": number,"delivery_fee_mode": string,"delivery_origin_latitude": number | null,"delivery_origin_longitude": number | null,"dine_in_qr_enabled": boolean,"estimated_delivery_minutes": number,"estimated_pickup_minutes": number,"id": boolean,"is_accepting_orders": boolean,"kitchen_auto_print_enabled": boolean,"min_delivery_order": number,"pickup_enabled": boolean,"require_confirmation_for_qr": boolean,"whatsapp_enabled": boolean,"delivery_pricing_snapshot": Json | null
+                    "delivery_distance_step_fee": number,"delivery_distance_step_km": number,"delivery_enabled": boolean,"delivery_fee": number,"delivery_fee_mode": string,"delivery_origin_latitude": number | null,"delivery_origin_longitude": number | null,"dine_in_qr_enabled": boolean,"enabled_payment_methods": (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes": number,"estimated_pickup_minutes": number,"id": boolean,"is_accepting_orders": boolean,"kitchen_auto_print_enabled": boolean,"min_delivery_order": number,"pickup_enabled": boolean,"require_confirmation_for_qr": boolean,"whatsapp_enabled": boolean,"delivery_pricing_snapshot": Json | null
                   }
                   ComputedFields: "delivery_pricing_snapshot"
                   Insert: {
-                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
+                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"enabled_payment_methods"?: (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
                   }
                   Update: {
-                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
+                    "delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"enabled_payment_methods"?: (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"whatsapp_enabled"?: boolean
                   }
                   Relationships: [
 
@@ -386,6 +470,9 @@ isOneToOne: false
       } },
 "attend_service_request":
 { Args: { "p_request_id": string }; Returns: undefined
+                           },
+"brl_cents_for":
+{ Args: { "p_pyg": number,"p_rate": number,"p_rounding": string }; Returns: number
                            },
 "can_update_order":
 { Args: { "p_new": Omit<Database["public"]['Tables']["orders"]['Row'], Database["public"]['Tables']["orders"]['ComputedFields']> }; Returns: boolean
@@ -593,11 +680,20 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"payment_configuration":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "recompute_order_total":
 { Args: { "p_order_id": string }; Returns: number
                            },
+"record_order_payments":
+{ Args: { "p_lines": Json,"p_order_id": string,"p_request_id": string }; Returns: Json
+                           },
 "release_kitchen_printer":
 { Args: { "p_terminal_id": string }; Returns: undefined
+                           },
+"require_pyg":
+{ Args: { "p_value": string }; Returns: number
                            },
 "resolve_whatsapp_handoff":
 { Args: { "p_phone": string }; Returns: undefined
@@ -607,6 +703,12 @@ isOneToOne: false
                            },
 "rotate_table_token":
 { Args: { "p_table_id": string }; Returns: string
+                           },
+"set_exchange_rate":
+{ Args: { "p_rate": string,"p_rounding": string }; Returns: string
+                           },
+"set_payment_methods":
+{ Args: { "p_methods": (string)[] }; Returns: undefined
                            },
 "set_product_photo":
 { Args: { "p_content": string,"p_product_id": string }; Returns: string
@@ -621,7 +723,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "order_item_status": "pending"|"preparing"|"ready"|"delivered","order_source": "waiter"|"qr"|"nfc"|"whatsapp"|"web","order_status": "pending_confirmation"|"open"|"ready"|"out_for_delivery"|"closed"|"cancelled","order_type": "dine_in"|"pickup"|"delivery","payment_method": "cash"|"card"|"pix","payment_status": "pending"|"paid","table_status": "available"|"occupied"|"closing","user_role": "admin"|"waiter"|"kitchen"|"cashier"
+            "order_item_status": "pending"|"preparing"|"ready"|"delivered","order_source": "waiter"|"qr"|"nfc"|"whatsapp"|"web","order_status": "pending_confirmation"|"open"|"ready"|"out_for_delivery"|"closed"|"cancelled","order_type": "dine_in"|"pickup"|"delivery","payment_method": "cash"|"card"|"pix"|"transfer","payment_status": "pending"|"paid","table_status": "available"|"occupied"|"closing","user_role": "admin"|"waiter"|"kitchen"|"cashier"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -737,7 +839,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "order_item_status": ["pending", "preparing", "ready", "delivered"],"order_source": ["waiter", "qr", "nfc", "whatsapp", "web"],"order_status": ["pending_confirmation", "open", "ready", "out_for_delivery", "closed", "cancelled"],"order_type": ["dine_in", "pickup", "delivery"],"payment_method": ["cash", "card", "pix"],"payment_status": ["pending", "paid"],"table_status": ["available", "occupied", "closing"],"user_role": ["admin", "waiter", "kitchen", "cashier"]
+            "order_item_status": ["pending", "preparing", "ready", "delivered"],"order_source": ["waiter", "qr", "nfc", "whatsapp", "web"],"order_status": ["pending_confirmation", "open", "ready", "out_for_delivery", "closed", "cancelled"],"order_type": ["dine_in", "pickup", "delivery"],"payment_method": ["cash", "card", "pix", "transfer"],"payment_status": ["pending", "paid"],"table_status": ["available", "occupied", "closing"],"user_role": ["admin", "waiter", "kitchen", "cashier"]
           }
         }
 } as const

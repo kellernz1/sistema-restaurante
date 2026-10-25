@@ -36,7 +36,7 @@ insert into public.categories (name, sort_order)
 values ('__rls_test_category__', 9999);
 
 insert into public.products (category_id, name, price, is_active)
-select id, '__rls_test_product__', 25.50, true
+select id, '__rls_test_product__', 2550, true
 from public.categories
 where name = '__rls_test_category__';
 
@@ -154,7 +154,7 @@ select
   test_order.id,
   test_product.id,
   2,
-  0.01,
+  1,
   '__rls_test_item__'
 from public.orders as test_order
 cross join public.products as test_product
@@ -169,7 +169,7 @@ begin
   from public.order_items
   where notes = '__rls_test_item__';
 
-  if stored_price <> 25.50 then
+  if stored_price <> 2550 then
     raise exception 'FAIL: client unit_price was not overwritten; got %', stored_price;
   end if;
 

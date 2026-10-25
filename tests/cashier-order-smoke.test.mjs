@@ -68,7 +68,7 @@ test("cashier can submit all channels and retries do not duplicate kitchen items
   assert.ifError(settings.error);
   assert.ok(settings.data.is_accepting_orders && settings.data.pickup_enabled && settings.data.delivery_enabled, "Enable local ordering channels for this smoke test");
   const delivery = await deliveryFixture(admin, t, settings.data);
-  const price = Math.max(12.35, Math.ceil(settings.data.min_delivery_order));
+  const price = Math.max(12350, Math.ceil(settings.data.min_delivery_order));
   assert.ifError((await admin.from("categories").insert({ id: categoryId, name: "__cashier_http_test__" })).error);
   assert.ifError((await admin.from("products").insert({ id: productId, category_id: categoryId, name: "__cashier_http_product__", price })).error);
   assert.ifError((await admin.from("tables").insert({ id: tableId, table_number: randomInt(700000, 800000), capacity: 2 })).error);

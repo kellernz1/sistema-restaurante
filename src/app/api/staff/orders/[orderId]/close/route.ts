@@ -8,7 +8,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ord
   try {
     const { db } = await requireStaff(["cashier", "admin"]);
     const id = z.uuid().safeParse((await params).orderId);
-    const input = z.strictObject({ payment_method: z.enum(["cash", "card", "pix"]) }).safeParse(await readPublicBody(request));
+    const input = z.strictObject({ payment_method: z.enum(["cash", "transfer", "card", "pix"]) }).safeParse(await readPublicBody(request));
     if (!id.success || !input.success) throw new PublicApiError(400, "Pagamento inválido.");
     const existing = await db.from("orders").select("id").eq("id", id.data).eq("order_type", "dine_in").maybeSingle();
     if (existing.error || !existing.data) throw new PublicApiError(404, "Comanda não encontrada.");

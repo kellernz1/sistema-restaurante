@@ -1,4 +1,6 @@
 "use client";
+import { MAX_MONEY } from "@/lib/money";
+
 
 import { useTranslation } from "@/components/language-provider";
 
@@ -134,7 +136,7 @@ export function ProductManager({ initialProducts, categories }: { initialProduct
         <label className="field-group">{t("Nome")}<input className="order-input" required minLength={2} maxLength={120} disabled={busy} value={editor.name} onChange={(event) => setEditor({ ...editor, name: event.target.value })} /></label>
         <label className="field-group">{t("Categoria")}<select className="order-input" required disabled={busy} value={editor.category_id} onChange={(event) => setEditor({ ...editor, category_id: event.target.value })}>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
         <label className="field-group">{t("Descrição")}<textarea className="order-input" maxLength={1000} disabled={busy} value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} /></label>
-        <label className="field-group">{t("Preço (R$)")}<input className="order-input" type="number" min={0} max={999999.99} step="0.01" required disabled={busy} value={editor.price} onChange={(event) => setEditor({ ...editor, price: event.target.value })} /></label>
+        <label className="field-group">{t("Preço (PYG)")}<input className="order-input" type="number" min={0} max={MAX_MONEY} step="1" required disabled={busy} value={editor.price} onChange={(event) => setEditor({ ...editor, price: event.target.value })} /></label>
         <label className="field-group">{t("Foto do prato")}<input key={editor.id ?? "new"} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(event) => {
           const file = event.target.files?.[0] ?? null;
           if (file && (file.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type))) { setError(t("Selecione JPG, PNG ou WebP de até 5 MB.")); event.target.value = ""; setPhoto(null); return; }

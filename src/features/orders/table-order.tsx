@@ -20,7 +20,7 @@ type Order = StoredRow<"orders">;
 type Product = StoredRow<"products">;
 type SentItem = StoredRow<"order_items"> & { products: { name: string } | null };
 type CartItem = { id: string; product: Product; quantity: number; notes: string };
-const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+import { money } from "@/lib/money";
 const itemLabels = { pending: "Recebido", preparing: "Preparando", ready: "Pronto", delivered: "Entregue" };
 
 export function TableOrder({ initialTable, initialOrder, products, categories }: {
@@ -134,7 +134,7 @@ export function TableOrder({ initialTable, initialOrder, products, categories }:
   }
 
   const disabled = busy || !active || loading || !!syncError;
-  const total = cart.reduce((sum, item) => sum + Math.round(item.product.price * 100) * item.quantity, 0) / 100;
+  const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const query = search.trim().toLocaleLowerCase("pt-BR");
   const filtered = products.filter((product) => `${product.name} ${product.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(query));
 

@@ -1,3 +1,4 @@
+import { MAX_MONEY } from "@/lib/money";
 import "server-only";
 
 import { mapLinkSchema } from "@/features/customer-ordering/delivery-location";
@@ -54,7 +55,7 @@ export async function createDeliveryQuote(location: string) {
   if (body.code !== "Ok" || !Number.isFinite(route?.distance) || route.distance < 0 || route.distance > 1000000 || !body.waypoints?.every((point: { distance: number }) => Number.isFinite(point.distance) && point.distance <= 250)) throw new PublicApiError(422, "Não encontramos uma rota de entrega próxima desse ponto. Confira a localização no mapa.");
   const distance = Math.ceil(route.distance);
   const fee = distanceDeliveryFee(distance, settings.delivery_distance_step_km, settings.delivery_distance_step_fee);
-  if (fee > 999999.99) throw new PublicApiError(422, "Essa rota ultrapassa o limite de entrega. Fale com o restaurante.");
+  if (fee > MAX_MONEY) throw new PublicApiError(422, "Essa rota ultrapassa o limite de entrega. Fale com o restaurante.");
   await db.from("delivery_quotes").delete().lt("expires_at", new Date().toISOString());
   const saved = await db.from("delivery_quotes").insert({ location_url: location, distance_meters: distance, fee, pricing }).select("id,fee,distance_meters,expires_at").single();
   if (saved.error) throw saved.error;

@@ -9,7 +9,7 @@ export type Context = {
   cart: { product_id: string; quantity: number; notes: string }[];
   product_id?: string; quantity?: number; category_id?: string; page?: number;
   customer_name?: string; address?: Partial<Address>; address_index?: number; location?: string;
-  payment_method?: "cash" | "card" | "pix"; cash_change_for?: number;
+  payment_method?: "cash" | "transfer" | "card" | "pix"; cash_change_for?: number;
 };
 export type Session = { state: string; context: Context; needs_human: boolean; opted_out: boolean; last_message_at: string };
 export type Environment = {

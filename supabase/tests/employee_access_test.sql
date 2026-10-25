@@ -1,5 +1,6 @@
 -- Verify old JWTs and null-role RPC paths fail closed. Fixtures roll back.
 begin;
+insert into public.exchange_rates(rate,rounding,created_by) select 1400,'none',id from public.profiles where role='admin' and is_active limit 1;
 create temporary table employee_access_context(admin_id uuid, cashier_id uuid);
 grant all on employee_access_context to authenticated, service_role;
 insert into employee_access_context select

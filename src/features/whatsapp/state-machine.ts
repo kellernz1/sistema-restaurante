@@ -1,3 +1,4 @@
+import { money } from "../../lib/money";
 import { addressSchema } from "../customer-ordering/offsite-validation";
 import { paginate, summary, text, totals, trim } from "./messages.pt-BR";
 import type { Context, Environment, Input, Reply, Session, Transition } from "./types";
@@ -36,7 +37,7 @@ export function prompt(session: Session, env: Environment): Reply[] {
     case "type": return [...(env.settings.dine_in_qr_enabled || env.settings.pickup_enabled || env.settings.delivery_enabled ? [buttons(text.welcome, [...(env.settings.dine_in_qr_enabled ? [["dine_in", "Local"] as [string, string]] : []), ...(env.settings.pickup_enabled ? [["pickup", "Retirada"] as [string, string]] : []), ...(env.settings.delivery_enabled ? [["delivery", "Entrega"] as [string, string]] : [])])] : [{ kind: "text" as const, body: text.closed }]), { kind: "text", body: `${text.link} ${env.appUrl}/order` }];
     case "table": return [{ kind: "text", body: text.table }];
     case "categories": return [paginate(env.categories.filter((item) => env.products.some((product) => product.category_id === item.id)).map((item) => ({ id: `category:${item.id}`, title: item.name })), c.page ?? 0, "categories", text.categories)];
-    case "products": return [paginate(env.products.filter((item) => item.category_id === c.category_id).map((item) => ({ id: `product:${item.id}`, title: item.name, description: `R$ ${item.price.toFixed(2).replace(".", ",")}` })), c.page ?? 0, "products", text.products)];
+    case "products": return [paginate(env.products.filter((item) => item.category_id === c.category_id).map((item) => ({ id: `product:${item.id}`, title: item.name, description: money.format(item.price) })), c.page ?? 0, "products", text.products)];
     case "quantity": return [{ kind: "list", body: text.quantity, rows: ["1", "2", "3", "Outro"].map((title) => ({ id: title === "Outro" ? "other_quantity" : title, title })) }];
     case "notes": return [buttons(text.notes, [["skip", text.skip]])];
     case "cart": return [...summary(c, env), buttons(text.cart, [["add", "Adicionar mais"], ["finish", "Finalizar"], ["cancelar", "Cancelar"]])];
@@ -133,7 +134,7 @@ export function transition(previous: Session, input: Input, env: Environment): T
       break;
     }
     case "payment":
-      if (["cash", "card", "pix"].includes(value)) { c.payment_method = value as Context["payment_method"]; delete c.cash_change_for; s.state = value === "cash" ? "change" : "confirm"; } else valid = false;
+      if (["cash", "transfer", "card", "pix"].includes(value)) { c.payment_method = value as Context["payment_method"]; delete c.cash_change_for; s.state = value === "cash" ? "change" : "confirm"; } else valid = false;
       break;
     case "change": {
       const amount = Number(raw.replace(",", "."));
