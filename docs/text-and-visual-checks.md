@@ -19,6 +19,8 @@ Use apply_patch or explicit UTF-8 Node/Python reads and writes. Avoid piping acc
 
 ## Browser matrix
 
+The current matrix also includes employee administration and a public table QR page (36 combinations), plus four disabled-waiter screenshots when that mode is off. Printing history is expanded for screenshots so filters and job actions are checked. Set `VISUAL_THEME=dark` to exercise the automatic dark color scheme; the default run uses light. Both modes keep printer activation disabled in the test browser and do not click print/archive actions.
+
 `playwright-core` is development-only and does not download a browser. It uses the installed Edge executable, with `VISUAL_BROWSER_PATH` as an override for another installed Chromium browser. This avoids a second browser download and any production dependency. `PUBLIC_TEST_URL` overrides the local app URL. `VISUAL_EMAIL` / `VISUAL_PASSWORD` override seeded admin credentials; keep credentials in environment variables, never committed files.
 
 The smoke opens cashier, sessions, counter, kitchen, settings, daily reports and public checkout in pt-BR/es at 1440 and 390 pixels (28 combinations). It checks successful responses, unexpected redirects, suspicious visible text, page-level horizontal overflow, uncaught exceptions, error-level console messages and cash fieldset headings escaping their card. All combinations get full-page PNGs, including failures, and results JSON. Screenshots may contain local customer/order data: they stay ignored and must not be published blindly.

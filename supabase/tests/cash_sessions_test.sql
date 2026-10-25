@@ -1,4 +1,7 @@
 begin;
+update public.cash_session_policy set single_open_session=false where id;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 create temporary table cash_test_context(cashier uuid,admin uuid,other uuid,product uuid,session_id uuid,second_session uuid,paid_order uuid,late_order uuid,pay_request uuid,close_request uuid,rate_id uuid,base_total bigint,day date,print_job uuid);
 grant all on cash_test_context to authenticated,service_role;
 insert into cash_test_context(cashier,admin,other,pay_request,close_request) values(gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),gen_random_uuid());

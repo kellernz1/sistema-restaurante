@@ -14,6 +14,8 @@ export default async function TableQrPage() {
   let validUrl = false;
   try { validUrl = !!appUrl && ["http:", "https:"].includes(new URL(appUrl).protocol); } catch { /* Invalid configuration is shown below. */ }
   if (!validUrl || !appUrl) return <p>{t("Configure NEXT_PUBLIC_APP_URL com o endereço público do restaurante antes de gerar os códigos.")}</p>;
+  const mode=await db.from("restaurant_settings").select("dine_in_qr_enabled").single();
+  if(!mode.data?.dine_in_qr_enabled)return <p className="order-panel">{t("O atendimento em mesas está desativado.")}</p>;
   const { data, error } = await db.from("tables").select("id, table_number, qr_token").order("table_number");
   if (error) return <p role="alert">{t("Não foi possível carregar as mesas. Atualize a página.")}</p>;
   return <><Link href="/admin" className="back-link qr-screen-only">{t("← Administração")}</Link><QrSheet initialTables={data} appUrl={new URL(appUrl).origin} /></>;

@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "@/components/language-provider";
 import { customerApi, CustomerApiError } from "@/features/customer-ordering/public-client";
 import { money, type PaymentConfig } from "@/lib/money";
 import { uuid } from "@/lib/uuid";
 import type { StoredRow } from "@/types/records";
-import { counterRequestSchema } from "./validation";
+import { counterRequestSchema,counterDraftSchema } from "./validation";
+import {useAuth} from "@/features/auth/auth-provider";
 import { CounterPaymentEditor, counterPaymentLines, type CounterPaymentDraft } from "./payment-draft";
 import { CounterQueue } from "./counter-queue";
 
@@ -16,6 +17,11 @@ type Created = { order: { counter_ticket: number; counter_name: string | null };
 type Submission = ReturnType<typeof counterRequestSchema.parse>;
 export function CounterDesk({ products, categories, settings, config }: { products: Product[]; categories: { id: string; name: string }[]; settings: StoredRow<"restaurant_settings">; config: PaymentConfig }) {
   const t = useTranslation();
+  const {user}=useAuth();
+  const draftKey=user?`counter-draft:${user.id}`:"";
+  const [loadedDraft,setLoadedDraft]=useState("");
+  const [restored,setRestored]=useState(false);
+  const availableCategories=useMemo(()=>categories.filter(entry=>products.some(product=>product.category_id===entry.id)),[categories,products]);
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<Line[]>([]);
@@ -30,19 +36,37 @@ export function CounterDesk({ products, categories, settings, config }: { produc
   const input = useRef<HTMLInputElement>(null);
   const pending = useRef<Submission | null>(null);
   const lock = useRef(false);
+  useEffect(()=>{
+    if(!draftKey||loadedDraft===draftKey)return;
+    const timer=setTimeout(()=>{
+      try{
+        const stored=sessionStorage.getItem(draftKey),draft=stored?counterDraftSchema.safeParse(JSON.parse(stored)):null;
+        if(draft?.success){
+          const lines=draft.data.items.flatMap(item=>{const product=products.find(p=>p.id===item.product_id);return product?[{product,quantity:item.quantity,notes:item.notes??""}]:[];});
+          setCart(lines);setName(draft.data.name);setPayments(draft.data.payments.filter(row=>config.enabled_methods.includes(row.method)&&(row.currency!=="BRL"||!!config.rate)));setRestored(lines.length>0);
+        }
+      }catch{/* A missing browser draft never creates a submission. */}
+      setLoadedDraft(draftKey);
+    },0);return()=>clearTimeout(timer);
+  },[draftKey,loadedDraft,products,config]);
+  useEffect(()=>{
+    if(!draftKey||loadedDraft!==draftKey)return;
+    try{if(!cart.length){sessionStorage.removeItem(draftKey);return;}const draft=counterDraftSchema.safeParse({name,items:cart.map(line=>({product_id:line.product.id,quantity:line.quantity,notes:line.notes})),payments});if(draft.success)sessionStorage.setItem(draftKey,JSON.stringify(draft.data));}catch{/* Navigation drafts are best-effort; pending request recovery remains separate. */}
+  },[draftKey,loadedDraft,cart,name,payments]);
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
         const saved = localStorage.getItem("counter-last-category");
-        if (saved === "all" || categories.some((entry) => entry.id === saved)) setCategory(saved!);
+        if (saved === "all" || availableCategories.some((entry) => entry.id === saved)) setCategory(saved!);
         const stored = sessionStorage.getItem("counter-pending-request");
         if (stored) { const parsed = counterRequestSchema.safeParse(JSON.parse(stored)); if (parsed.success) { pending.current = parsed.data; setUncertain(true); } }
       } catch { /* Optional browser storage. */ }
     }, 0);
     return () => clearTimeout(timer);
-  }, [categories]);
+  }, [availableCategories]);
   const total = cart.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
-  const filtered = products.filter((product) => (category === "all" || product.category_id === category) && product.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+  const activeCategory=availableCategories.some(entry=>entry.id===category)?category:"all";
+  const filtered = products.filter((product) => (activeCategory === "all" || product.category_id === activeCategory) && product.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
   function add(product: Product) {
     if (busy || uncertain) return;
     setCart((lines) => { const existing = lines.find((line) => line.product.id === product.id); return existing ? lines.map((line) => line === existing ? { ...line, quantity: Math.min(99, line.quantity + 1) } : line) : [...lines, { product, quantity: 1, notes: "" }]; });
@@ -59,17 +83,18 @@ export function CounterDesk({ products, categories, settings, config }: { produc
     lock.current = true; setBusy(true); setError("");
     try {
       const result = await customerApi<Created>("/api/staff/counter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(pending.current) });
-      clearPending(); setCreated(result); setCart([]); setName(""); setPayments(defaultRows()); setSearch(""); requestAnimationFrame(() => input.current?.focus());
+      clearPending(); setCreated(result); setCart([]); setName(""); setPayments(defaultRows()); setSearch(""); setRestored(false); requestAnimationFrame(() => input.current?.focus());
     } catch (failure) {
       if (failure instanceof CustomerApiError && failure.status < 500) { clearPending(); setError(failure.message); }
       else { setUncertain(true); setError(t("Envio incerto. Consulte o mesmo pedido antes de lançar outro.")); }
     } finally { lock.current = false; setBusy(false); }
   }
-  return <main className="counter-desk"><header className="section-heading"><div><span className="eyebrow">{t("Caixa rápido")}</span><h1>{t("Pedido de balcão")}</h1></div><Link className="back-link" href="/cashier">{t("Caixa e mesas")}</Link></header>
+  return <section className="counter-desk"><header className="section-heading counter-heading"><div><span className="eyebrow">{t("Caixa rápido")}</span><h1>{t("Pedido de balcão")}</h1><p>{t("Selecione os produtos e confira o pedido ao lado.")}</p></div></header>
     {created && <section className="order-panel counter-confirmation" role="status"><div className="counter-confirmation-label"><strong className="counter-ticket">{t("Senha {0}").replace("{0}", String(created.order.counter_ticket))}</strong>{created.order.counter_name && <p>{created.order.counter_name}</p>}</div><Link className="primary-button" href={created.receipt_path}>{t("Abrir comprovante")}</Link></section>}
     {error && <p role="alert" className="table-notice table-notice-error">{t(error)}</p>}
-    <div className="counter-workspace"><section><label className="field-group">{t("Buscar produto por nome")}<input ref={input} autoFocus className="order-input" type="search" value={search} disabled={busy || uncertain} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && filtered[0]) { event.preventDefault(); add(filtered[0]); } }} /></label>
-      <div className="counter-categories" aria-label={t("Categorias")}>{[{ id: "all", name: t("Todos") }, ...categories].map((entry) => <button type="button" key={entry.id} aria-pressed={entry.id === category} className={entry.id === category ? "primary-button" : "ghost-button"} onClick={() => { setCategory(entry.id); try { localStorage.setItem("counter-last-category", entry.id); } catch { /* Optional storage. */ } }}>{entry.name}</button>)}</div>
+    {restored&&<p className="table-notice table-notice-info" role="status">{t("Rascunho recuperado. Confira os itens e os pagamentos.")}</p>}
+    <div className="counter-workspace"><section className="order-panel counter-catalog"><label className="field-group">{t("Buscar produto por nome")}<input ref={input} autoFocus className="order-input" type="search" value={search} disabled={busy || uncertain} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && filtered[0]) { event.preventDefault(); add(filtered[0]); } }} /></label>
+      <div className="counter-categories" aria-label={t("Categorias")}>{[{ id: "all", name: t("Todos") }, ...availableCategories].map((entry) => <button type="button" key={entry.id} aria-pressed={entry.id === activeCategory} className={entry.id === activeCategory ? "primary-button" : "ghost-button"} onClick={() => { setCategory(entry.id); try { localStorage.setItem("counter-last-category", entry.id); } catch { /* Optional storage. */ } }}>{entry.name}</button>)}</div>
       <div className="counter-products">{filtered.map((product) => <button type="button" className="order-panel" key={product.id} disabled={busy || uncertain} onClick={() => add(product)}><strong>{product.name}</strong><span>{money.format(product.price)}</span></button>)}</div>
     </section><section className="order-panel counter-cart"><h2>{t("Pedido atual")}</h2>
       <fieldset disabled={busy || uncertain}><label className="field-group">{t("Nome para chamar (opcional)")}<input className="order-input" value={name} maxLength={120} onChange={(event) => setName(event.target.value)} /></label>
@@ -78,5 +103,5 @@ export function CounterDesk({ products, categories, settings, config }: { produc
       {settings.counter_payment_timing === "at_order" ? <CounterPaymentEditor rows={payments} onChange={setPayments} total={total} config={config} disabled={busy || uncertain} /> : <p>{t("Pagamento no final, antes da entrega.")}</p>}
       <footer className="counter-total"><strong>{t("Total")}: {money.format(total)}</strong><button type="button" className="primary-button" disabled={busy || (!uncertain && !cart.length)} onClick={() => void submit()}>{t(uncertain ? "Consultar envio" : settings.counter_payment_timing === "at_order" ? "Criar e pagar pedido" : "Enviar para a cozinha")}</button></footer>
     </section></div><CounterQueue greenMinutes={settings.counter_green_minutes} yellowMinutes={settings.counter_yellow_minutes} />
-  </main>;
+  </section>;
 }

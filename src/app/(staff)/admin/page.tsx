@@ -19,6 +19,7 @@ async function loadSummary() {
 
 export default async function AdminDashboard() {
   const t = await getTranslation();
+  const db=await createClient();const modes=await db.from("restaurant_settings").select("dine_in_qr_enabled").single();
   const { pending, preparing, ready, revenuePyg, revenueError } = await loadSummary();
   const metrics = [
     { title: t("Novos pedidos"), description: t("Prontos para sua confirmação."), value: pending.error ? "—" : pending.count ?? 0, tone: "blue", href: "/orders" },
@@ -33,6 +34,6 @@ export default async function AdminDashboard() {
       visual={<span className={metric.title === t("Faturamento do dia") ? "metric-number metric-money" : "metric-number"}>{t(metric.value)}</span>}
       title={metric.title} description={metric.description} detail={metric.title === t("Faturamento do dia") ? t("Dia comercial do restaurante") : t("Pedidos ativos · todos os canais")}
       actions={<ArrowLink href={metric.href}>{t("Ver")}</ArrowLink>} />)}</div>
-    <nav className="dashboard-shortcuts" aria-label={t("Administração")}><ArrowLink href="/admin/menu">{t("Gerenciar cardápio")}</ArrowLink><ArrowLink href="/admin/tables/qr">{t("QR codes das mesas")}</ArrowLink><ArrowLink href="/admin/settings">{t("Configurações")}</ArrowLink></nav>
+    <nav className="dashboard-shortcuts" aria-label={t("Administração")}><ArrowLink href="/admin/menu">{t("Gerenciar cardápio")}</ArrowLink>{modes.data?.dine_in_qr_enabled&&<ArrowLink href="/admin/tables/qr">{t("QR codes das mesas")}</ArrowLink>}<ArrowLink href="/admin/settings">{t("Configurações")}</ArrowLink></nav>
   </section>;
 }

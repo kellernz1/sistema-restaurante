@@ -1,4 +1,6 @@
 begin;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 create temporary table print_reliability_context(order_id uuid,product_id uuid,job_id uuid,copy_id uuid,owner_id uuid,token uuid,kitchen_id uuid,admin_id uuid,request_id uuid);
 grant all on print_reliability_context to authenticated,service_role;
 update public.print_jobs set archived_at=now(),reviewed_at=now();

@@ -1,5 +1,7 @@
 -- Isolated fixtures; all order creation and updates roll back.
 begin;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 -- Legacy order scenarios use the configurable optional-session mode.
 update public.cash_session_policy set require_open_session=false where id;
 insert into public.exchange_rates(rate,rounding,created_by) select 1400,'none',id from public.profiles where role='admin' and is_active limit 1;
@@ -14,7 +16,7 @@ insert into cashier_test_context(actor_id, waiter_id, product_id, table_id)
     (select id from public.profiles where role = 'waiter' limit 1), p.id, t.id
     from public.products p cross join public.tables t where p.name = '__cashier_test_product__' and t.table_number = 999993;
 update public.restaurant_settings set delivery_fee_mode = 'fixed', is_accepting_orders = true, pickup_enabled = true, delivery_enabled = true,
-  dine_in_qr_enabled = false, require_confirmation_for_qr = true, delivery_fee = 550, min_delivery_order = 2000 where id = true;
+  dine_in_qr_enabled = true, require_confirmation_for_qr = true, delivery_fee = 550, min_delivery_order = 2000 where id = true;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select set_config('request.jwt.claim.role', 'service_role', true);
 select set_config('request.jwt.claim.sub', '', true);

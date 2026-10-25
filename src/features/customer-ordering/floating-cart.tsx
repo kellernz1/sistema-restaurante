@@ -8,8 +8,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { money } from "./menu-cart";
 
-export function FloatingCart({ quantity, total, children, footer }: {
-  quantity: number; total: number; children: ReactNode; footer: ReactNode;
+export function FloatingCart({ quantity, total, children, footer,compactOnly=false }: {
+  quantity: number; total: number; children: ReactNode; footer: ReactNode;compactOnly?:boolean;
 }) {
   const t = useTranslation();
   const [open, setOpen] = useState(false);
@@ -38,7 +38,7 @@ export function FloatingCart({ quantity, total, children, footer }: {
   }, [open]);
 
   return <>
-    <button type="button" className={`primary-button floating-cart-button${compact ? " is-compact" : ""}`} aria-label={t(`Ver carrinho, ${quantity} ${t(quantity === 1 ? "item" : "itens")}, total ${money.format(total)}`)} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
+    <button type="button" className={`primary-button floating-cart-button${compact||compactOnly ? " is-compact" : ""}`} aria-label={t(`Ver carrinho, ${quantity} ${t(quantity === 1 ? "item" : "itens")}, total ${money.format(total)}`)} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
       <ShoppingCart size={25} aria-hidden="true" /><span className="floating-cart-count" aria-hidden="true">{quantity}</span><span className="floating-cart-summary" aria-hidden="true"><span>{t("Ver carrinho")}</span><strong>{t(money.format(total))}</strong></span>
     </button>
     <dialog ref={dialog} className="customer-cart-dialog" aria-labelledby="customer-cart-heading" onCancel={() => setOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>

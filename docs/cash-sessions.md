@@ -1,5 +1,7 @@
 # Cash sessions and business-day reports
 
+Block 6 adds a default-on single shared-session rule across operators. Administrators can disable it to use simultaneous operator sessions as described below. See [service modes](service-modes.md); the existing one-open-session-per-operator rule always applies.
+
 ## Accounting rules
 
 Each active cashier/admin can have one open session. Different operators can open simultaneous sessions. Opening captures the restaurant timezone, business-day cutoff and business date (defaults: America/Asuncion, 05:00). Before 05:00 the session belongs to the preceding date. This is an operator ledger for one shared physical cashier station, not independent physical drawers: operators must coordinate their initial funds and physical counts.

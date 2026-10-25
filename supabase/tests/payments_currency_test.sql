@@ -1,5 +1,7 @@
 -- Transactional acceptance: no fixture or financial history survives this suite.
 begin;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 -- Existing ordering/payment scenarios use the supported optional-session policy; mandatory binding is covered by cash_sessions_test.
 update public.cash_session_policy set require_open_session=false where id;
 create temporary table payment_test_context(admin_id uuid,cashier_id uuid,waiter_id uuid,product_id uuid,order_id uuid,rate_id uuid,request_id uuid);

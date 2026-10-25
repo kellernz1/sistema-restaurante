@@ -1,4 +1,5 @@
 @media screen {
+  html .table-menu-catalog { min-width: 0; }
   html .offsite-browsing.customer-page { gap: 16px; padding-top: 20px; }
   html .offsite-browsing .customer-header h1 { font-size: 28px; margin-block: 6px; }
   html .offsite-browsing .customer-header p { margin-block: 6px; font-size: 14px; }

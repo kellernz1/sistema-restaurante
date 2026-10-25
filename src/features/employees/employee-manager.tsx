@@ -10,11 +10,13 @@ import { customerApi } from "@/features/customer-ordering/public-client";
 import type { Employee } from "@/features/employees/types";
 import { employeeCreateSchema, employeeUpdateSchema } from "@/features/employees/validation";
 import { ROLE_LABELS, type UserRole } from "@/lib/auth";
+import {useServiceModes} from "@/features/service-modes/use-service-modes";
 
 type Editor = { id: string | null; full_name: string; email: string; password: string; role: UserRole; is_active: boolean };
 
 export function EmployeeManager({ initialEmployees, currentUserId }: { initialEmployees: Employee[]; currentUserId: string }) {
   const t = useTranslation();
+  const modes=useServiceModes();
   const [employees, setEmployees] = useState(initialEmployees);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [search, setSearch] = useState("");
@@ -33,7 +35,7 @@ export function EmployeeManager({ initialEmployees, currentUserId }: { initialEm
   }
   function open(employee?: Employee) {
     setError(""); setNotice(""); setShowPassword(false);
-    setEditor(employee ? { ...employee, full_name: employee.full_name ?? "", password: "" } : { id: null, full_name: "", email: "", password: "", role: "waiter", is_active: true });
+    setEditor(employee ? { ...employee, full_name: employee.full_name ?? "", password: "" } : { id: null, full_name: "", email: "", password: "", role: modes?.uses_waiter?"waiter":"cashier", is_active: true });
   }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,7 +87,7 @@ export function EmployeeManager({ initialEmployees, currentUserId }: { initialEm
         <label className="field-group">{t("Nome")}<input className="order-input" required minLength={2} maxLength={120} disabled={busy} autoComplete="off" value={editor.full_name} onChange={(event) => setEditor({ ...editor, full_name: event.target.value })} /></label>
         <label className="field-group">{t("E-mail")}<input className="order-input" type="email" required maxLength={254} disabled={busy || !!editor.id} autoComplete="off" value={editor.email} onChange={(event) => setEditor({ ...editor, email: event.target.value })} /></label>
         {!editor.id && <><label className="field-group">{t("Senha")}<input className="order-input" type={showPassword ? "text" : "password"} required minLength={8} maxLength={72} autoComplete="new-password" disabled={busy} value={editor.password} onChange={(event) => setEditor({ ...editor, password: event.target.value })} /><small>{t("De 8 a 72 caracteres. Informe a senha ao funcionário.")}</small></label><label><input type="checkbox" checked={showPassword} onChange={(event) => setShowPassword(event.target.checked)} /> {t(" Mostrar senha")}</label></>}
-        <label className="field-group">{t("Perfil de acesso")}<select className="order-input" disabled={busy || editor.id === currentUserId} value={editor.role} onChange={(event) => setEditor({ ...editor, role: event.target.value as UserRole })}>{(Object.keys(ROLE_LABELS) as UserRole[]).map((role) => <option key={role} value={role}>{t(ROLE_LABELS[role])}</option>)}</select></label>
+        <label className="field-group">{t("Perfil de acesso")}<select className="order-input" disabled={busy || editor.id === currentUserId} value={editor.role} onChange={(event) => setEditor({ ...editor, role: event.target.value as UserRole })}>{(Object.keys(ROLE_LABELS) as UserRole[]).filter(role=>role!=="waiter"||modes?.uses_waiter||!!editor.id&&editor.role==="waiter").map((role) => <option key={role} value={role}>{t(ROLE_LABELS[role])}</option>)}</select></label>
         {editor.role === "admin" && <p>{t("Administradores podem configurar o restaurante, gerenciar a equipe e acessar todas as áreas.")}</p>}
         {editor.id === currentUserId && <p>{t("Seu perfil de administrador e seu acesso não podem ser removidos pela sua própria conta.")}</p>}
         {!editor.id && <label><input type="checkbox" checked={editor.is_active} disabled={busy} onChange={(event) => setEditor({ ...editor, is_active: event.target.checked })} /> {t(" Liberar acesso ao cadastrar")}</label>}

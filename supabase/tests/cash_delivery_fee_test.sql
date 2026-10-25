@@ -1,4 +1,6 @@
 begin;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 create temporary table cash_fee_context(cashier uuid,order_id uuid,session_id uuid);
 grant all on cash_fee_context to authenticated;
 insert into cash_fee_context(cashier) values(gen_random_uuid());

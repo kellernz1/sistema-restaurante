@@ -8,10 +8,11 @@ import { runCounterConcurrencyTest } from "./counter-concurrency-test.mjs";
 import { runPrintConcurrencyTest } from "./print-concurrency-test.mjs";
 import { runPrintDocumentConcurrencyTest } from "./print-document-concurrency-test.mjs";
 import { runCashSessionConcurrencyTest } from "./cash-session-concurrency-test.mjs";
+import {runServiceConcurrencyTest} from "./service-concurrency-test.mjs";
 
 const testFiles = [
   "rls_smoke_test.sql",
-  "table_self_service_test.sql",
+  "service_modes_test.sql",
   "offsite_orders_test.sql",
   "whatsapp_bot_test.sql",
   "local_security_test.sql",
@@ -46,6 +47,7 @@ export async function runSqlTests() {
   await runPrintConcurrencyTest();
   await runPrintDocumentConcurrencyTest();
   await runCashSessionConcurrencyTest();
+  await runServiceConcurrencyTest();
 }
 
 if (isMain(import.meta.url)) {

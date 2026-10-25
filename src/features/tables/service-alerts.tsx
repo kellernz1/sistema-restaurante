@@ -56,11 +56,13 @@ export function ServiceAlerts() {
 
   async function act(kind: "accept" | "reject" | "attend", id: string) {
     if (lock.current) return;
+    const reason=kind==="reject"?window.prompt(t("Motivo obrigatório")):null;
+    if(kind==="reject"&&!reason?.trim())return;
     lock.current = true; setBusy(true); setNotice("");
     try {
       const result = kind === "attend"
         ? await db.rpc("attend_service_request", { p_request_id: id })
-        : await db.rpc("review_table_order", { p_order_id: id, p_accept: kind === "accept" });
+        : await db.rpc("review_legacy_table_order", { p_order_id: id, p_accept: kind === "accept",p_reason:reason??undefined });
       if (result.error) throw result.error;
       setNotice(t("Atendimento atualizado."));
     } catch { setNotice(t("Não foi possível concluir. Outro atendente pode ter atualizado este chamado.")); }
@@ -70,7 +72,7 @@ export function ServiceAlerts() {
   return <section className="order-panel service-alerts"><div className="table-detail-heading"><h2>{t("Atendimento ")}<span className="status-pill" aria-live="polite">{t(orders.length + requests.length)} {t(" pendentes")}</span></h2><button className="ghost-button" disabled={busy} onClick={() => void refresh()}>{t("Atualizar chamados")}</button></div>
     {error && <p className="table-notice table-notice-error" role="alert">{t(error)}</p>}{notice && <p role="status">{t(notice)}</p>}
     {!orders.length && !requests.length && !error && <p>{t("Nenhum pedido ou chamado pendente.")}</p>}
-    {orders.map((order) => <article className="service-alert" key={order.id}><div><strong>{t("Mesa ")}{order.tables?.table_number} {t(" · Comanda #")}{order.order_number}</strong><p>via {t(order.source.toUpperCase())} {t(" · Aguardando confirmação")}</p><Link className="back-link" href={`/waiter/tables/${order.table_id}`}>{t("Conferir itens")}</Link></div><div className="cashier-actions"><button className="primary-button" disabled={busy} onClick={() => void act("accept", order.id)}>{t("Confirmar")}</button><button className="ghost-button" disabled={busy} onClick={() => void act("reject", order.id)}>{t("Rejeitar")}</button></div></article>)}
-    {requests.map((request) => <article className="service-alert" key={request.id}><div><strong>{t("Mesa ")}{request.tables?.table_number}</strong><p>{t(request.type === "bill" ? t("Pediu a conta") : t("Chamou o garçom"))}</p></div><button className="ghost-button" disabled={busy} onClick={() => void act("attend", request.id)}>{t("Marcar atendido")}</button></article>)}
+    {orders.map((order) => <article className="service-alert" key={order.id}><div><strong>{t("Mesa ")}{order.tables?.table_number} {t(" · Comanda #")}{order.order_number}</strong><p>via {t(order.source.toUpperCase())} {t(" · Aguardando confirmação")}</p><Link className="back-link" href={`/cashier?table=${order.table_id}`}>{t("Conferir itens")}</Link></div><div className="cashier-actions"><button className="primary-button" disabled={busy} onClick={() => void act("accept", order.id)}>{t("Confirmar")}</button><button className="ghost-button" disabled={busy} onClick={() => void act("reject", order.id)}>{t("Rejeitar")}</button></div></article>)}
+    {requests.map((request) => <article className="service-alert" key={request.id}><div><strong>{t("Mesa ")}{request.tables?.table_number}</strong><p>{t(request.type === "bill" ? t("Pediu a conta") : t("Chamou o atendente"))}</p>{request.type==="bill"&&<Link className="back-link" href={`/cashier?table=${request.table_id}`}>{t("Abrir conta da mesa")}</Link>}</div><button className="ghost-button" disabled={busy} onClick={() => void act("attend", request.id)}>{t("Marcar atendido")}</button></article>)}
   </section>;
 }

@@ -4,13 +4,13 @@ import test from "node:test";
 import { serviceRequestSchema, tableOrderSchema, tableTokenSchema } from "../src/features/customer-ordering/validation.ts";
 
 const productId = "12345678-1234-4234-8234-123456789abc";
-const valid = { source: "nfc", customer_name: " Ana ", items: [{ product_id: productId, quantity: 2, notes: " sem cebola " }] };
+const valid = { request_id:productId,source: "nfc", customer_name: " Ana ", items: [{ product_id: productId, quantity: 2, notes: " sem cebola " }] };
 
 test("accepts QR/NFC orders and normalizes optional customer data and notes", () => {
   const parsed = tableOrderSchema.parse(valid);
   assert.equal(parsed.customer_name, "Ana");
   assert.equal(parsed.items[0].notes, "sem cebola");
-  assert.equal(tableOrderSchema.parse({ items: valid.items }).source, "qr");
+  assert.equal(tableOrderSchema.parse({request_id:valid.request_id,customer_name:"Ana",items: valid.items }).source, "qr");
   assert.equal(parsed.source, "nfc");
 });
 

@@ -16,7 +16,7 @@
   }
   html .language-picker select:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
   @media (max-width: 640px) {
-    html .interface-preferences { right: 12px; bottom: max(82px, env(safe-area-inset-bottom)); gap: 6px; }
+    html .interface-preferences { right: 12px; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 72px); gap: 6px; }
     html .language-picker label { display: none; }
     html .language-picker { padding-inline: 10px; }
   }

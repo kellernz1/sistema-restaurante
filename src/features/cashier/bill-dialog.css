@@ -1,0 +1,55 @@
+@media screen {
+ html .bill-dialog { position: fixed; inset: 0; width: min(760px,calc(100% - 32px)); max-height: min(880px,calc(100dvh - 48px)); margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 28px; background: var(--surface); box-shadow: 0 24px 100px rgb(0 0 0 / 30%); }
+ .bill-dialog-shell { display: flex; flex-direction: column; min-height: 0; max-height: min(880px,calc(100dvh - 48px)); }
+ .bill-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 26px 28px 18px; flex-shrink: 0; }
+ .bill-dialog-header .eyebrow { margin: 0 0 8px; }
+ html .bill-dialog-header h2 { margin: 0; font-size: clamp(23px,3vw,28px); line-height: 1.2; }
+ .bill-dialog-close { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 8px; flex-shrink: 0; }
+ .bill-dialog-total { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 28px 16px; padding: 16px 20px; border-radius: 18px; background: var(--surface-soft); flex-shrink: 0; }
+ .bill-dialog-total > span { color: var(--muted); font-size: 14px; }
+ .bill-dialog-total > strong { font-size: 28px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+ .bill-dialog-notices { padding: 0 28px; flex-shrink: 0; font-size: 13px; }
+ .bill-dialog-notices p { margin: 0 0 12px; }
+ .bill-dialog .payment-panel { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+ .bill-dialog .payment-panel-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 4px 28px 24px; }
+ .bill-dialog .payment-panel-content > h3 { margin: 0 0 16px; font-size: 18px; }
+ .bill-dialog .payment-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+ .bill-dialog .payment-summary p { display: grid; gap: 6px; margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 16px; font-size: 12px; color: var(--muted); }
+ .bill-dialog .payment-summary strong { font-size: 19px; color: var(--foreground); font-variant-numeric: tabular-nums; }
+ .bill-dialog .payment-rate { margin: 12px 0 18px; font-size: 12px; color: var(--muted); }
+ .bill-dialog .payment-entry { min-width: 0; margin: 18px 0 0; padding: 18px; border: 1px solid var(--line); border-radius: 20px; }
+ .bill-dialog .payment-entry > legend { padding: 0 8px; font-size: 13px; font-weight: 600; }
+ .bill-dialog .payment-entry-fields { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+ .bill-dialog .payment-entry-fields .field-group { margin: 0; gap: 8px; font-size: 12px; min-width: 0; }
+ .bill-dialog .payment-entry-fields .order-input { width: 100%; min-height: 48px; }
+ .bill-dialog .payment-entry-fields > p { align-self: end; display: grid; gap: 6px; margin: 0; font-size: 12px; color: var(--muted); }
+ .bill-dialog .payment-amount-hint { min-height: 48px; padding: 10px 14px; border-radius: 14px; background: var(--surface-soft); }
+ .bill-dialog .payment-amount-hint strong { color: var(--foreground); font-size: 16px; }
+ .bill-dialog .payment-remove { grid-column: 1/-1; justify-self: start; min-height: 36px; font-size: 12px; }
+ .bill-dialog .payment-empty { padding: 20px 0; color: var(--muted); font-size: 14px; }
+ .bill-dialog .payment-panel-footer { padding: 18px 28px 22px; border-top: 1px solid var(--line); background: var(--surface); flex-shrink: 0; }
+ html .bill-dialog .payment-panel-actions { display: flex; justify-content: flex-end; gap: 8px; margin: 0; }
+ .bill-dialog .payment-panel-actions > button { min-height: 46px; font-size: 13px; }
+ .bill-dialog .payment-disclaimer { margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+ .bill-dialog .form-error { margin: 0 0 12px; font-size: 13px; }
+ .bill-dialog-stale { padding: 16px 28px; border-top: 1px solid var(--line); }
+ .bill-dialog :is(button,input,select):focus-visible { outline: 3px solid #2997ff; outline-offset: 2px; }
+ @media(max-width:600px){
+  html .bill-dialog { width: calc(100% - 24px); max-height: calc(100dvh - 24px); border-radius: 24px; }
+  .bill-dialog-shell { max-height: calc(100dvh - 24px); }
+  .bill-dialog-header { padding: 20px 18px 14px; }
+  .bill-dialog-total { margin: 0 18px 14px; padding: 14px 16px; }
+  .bill-dialog-total > strong { font-size: 23px; }
+  .bill-dialog-notices { padding: 0 18px; }
+  .bill-dialog .payment-panel-content { padding: 4px 18px 20px; }
+  .bill-dialog .payment-entry { padding: 14px; }
+  .bill-dialog .payment-entry-fields { grid-template-columns: 1fr; gap: 14px; }
+  .bill-dialog .payment-summary { gap: 8px; }
+  .bill-dialog .payment-summary p { padding: 10px; }
+  .bill-dialog .payment-summary strong { font-size: 17px; }
+  .bill-dialog .payment-panel-footer { padding: 14px 18px 18px; }
+  html .bill-dialog .payment-panel-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .bill-dialog .payment-panel-actions > button { width: 100%; padding-inline: 10px; font-size: 12px; }
+  .bill-dialog .payment-panel-actions > .primary-button { grid-column: 1/-1; }
+ }
+}

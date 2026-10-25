@@ -35,7 +35,7 @@ export function CashierNewOrder({ tables, products, categories, settings }: {
 }) {
   const t = useTranslation();
   const router = useRouter();
-  const [type, setType] = useState<"dine_in" | "pickup" | "delivery">("dine_in");
+  const [type, setType] = useState<"dine_in" | "pickup" | "delivery">(settings.dine_in_qr_enabled?"dine_in":settings.pickup_enabled?"pickup":"delivery");
   const [tableId, setTableId] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [name, setName] = useState("");
@@ -58,7 +58,7 @@ export function CashierNewOrder({ tables, products, categories, settings }: {
   const fee = type === "delivery" ? distanceMode ? delivery.quote?.fee ?? 0 : settings.delivery_fee : 0;
   const quoteReady = !distanceMode || !!delivery.quote;
   const belowMinimum = type === "delivery" && subtotal < settings.min_delivery_order;
-  const accepting = settings.is_accepting_orders && (type === "dine_in" || (type === "pickup" ? settings.pickup_enabled : settings.delivery_enabled));
+  const accepting = settings.is_accepting_orders && (type === "dine_in" ? settings.dine_in_qr_enabled : type === "pickup" ? settings.pickup_enabled : settings.delivery_enabled);
 
   async function submit() {
     if (lock.current || (!attempt && !quoteReady)) return;
@@ -101,7 +101,7 @@ export function CashierNewOrder({ tables, products, categories, settings }: {
     {error && <p className="table-notice table-notice-error" role="alert">{t(error)}</p>}
     {!accepting && <p className="table-notice table-notice-info">{t("Este canal está fechado para novos pedidos. Confira as configurações do restaurante.")}</p>}
     <div className="order-panel cashier-order-fields"><h2>{t("Tipo de atendimento")}</h2>
-      <div className="cashier-actions" role="group" aria-label={t("Tipo do pedido")}>{([['dine_in', t("Mesa")], ['pickup', t("Retirada")], ['delivery', t("Entrega")]] as const).map(([value, label]) =>
+      <div className="cashier-actions" role="group" aria-label={t("Tipo do pedido")}>{([['dine_in', t("Mesa")], ['pickup', t("Retirada")], ['delivery', t("Entrega")]] as const).filter(([value])=>value==="dine_in"?settings.dine_in_qr_enabled:value==="pickup"?settings.pickup_enabled:settings.delivery_enabled).map(([value, label]) =>
         <button type="button" className="ghost-button" key={value} disabled={disabled} aria-pressed={type === value} onClick={() => { setType(value); setError(""); }}>{t(label)}</button>)}</div>
       {type === "dine_in" ? <label className="field-group">{t("Mesa")}<select className="order-input" disabled={disabled} value={tableId} onChange={(event) => setTableId(event.target.value)}><option value="">{t("Selecione uma mesa")}</option>{tables.map((table) => <option key={table.id} value={table.id} disabled={table.status === "closing"}>{t("Mesa ")}{table.table_number} · {t(TABLE_STATUS_LABELS[table.status])}</option>)}</select><small>{t("Uma mesa livre abre uma comanda; uma mesa ocupada recebe os novos itens.")}</small></label>
         : <><div className="cashier-customer-fields"><label className="field-group">{t("Nome do cliente")}<input className="order-input" disabled={disabled} maxLength={80} value={name} onChange={(event) => setName(event.target.value)} /></label><PhoneInput value={phone} country={phoneCountry} defaultCountry={settings.default_phone_country === "BR" ? "BR" : "PY"} disabled={disabled} onChange={(value,country) => {setPhone(value);setPhoneCountry(country);}}  /></div>

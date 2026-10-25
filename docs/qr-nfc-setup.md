@@ -1,5 +1,7 @@
 # Pedidos por QR e NFC
 
+O bloco 6 substitui a confirmação antiga pelo fluxo configurável de caixa: pedidos pendentes separados da conta, nome obrigatório, telefone configurável, cancelamento e garçom opcional. Consulte [service-modes.md](service-modes.md) antes de seguir as instruções históricas abaixo.
+
 ## Preparar o sistema
 
 1. Configure o Supabase conforme `supabase-setup.md` e aplique a nova migration `supabase/migrations/202610220002_table_self_service.sql` depois da migration inicial. Ela cria chamados, limites de uso e funções com verificação de acesso, e atualiza a criação de pedidos para conferir o token dentro da transação. Não execute a migration inicial novamente em um banco já configurado.

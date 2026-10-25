@@ -29,6 +29,9 @@ test("employee accounts require administrator access", { skip: !base }, async ()
 
 test("employee lifecycle preserves role boundaries and blocks existing sessions", { skip: !live }, async (t) => {
   const service = createClient(api, secret, { auth: { persistSession: false, autoRefreshToken: false } });
+  const policy=await service.from("service_policy").select("uses_waiter").single();assert.ifError(policy.error);
+  t.after(async()=>{assert.ifError((await service.from("service_policy").update({uses_waiter:policy.data.uses_waiter}).eq("id",true)).error);});
+  assert.ifError((await service.from("service_policy").update({uses_waiter:true}).eq("id",true)).error);
   const [admin, cashier] = await Promise.all([login("admin@restaurante.local"), login("caixa@restaurante.local")]);
   assert.equal((await fetch(`${base}/api/staff/employees`, { headers: { cookie: cashier.cookie } })).status, 403);
   assert.equal((await mutate("/api/staff/employees", {}, cashier.cookie, "POST")).status, 403);

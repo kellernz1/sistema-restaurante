@@ -1,10 +1,17 @@
+.counter-desk { display: grid; gap: 24px; min-width: 0; }
+.counter-desk > .counter-heading { margin: 0; }
+html .counter-heading p { margin: 10px 0 0; }
 .counter-workspace { display: grid; grid-template-columns: minmax(0,1fr) minmax(320px,440px); gap: 24px; align-items: start; }
-.counter-categories { display: flex; gap: 12px; flex-wrap: wrap; margin: 20px 0; }
+.counter-catalog { display: grid; gap: 20px; min-width: 0; }
+.counter-categories { display: flex; gap: 8px; flex-wrap: wrap; margin: 0; }
 .counter-categories button { min-height: 56px; }
 .counter-products { display: grid; grid-template-columns: repeat(auto-fill,minmax(155px,1fr)); gap: 14px; }
-.counter-products button { min-height: 110px; text-align: left; display: flex; flex-direction: column; gap: 14px; cursor: pointer; }
+.counter-products button { min-height: 110px; text-align: left; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; cursor: pointer; background: var(--surface-soft); border: 0; }
+.counter-products button strong { font-size: 15px; line-height: 1.4; }
+.counter-products button span { color: var(--brand); font-weight: 600; font-variant-numeric: tabular-nums; }
 .counter-products button:focus-visible { outline: 3px solid #2997ff; outline-offset: 3px; }
-.counter-cart { position: sticky; top: 80px; max-height: calc(100dvh - 100px); overflow: auto; }
+.counter-cart { position: sticky; top: calc(var(--cashier-sticky-bottom,68px) + 16px); max-height: calc(100dvh - var(--cashier-sticky-bottom,68px) - 32px); overflow: auto; }
+.counter-cart > h2 { margin: 0 0 20px; }
 .counter-cart fieldset { border: 0; padding: 0; min-width: 0; }
 .counter-cart article { padding: 16px 0; }
 .counter-cart .cashier-actions input { width: 70px; }

@@ -1,5 +1,7 @@
 # Payments and base currency
 
+Block 6 reuses the payment ledger for atomic table-QR receive-and-confirm, keeping prepaid table accounts open until explicit release. Shared cash-session exclusivity defaults on. See [service modes](service-modes.md).
+
 Block 5 adds operator cash sessions and payment-based daily reporting. See [cash sessions](cash-sessions.md); its rules supersede earlier exclusions of shifts and instructions that allowed payment without opening a session. Mandatory sessions are enabled by default.
 
 Printing update (block 4A): receipts now snapshot the existing payment ledger through the shared engine in [printing-architecture.md](printing-architecture.md), with on-demand output by default and optional output on full payment. Currency, FX rounding, payment validation and settlement rules are unchanged.
@@ -60,6 +62,8 @@ Order/item mutations and payments serialize on order rows. Totals cannot be redu
 8. On an uncertain payment request, use **Consultar envio** to repeat the original UUID and payload. Do not create a second payment merely because the connection failed. The pending UUID/payload is also retained in session storage when available, so reopening the same order in the same browser tab offers the same request. Preserve the open payment screen until the result is resolved if browser storage is unavailable.
 
 ## Verification and exclusions
+
+The table payment confirmation uses a centered responsive dialog. Its header and total stay visible, payment rows scroll internally, and the action footer remains accessible. Opening it locks background scrolling; closing restores scrolling. The visual smoke suite checks desktop/mobile centering, multiple payment rows, footer visibility and closing without submitting payments. This presentation change does not alter ledger calculations or server validation.
 
 Run `npm run lint`, `npm run build`, `npm run test:whatsapp`, `node --test tests/money.test.mjs tests/bill-totals.test.mjs tests/delivery-pricing.test.mjs tests/menu-management-validation.test.mjs tests/offsite-order-validation.test.mjs`, and `npm run test:sql` with the local seeded database running. SQL fixtures roll back and cover rates, snapshot immutability, conversion, split/partial settlement, PYG cash change and rejection of BRL cash, disabled methods, stale rates, retry payloads, direct-write/RLS boundaries and blocked roles.
 

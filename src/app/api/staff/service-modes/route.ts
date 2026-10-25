@@ -1,0 +1,5 @@
+import {requireStaff} from "@/lib/staff-api";
+import {publicJson,publicError,readPublicBody,PublicApiError} from "@/lib/public-table-api";
+import {servicePolicySchema} from "@/features/service-modes/validation";
+export async function GET(){try{const {db}=await requireStaff(["admin","cashier","kitchen","waiter"]);const [policy,modes]=await Promise.all([db.from("service_policy").select("*").single(),db.from("restaurant_settings").select("dine_in_qr_enabled,pickup_enabled,delivery_enabled").single()]);if(policy.error||modes.error)throw policy.error||modes.error;const {id,...fields}=policy.data;void id;return publicJson({...fields,...modes.data});}catch(e){return publicError(e);}}
+export async function PATCH(request:Request){try{const {db}=await requireStaff(["admin"]);const data=servicePolicySchema.safeParse(await readPublicBody(request));if(!data.success)throw new PublicApiError(400,"Confira as opções de atendimento.");const result=await db.from("service_policy").update(data.data).eq("id",true);if(result.error)throw result.error;return publicJson({success:true});}catch(e){return publicError(e);}}

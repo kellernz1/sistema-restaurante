@@ -35,6 +35,8 @@
 
 ## Architecture Decisions
 
+- Service modes are enforced in SQL, not only navigation. Waiter use defaults off; disabled waiter accounts retain history but lose effective role access. Table QR submissions stage in `qr_requests`, then materialize through the shared order creator only after required review/payment. Account epochs reset on table release; public cancellation requires a separate per-request secret. Shared cash-session exclusivity defaults on. See `docs/service-modes.md`.
+
 - Cash sessions are operator-owned, with one open session per operator and mandatory payment linkage enabled by default. PostgreSQL serializes payment binding and closing; closed reports/history are immutable except audited admin reopening. Daily revenue follows payment business dates, net of cash change, including historical unassigned receipts. See `docs/cash-sessions.md`.
 
 - All ordering channels will use one shared server-side order creation service.

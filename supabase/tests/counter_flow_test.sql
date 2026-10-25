@@ -1,4 +1,6 @@
 begin;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 -- Existing ordering/payment scenarios use the supported optional-session policy; mandatory binding is covered by cash_sessions_test.
 update public.cash_session_policy set require_open_session=false where id;
 create temporary table counter_test_context(cashier_id uuid,kitchen_id uuid,product_id uuid,order_id uuid,request_id uuid);

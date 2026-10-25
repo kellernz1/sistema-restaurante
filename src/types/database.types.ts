@@ -5,7 +5,27 @@ export type Database = {
 
   "public": {
           Tables: {
-            "cash_movements": {
+            "blocked_phones": {
+                  Row: {
+                    "created_at": string,"created_by": string,"phone": string,"reason": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"phone": string,"reason": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"phone"?: string,"reason"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "blocked_phones_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"cash_movements": {
                   Row: {
                     "amount": number,"created_at": string,"id": string,"kind": string,"operator_id": string,"reason": string,"session_id": string
                   }
@@ -91,14 +111,14 @@ isOneToOne: false
                   ]
                 },"cash_session_policy": {
                   Row: {
-                    "blind_count": boolean,"id": boolean,"require_open_session": boolean
+                    "blind_count": boolean,"id": boolean,"require_open_session": boolean,"single_open_session": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "blind_count"?: boolean,"id"?: boolean,"require_open_session"?: boolean
+                    "blind_count"?: boolean,"id"?: boolean,"require_open_session"?: boolean,"single_open_session"?: boolean
                   }
                   Update: {
-                    "blind_count"?: boolean,"id"?: boolean,"require_open_session"?: boolean
+                    "blind_count"?: boolean,"id"?: boolean,"require_open_session"?: boolean,"single_open_session"?: boolean
                   }
                   Relationships: [
 
@@ -397,14 +417,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "cancel_reason": string | null,"cash_change_for": number | null,"closed_at": string | null,"confirmed_at": string | null,"counter_business_date": string | null,"counter_name": string | null,"counter_payment_timing": string | null,"counter_ready_at": string | null,"counter_ticket": number | null,"created_at": string,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_address": Json | null,"delivery_fee": number,"id": string,"is_counter": boolean,"notes": string | null,"order_number": number,"order_type": Database["public"]['Enums']["order_type"],"payment_method": Database["public"]['Enums']["payment_method"] | null,"payment_status": Database["public"]['Enums']["payment_status"],"public_token": string,"source": Database["public"]['Enums']["order_source"],"status": Database["public"]['Enums']["order_status"],"table_id": string | null,"total_amount": number,"waiter_id": string | null,"can_update_order": boolean | null
+                    "cancel_reason": string | null,"cash_change_for": number | null,"closed_at": string | null,"confirmed_at": string | null,"counter_business_date": string | null,"counter_name": string | null,"counter_payment_timing": string | null,"counter_ready_at": string | null,"counter_ticket": number | null,"created_at": string,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_address": Json | null,"delivery_fee": number,"id": string,"is_counter": boolean,"notes": string | null,"order_number": number,"order_type": Database["public"]['Enums']["order_type"],"payment_method": Database["public"]['Enums']["payment_method"] | null,"payment_status": Database["public"]['Enums']["payment_status"],"public_token": string,"qr_prepaid_account": boolean,"source": Database["public"]['Enums']["order_source"],"status": Database["public"]['Enums']["order_status"],"table_id": string | null,"total_amount": number,"waiter_id": string | null,"can_update_order": boolean | null
                   }
                   ComputedFields: "can_update_order"
                   Insert: {
-                    "cancel_reason"?: string | null,"cash_change_for"?: number | null,"closed_at"?: string | null,"confirmed_at"?: string | null,"counter_business_date"?: string | null,"counter_name"?: string | null,"counter_payment_timing"?: string | null,"counter_ready_at"?: string | null,"counter_ticket"?: number | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_address"?: Json | null,"delivery_fee"?: number,"id"?: string,"is_counter"?: boolean,"notes"?: string | null,"order_number"?: number,"order_type": Database["public"]['Enums']["order_type"],"payment_method"?: Database["public"]['Enums']["payment_method"] | null,"payment_status"?: Database["public"]['Enums']["payment_status"],"public_token"?: string,"source": Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"table_id"?: string | null,"total_amount"?: number,"waiter_id"?: string | null
+                    "cancel_reason"?: string | null,"cash_change_for"?: number | null,"closed_at"?: string | null,"confirmed_at"?: string | null,"counter_business_date"?: string | null,"counter_name"?: string | null,"counter_payment_timing"?: string | null,"counter_ready_at"?: string | null,"counter_ticket"?: number | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_address"?: Json | null,"delivery_fee"?: number,"id"?: string,"is_counter"?: boolean,"notes"?: string | null,"order_number"?: number,"order_type": Database["public"]['Enums']["order_type"],"payment_method"?: Database["public"]['Enums']["payment_method"] | null,"payment_status"?: Database["public"]['Enums']["payment_status"],"public_token"?: string,"qr_prepaid_account"?: boolean,"source": Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"table_id"?: string | null,"total_amount"?: number,"waiter_id"?: string | null
                   }
                   Update: {
-                    "cancel_reason"?: string | null,"cash_change_for"?: number | null,"closed_at"?: string | null,"confirmed_at"?: string | null,"counter_business_date"?: string | null,"counter_name"?: string | null,"counter_payment_timing"?: string | null,"counter_ready_at"?: string | null,"counter_ticket"?: number | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_address"?: Json | null,"delivery_fee"?: number,"id"?: string,"is_counter"?: boolean,"notes"?: string | null,"order_number"?: number,"order_type"?: Database["public"]['Enums']["order_type"],"payment_method"?: Database["public"]['Enums']["payment_method"] | null,"payment_status"?: Database["public"]['Enums']["payment_status"],"public_token"?: string,"source"?: Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"table_id"?: string | null,"total_amount"?: number,"waiter_id"?: string | null
+                    "cancel_reason"?: string | null,"cash_change_for"?: number | null,"closed_at"?: string | null,"confirmed_at"?: string | null,"counter_business_date"?: string | null,"counter_name"?: string | null,"counter_payment_timing"?: string | null,"counter_ready_at"?: string | null,"counter_ticket"?: number | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_address"?: Json | null,"delivery_fee"?: number,"id"?: string,"is_counter"?: boolean,"notes"?: string | null,"order_number"?: number,"order_type"?: Database["public"]['Enums']["order_type"],"payment_method"?: Database["public"]['Enums']["payment_method"] | null,"payment_status"?: Database["public"]['Enums']["payment_status"],"public_token"?: string,"qr_prepaid_account"?: boolean,"source"?: Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"table_id"?: string | null,"total_amount"?: number,"waiter_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -729,6 +749,64 @@ isOneToOne: false
                   Relationships: [
 
                   ]
+                },"qr_requests": {
+                  Row: {
+                    "access_token": string,"account_id": string,"actor_kind": string | null,"business_date": string | null,"confirmation_mode": string,"created_at": string,"customer_name": string,"customer_phone": string | null,"id": string,"items": NonNullable<Json>,"order_id": string | null,"payload": NonNullable<Json>,"reason": string | null,"request_id": string,"reviewed_at": string | null,"reviewed_by": string | null,"session_id": string | null,"source": Database["public"]['Enums']["order_source"],"status": string,"table_id": string,"total_amount": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "access_token"?: string,"account_id": string,"actor_kind"?: string | null,"business_date"?: string | null,"confirmation_mode": string,"created_at"?: string,"customer_name": string,"customer_phone"?: string | null,"id"?: string,"items": NonNullable<Json>,"order_id"?: string | null,"payload": NonNullable<Json>,"reason"?: string | null,"request_id": string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"session_id"?: string | null,"source": Database["public"]['Enums']["order_source"],"status"?: string,"table_id": string,"total_amount": number
+                  }
+                  Update: {
+                    "access_token"?: string,"account_id"?: string,"actor_kind"?: string | null,"business_date"?: string | null,"confirmation_mode"?: string,"created_at"?: string,"customer_name"?: string,"customer_phone"?: string | null,"id"?: string,"items"?: NonNullable<Json>,"order_id"?: string | null,"payload"?: NonNullable<Json>,"reason"?: string | null,"request_id"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"session_id"?: string | null,"source"?: Database["public"]['Enums']["order_source"],"status"?: string,"table_id"?: string,"total_amount"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "qr_requests_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "qr_requests_reviewed_by_fkey"
+      columns: ["reviewed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "qr_requests_session_id_fkey"
+      columns: ["session_id"]
+isOneToOne: false
+      referencedRelation: "cash_sessions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "qr_requests_table_id_fkey"
+      columns: ["table_id"]
+isOneToOne: false
+      referencedRelation: "tables"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"qr_review_commands": {
+                  Row: {
+                    "actor_id": string,"payload": NonNullable<Json>,"request_id": string,"result": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"payload": NonNullable<Json>,"request_id": string,"result": NonNullable<Json>
+                  }
+                  Update: {
+                    "actor_id"?: string,"payload"?: NonNullable<Json>,"request_id"?: string,"result"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "qr_review_commands_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"restaurant_settings": {
                   Row: {
                     "business_day_start": string,"business_timezone": string,"counter_green_minutes": number,"counter_payment_timing": string,"counter_yellow_minutes": number,"default_phone_country": string,"delivery_distance_step_fee": number,"delivery_distance_step_km": number,"delivery_enabled": boolean,"delivery_fee": number,"delivery_fee_mode": string,"delivery_origin_latitude": number | null,"delivery_origin_longitude": number | null,"dine_in_qr_enabled": boolean,"enabled_payment_methods": (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes": number,"estimated_pickup_minutes": number,"id": boolean,"is_accepting_orders": boolean,"kitchen_auto_print_enabled": boolean,"min_delivery_order": number,"pickup_enabled": boolean,"require_confirmation_for_qr": boolean,"restaurant_name": string,"whatsapp_enabled": boolean,"delivery_pricing_snapshot": Json | null
@@ -739,6 +817,20 @@ isOneToOne: false
                   }
                   Update: {
                     "business_day_start"?: string,"business_timezone"?: string,"counter_green_minutes"?: number,"counter_payment_timing"?: string,"counter_yellow_minutes"?: number,"default_phone_country"?: string,"delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"enabled_payment_methods"?: (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"restaurant_name"?: string,"whatsapp_enabled"?: boolean
+                  }
+                  Relationships: [
+
+                  ]
+                },"service_policy": {
+                  Row: {
+                    "counter_enabled": boolean,"id": boolean,"pending_per_phone": number,"pending_per_table": number,"qr_confirmation": string,"qr_phone": string,"uses_waiter": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "counter_enabled"?: boolean,"id"?: boolean,"pending_per_phone"?: number,"pending_per_table"?: number,"qr_confirmation"?: string,"qr_phone"?: string,"uses_waiter"?: boolean
+                  }
+                  Update: {
+                    "counter_enabled"?: boolean,"id"?: boolean,"pending_per_phone"?: number,"pending_per_table"?: number,"qr_confirmation"?: string,"qr_phone"?: string,"uses_waiter"?: boolean
                   }
                   Relationships: [
 
@@ -765,14 +857,14 @@ isOneToOne: false
                   ]
                 },"tables": {
                   Row: {
-                    "capacity": number,"id": string,"qr_token": string,"status": Database["public"]['Enums']["table_status"],"table_number": number,"can_update_table": boolean | null
+                    "capacity": number,"id": string,"qr_account_id": string,"qr_first_confirmed": boolean,"qr_token": string,"status": Database["public"]['Enums']["table_status"],"table_number": number,"can_update_table": boolean | null
                   }
                   ComputedFields: "can_update_table"
                   Insert: {
-                    "capacity": number,"id"?: string,"qr_token"?: string,"status"?: Database["public"]['Enums']["table_status"],"table_number": number
+                    "capacity": number,"id"?: string,"qr_account_id"?: string,"qr_first_confirmed"?: boolean,"qr_token"?: string,"status"?: Database["public"]['Enums']["table_status"],"table_number": number
                   }
                   Update: {
-                    "capacity"?: number,"id"?: string,"qr_token"?: string,"status"?: Database["public"]['Enums']["table_status"],"table_number"?: number
+                    "capacity"?: number,"id"?: string,"qr_account_id"?: string,"qr_first_confirmed"?: boolean,"qr_token"?: string,"status"?: Database["public"]['Enums']["table_status"],"table_number"?: number
                   }
                   Relationships: [
 
@@ -814,7 +906,15 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "cash_cancellation_source": {
+                  Row: {
+                    "amount": number | null,"business_date": string | null,"rejected": boolean | null,"session_id": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+
+                  ]
+                }
           }
           Functions: {
             "advance_hub_order":
@@ -842,6 +942,7 @@ isOneToOne: false
 "payment_method": Database["public"]['Enums']["payment_method"] | null,
 "payment_status": Database["public"]['Enums']["payment_status"],
 "public_token": string,
+"qr_prepaid_account": boolean,
 "source": Database["public"]['Enums']["order_source"],
 "status": Database["public"]['Enums']["order_status"],
 "table_id": string | null,
@@ -880,6 +981,9 @@ isOneToOne: false
                            },
 "can_update_table":
 { Args: { "p_new": Omit<Database["public"]['Tables']["tables"]['Row'], Database["public"]['Tables']["tables"]['ComputedFields']> }; Returns: boolean
+                           },
+"cancel_qr_request":
+{ Args: { "p_access": string,"p_id": string,"p_reason": string,"p_token": string }; Returns: undefined
                            },
 "capture_print_order":
 { Args: { "p_order_id": string }; Returns: undefined
@@ -951,6 +1055,7 @@ isOneToOne: false
 "payment_method": Database["public"]['Enums']["payment_method"] | null,
 "payment_status": Database["public"]['Enums']["payment_status"],
 "public_token": string,
+"qr_prepaid_account": boolean,
 "source": Database["public"]['Enums']["order_source"],
 "status": Database["public"]['Enums']["order_status"],
 "table_id": string | null,
@@ -988,6 +1093,7 @@ isOneToOne: false
 "payment_method": Database["public"]['Enums']["payment_method"] | null,
 "payment_status": Database["public"]['Enums']["payment_status"],
 "public_token": string,
+"qr_prepaid_account": boolean,
 "source": Database["public"]['Enums']["order_source"],
 "status": Database["public"]['Enums']["order_status"],
 "table_id": string | null,
@@ -1031,6 +1137,7 @@ isOneToOne: false
 "payment_method": Database["public"]['Enums']["payment_method"] | null,
 "payment_status": Database["public"]['Enums']["payment_status"],
 "public_token": string,
+"qr_prepaid_account": boolean,
 "source": Database["public"]['Enums']["order_source"],
 "status": Database["public"]['Enums']["order_status"],
 "table_id": string | null,
@@ -1071,6 +1178,7 @@ isOneToOne: false
 "payment_method": Database["public"]['Enums']["payment_method"] | null,
 "payment_status": Database["public"]['Enums']["payment_status"],
 "public_token": string,
+"qr_prepaid_account": boolean,
 "source": Database["public"]['Enums']["order_source"],
 "status": Database["public"]['Enums']["order_status"],
 "table_id": string | null,
@@ -1117,6 +1225,7 @@ isOneToOne: false
 "payment_method": Database["public"]['Enums']["payment_method"] | null,
 "payment_status": Database["public"]['Enums']["payment_status"],
 "public_token": string,
+"qr_prepaid_account": boolean,
 "source": Database["public"]['Enums']["order_source"],
 "status": Database["public"]['Enums']["order_status"],
 "table_id": string | null,
@@ -1140,6 +1249,9 @@ isOneToOne: false
                            },
 "mark_manual_kitchen_print":
 { Args: { "p_order_id": string }; Returns: undefined
+                           },
+"materialize_auto_qr":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "next_counter_ticket":
 { Args: { "p_day": string }; Returns: number
@@ -1169,6 +1281,7 @@ isOneToOne: false
 "payment_method": Database["public"]['Enums']["payment_method"] | null,
 "payment_status": Database["public"]['Enums']["payment_status"],
 "public_token": string,
+"qr_prepaid_account": boolean,
 "source": Database["public"]['Enums']["order_source"],
 "status": Database["public"]['Enums']["order_status"],
 "table_id": string | null,
@@ -1202,6 +1315,9 @@ isOneToOne: false
 "print_worker_heartbeat":
 { Args: { "p_driver": string,"p_instance": string,"p_version": string }; Returns: undefined
                            },
+"qr_review":
+{ Args: { "p_action": string,"p_id": string,"p_lines"?: Json,"p_reason"?: string,"p_request_id": string }; Returns: Json
+                           },
 "recompute_order_total":
 { Args: { "p_order_id": string }; Returns: number
                            },
@@ -1210,6 +1326,9 @@ isOneToOne: false
                            },
 "release_kitchen_printer":
 { Args: { "p_terminal_id": string }; Returns: undefined
+                           },
+"release_paid_table":
+{ Args: { "p_table": string }; Returns: undefined
                            },
 "remember_whatsapp_recipient":
 { Args: { "p_at": string,"p_phone": string,"p_recipient": string }; Returns: undefined
@@ -1226,6 +1345,9 @@ isOneToOne: false
 "resolve_whatsapp_handoff":
 { Args: { "p_phone": string }; Returns: undefined
                            },
+"review_legacy_table_order":
+{ Args: { "p_accept": boolean,"p_order_id": string,"p_reason"?: string }; Returns: undefined
+                           },
 "review_print_job":
 { Args: { "p_job_id": string }; Returns: undefined
                            },
@@ -1241,8 +1363,14 @@ isOneToOne: false
 "set_payment_methods":
 { Args: { "p_methods": (string)[] }; Returns: undefined
                            },
+"set_phone_block":
+{ Args: { "p_block": boolean,"p_reason": string,"p_request": string }; Returns: undefined
+                           },
 "set_product_photo":
 { Args: { "p_content": string,"p_product_id": string }; Returns: string
+                           },
+"submit_qr_order":
+{ Args: { "p_payload": Json,"p_request_id": string,"p_token": string }; Returns: Json
                            },
 "sync_offsite_ready":
 { Args: { "p_order_id": string }; Returns: undefined

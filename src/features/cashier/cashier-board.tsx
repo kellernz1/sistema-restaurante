@@ -4,6 +4,7 @@ import { useTranslation } from "@/components/language-provider";
 
 
 import Link from "next/link";
+import {useSearchParams} from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { TABLE_STATUS_LABELS } from "@/features/tables/table-status";
@@ -17,9 +18,10 @@ export function CashierBoard({ initialTables, initialError }: {
   initialError: boolean;
 }) {
   const t = useTranslation();
+  const params=useSearchParams();
   const [db] = useState(createClient);
   const [tables, setTables] = useState(initialTables);
-  const [selected, setSelected] = useState<CashierTable | null>(null);
+  const [selected, setSelected] = useState<CashierTable | null>(()=>initialTables.find(table=>table.id===params.get("table"))??null);
   const [error, setError] = useState(initialError ? t("Não foi possível carregar as mesas.") : "");
   const [connectionError, setConnectionError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,7 +73,7 @@ export function CashierBoard({ initialTables, initialError }: {
   const sorted = [...tables].sort((a, b) => Number(b.status === "closing") - Number(a.status === "closing") || a.table_number - b.table_number);
   return <section className="cashier-dashboard">
     <div className="table-dashboard-heading cashier-screen-only"><div><span className="eyebrow">{t("Painel do caixa")}</span>
-      <h1>{t("Fechamento de contas")}</h1><p>{t("Mesas aguardando a conta aparecem primeiro. Selecione uma mesa para conferir a comanda.")}</p></div>
+      <h2 className="cashier-table-heading">{t("Contas das mesas")}</h2><p>{t("Mesas aguardando a conta aparecem primeiro. Selecione uma mesa para conferir a comanda.")}</p></div>
       <div className="cashier-actions"><Link className="primary-button" href="/cashier/orders/new">{t("Novo pedido")}</Link><button className="ghost-button" disabled={loading} onClick={() => void refresh()}>{t(loading ? t("Atualizando...") : t("Atualizar mesas"))}</button></div></div>
     {(error || connectionError) && <p className="table-notice table-notice-error cashier-screen-only" role="alert">{t(error || connectionError)}</p>}
     <div className="cashier-layout">

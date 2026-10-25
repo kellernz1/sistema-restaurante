@@ -12,6 +12,9 @@ export async function GET(request: Request, context: PublicTableContext) {
       db.from("categories").select("id, name").order("sort_order").order("name"),
     ]);
     if (products.error || categories.error) throw products.error ?? categories.error;
-    return publicJson({ table_number: table.table_number, accepting: settings.is_accepting_orders && table.status !== "closing", restaurant_name: "Mesa Certa", products: products.data, categories: categories.data });
+    const policy=await db.from("service_policy").select("qr_phone").single();
+    const restaurant=await db.from("restaurant_settings").select("restaurant_name,default_phone_country").single();
+    if(policy.error||restaurant.error)throw policy.error||restaurant.error;
+    return publicJson({table_number:table.table_number,accepting:settings.is_accepting_orders&&table.status!=="closing",restaurant_name:restaurant.data.restaurant_name,phone_mode:policy.data.qr_phone,default_phone_country:restaurant.data.default_phone_country,products:products.data,categories:categories.data});
   } catch (error) { return publicError(error); }
 }

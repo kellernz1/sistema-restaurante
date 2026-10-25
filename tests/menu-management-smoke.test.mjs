@@ -37,6 +37,8 @@ test("administrator manages photos and availability without changing order histo
   const categoryId = randomUUID(), requestId = randomUUID();
   let productId, orderId, customerId;
   t.after(async () => {
+    // Hide fixtures before cleanup: a later FK/network failure must not leave them on sale.
+    assert.ifError((await service.from("products").update({is_active:false}).eq("category_id",categoryId)).error);
     const submission = await service.from("cashier_order_submissions").select("order_id").eq("request_id", requestId).maybeSingle();
     orderId ||= submission.data?.order_id;
     assert.ifError((await service.from("cashier_order_submissions").delete().eq("request_id", requestId)).error);

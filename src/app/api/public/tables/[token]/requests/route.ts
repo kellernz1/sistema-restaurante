@@ -10,7 +10,7 @@ export async function POST(request: Request, context: PublicTableContext) {
     if (!body.success) throw new PublicApiError(400, "Solicitação inválida.");
     await resolvePublicTable(token);
     const { error } = await createAdminClient().rpc("create_table_service_request", { p_token: token, p_type: body.data.type });
-    if (error) throw new PublicApiError(409, "Não foi possível solicitar. Chame o garçom para conferir esta mesa.");
+    if (error) throw new PublicApiError(409,error.message.includes("One request per minute")?"Aguarde um minuto entre solicitações de atendimento desta mesa.":"Não foi possível solicitar. Fale com o atendimento para conferir esta mesa.");
     return publicJson({ success: true });
   } catch (error) { return publicError(error); }
 }

@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     const parsed = employeeCreateSchema.safeParse(await readPublicBody(request));
     if (!parsed.success) throw new PublicApiError(400, "Confira nome, e-mail, perfil e senha de 8 a 72 caracteres.");
     const { full_name, email, password, role, is_active } = parsed.data;
+    if(role==="waiter"){const policy=await db.from("service_policy").select("uses_waiter").single();if(!policy.data?.uses_waiter)throw new PublicApiError(409,"O atendimento com garçom está desativado.");}
     const admin = createAdminClient();
     // Keep the account unable to sign in until its intended profile is saved.
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true, ban_duration: "876000h", user_metadata: { full_name } });

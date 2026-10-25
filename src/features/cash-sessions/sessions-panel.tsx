@@ -28,7 +28,7 @@ export function SessionsPanel({initialSession=""}:{initialSession?:string}){
   finally{lock.current=false;setBusy(false);}
  }
  const ownOpen=!!data?.current&&selected===data.current.id;
- return <section className="cash-sessions"><header className="section-heading"><h1>{t("Turnos de caixa")}</h1><Link className="back-link" href="/cashier/counter">{t("Voltar ao balcão")}</Link></header>
+ return <section className="cash-sessions"><header className="section-heading"><h1>{t("Turnos de caixa")}</h1></header>
  {error&&<p className="form-error" role="alert">{error}</p>}{uncertain&&<button className="primary-button" disabled={busy} onClick={()=>void submit()}>{t("Consultar envio")}</button>}
  {!data?.current&&<fieldset className="order-panel" disabled={busy||uncertain}><legend>{t("Abrir caixa")}</legend><label>{t("Fundo inicial (Gs)")}<input className="order-input" type="number" min={0} step={1} value={opening} onChange={e=>setOpening(e.target.value)}/></label><button className="primary-button" disabled={opening===""} onClick={()=>void submit("open",{opening_amount:Number(opening)})}>{t("Abrir caixa")}</button></fieldset>}
  <label>{t("Sessão")}<select className="order-input" value={selected} onChange={e=>{setSelected(e.target.value);setReport(null);}}>{selected&&data&&!data.sessions.some(s=>s.id===selected)&&<option value={selected}>{report?.session.business_date??selected}</option>}{data?.sessions.map(s=><option key={s.id} value={s.id}>{s.business_date} · {s.operator_id===data.user_id?t("Meu caixa"):s.operator_id} · {t(s.status==="open"?"Aberto":"Fechado")} · {new Date(s.opened_at).toLocaleString()}</option>)}</select></label>

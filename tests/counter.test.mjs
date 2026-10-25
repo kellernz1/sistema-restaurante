@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeCounterName, counterWaitTone } from "../src/features/counter/domain.ts";
-import { counterRequestSchema } from "../src/features/counter/validation.ts";
+import { counterRequestSchema,counterDraftSchema } from "../src/features/counter/validation.ts";
+
+test("navigation drafts contain bounded item intent, never authoritative prices or submission keys",()=>{
+ const draft={name:"Ana",items:[{product_id:"12345678-1234-4234-8234-123456789abc",quantity:2,notes:"No onion"}],payments:[{method:"cash",currency:"PYG",allocation:null,received:null}]};
+ assert.ok(counterDraftSchema.safeParse(draft).success);
+ for(const value of [{...draft,request_id:"12345678-1234-4234-8234-123456789abc"},{...draft,items:[{...draft.items[0],unit_price:1}]},{...draft,payments:[{...draft.payments[0],currency:"BRL"}]},{...draft,items:[{...draft.items[0],quantity:-1}]}])assert.equal(counterDraftSchema.safeParse(value).success,false);
+});
 test("counter names are optional, normalized to one line and bounded to 30 characters", () => {
   assert.equal(normalizeCounterName("  Ana\n  María\t "), "Ana María");
   assert.equal(normalizeCounterName("   "), null);

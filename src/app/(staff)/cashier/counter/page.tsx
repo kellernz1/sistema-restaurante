@@ -6,6 +6,8 @@ import "./counter.css";
 export default async function CounterPage() {
   const t = await getTranslation();
   const { db } = await requireStaff(["admin", "cashier"]);
+  const mode=await db.from("service_policy").select("counter_enabled").single();
+  if(!mode.data?.counter_enabled)return <p className="order-panel">{t("O atendimento de balcão está desativado.")}</p>;
   const [products, categories, settings, payments] = await Promise.all([
     db.from("products").select("id,name,price,category_id").eq("is_active", true).order("name"),
     db.from("categories").select("id,name").order("sort_order").order("name"),

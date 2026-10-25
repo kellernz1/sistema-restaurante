@@ -3,7 +3,10 @@ import { z } from "zod";
 export const tableTokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const tableOrderSchema = z.strictObject({
   source: z.enum(["qr", "nfc"]).default("qr"),
-  customer_name: z.string().trim().max(80).optional(),
+  customer_name: z.string().trim().min(1).max(80),
+  customer_phone: z.string().max(40).optional(),
+  phone_country: z.enum(["PY","BR"]).optional(),
+  request_id: z.uuid(),
   items: z.array(z.strictObject({
     product_id: z.uuid(),
     quantity: z.number().int().min(1).max(99),

@@ -13,6 +13,7 @@ import { createClient } from "@/utils/supabase/client";
 
 import { PrintingSettings } from "@/features/printing/printing-settings";
 import { CashPolicySettings } from "@/features/cash-sessions/policy-settings";
+import {ServiceSettings} from "@/features/service-modes/service-settings";
 import { PaymentSettings } from "@/features/payments/payment-settings";
 import { settingsSchema } from "./settings-schema";
 import { coordinatesMapLink } from "@/features/customer-ordering/delivery-location";
@@ -109,8 +110,9 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
           {(["counter_green_minutes","counter_yellow_minutes"] as const).map((key)=><label className="field-group" key={key}>{t(key==="counter_green_minutes"?"Verde até (minutos)":"Amarelo até (minutos)")}<input className="order-input" type="number" min="0" step="1" value={form[key]} disabled={busy} onChange={(event)=>setForm({...form,[key]:Number(event.target.value)})} /></label>)}
         </>}
         {section === "operations" && <>
+          <ServiceSettings/>
           <fieldset className="settings-fieldset"><legend>{t("País padrão dos telefones")}</legend><select className="order-input" disabled={busy} value={form.default_phone_country} onChange={(event) => setForm((current) => ({...current,default_phone_country:event.target.value}))}><option value="PY">{t("Paraguai (+595)")}</option><option value="BR">{t("Brasil (+55)")}</option></select></fieldset><fieldset className="settings-fieldset"><legend>{t("Recebimento de pedidos")}</legend>{t(renderSwitch("is_accepting_orders", t("Abra ou pause os novos pedidos em todos os canais.")))}{t(renderSwitch("pickup_enabled", t("Permita que o cliente peça e retire no restaurante.")))}</fieldset>
-          <fieldset className="settings-fieldset"><legend>{t("Mesas e QR codes")}</legend>{t(renderSwitch("dine_in_qr_enabled", t("Receba pedidos pelo QR code ou NFC da mesa.")))}{t(renderSwitch("require_confirmation_for_qr", t("A equipe confirma o primeiro pedido antes de iniciar o preparo.")))}</fieldset>
+          <fieldset className="settings-fieldset"><legend>{t("Mesas e QR codes")}</legend>{t(renderSwitch("dine_in_qr_enabled", t("Receba pedidos pelo QR code ou NFC da mesa.")))}</fieldset>
           <fieldset className="settings-fieldset"><legend>{t("Prazo de retirada")}</legend><div className="settings-fields-grid">{t(renderNumber("estimated_pickup_minutes"))}</div></fieldset>
         </>}
         {section === "delivery" && <>

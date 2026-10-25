@@ -29,7 +29,7 @@ export async function publicQuota(request: Request, scope: string, limit: number
 }
 
 export async function publicLimit(request: Request, token: string, mutation: boolean) {
-  if (!tableTokenSchema.safeParse(token).success) throw new PublicApiError(404, "QR inválido ou desatualizado. Chame o garçom.");
+  if (!tableTokenSchema.safeParse(token).success) throw new PublicApiError(404, "QR inválido ou desatualizado. Chame o atendente.");
   const db = createAdminClient();
   // Only trust forwarding headers when the deployment proxy overwrites them.
   const ip = process.env.PUBLIC_TRUST_PROXY === "true" ? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown" : "shared";
@@ -38,7 +38,7 @@ export async function publicLimit(request: Request, token: string, mutation: boo
   for (const [key, limit] of [[`ip:${digest(ip)}`, mutation ? 60 : 1800], [`table:${digest(token)}`, mutation ? 20 : 6000]] as const) {
     const { data, error } = await db.rpc("consume_public_rate_limit", { p_key: `${scope}:${key}`, p_limit: limit, p_window_seconds: 600 });
     if (error) throw error;
-    if (!data) throw new PublicApiError(429, "Muitas tentativas. Aguarde alguns minutos ou chame o garçom.");
+    if (!data) throw new PublicApiError(429, "Muitas tentativas. Aguarde alguns minutos ou chame o atendente.");
   }
 }
 
@@ -49,8 +49,8 @@ export async function resolvePublicTable(token: string) {
     db.from("restaurant_settings").select("is_accepting_orders, dine_in_qr_enabled").eq("id", true).single(),
   ]);
   if (error || settingsError) throw error ?? settingsError;
-  if (!table) throw new PublicApiError(404, "QR inválido ou desatualizado. Chame o garçom.");
-  if (!settings?.dine_in_qr_enabled) throw new PublicApiError(403, "Pedidos pela mesa estão indisponíveis. Chame o garçom.");
+  if (!table) throw new PublicApiError(404, "QR inválido ou desatualizado. Chame o atendente.");
+  if (!settings?.dine_in_qr_enabled) throw new PublicApiError(403, "Pedidos pela mesa estão indisponíveis. Chame o atendente.");
   return { table, settings };
 }
 

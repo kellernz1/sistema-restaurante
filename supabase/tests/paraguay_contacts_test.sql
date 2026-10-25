@@ -1,4 +1,6 @@
 begin;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 create temporary table contact_test_context(product_id uuid,py_customer uuid,br_customer uuid,admin_id uuid,cashier_id uuid);
 grant all on contact_test_context to service_role,authenticated;
 insert into public.categories(name) values('__contacts_py_br__');

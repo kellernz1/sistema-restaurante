@@ -1,4 +1,6 @@
 begin;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 create temporary table kitchen_batch_context(order_id uuid, kitchen_id uuid, request_id uuid, fail_item uuid);
 grant all on kitchen_batch_context to authenticated;
 insert into public.orders(order_type,source,customer_name,customer_phone,status)

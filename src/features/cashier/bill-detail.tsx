@@ -9,6 +9,8 @@ import { OrderTypeBadge } from "@/components/order-type-badge";
 import { PaymentPanel } from "@/features/payments/payment-panel";
 import type { StoredRow } from "@/types/records";
 import { createClient } from "@/utils/supabase/client";
+import {X} from "lucide-react";
+import "./bill-dialog.css";
 
 import { billItemsQuery, type BillItem, type CashierTable } from "./cashier-query";
 import { billSubtotal, lineSubtotal } from "./bill-totals";
@@ -81,6 +83,7 @@ export function BillDetail({ table, onClosed }: { table: CashierTable; onClosed:
     if (confirmation !== null && !element?.open) element?.showModal();
     if (confirmation === null && element?.open) element.close();
   }, [confirmation]);
+  useEffect(()=>{if(confirmation===null)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous;};},[confirmation]);
 
   const subtotal = billSubtotal(items);
   const total = subtotal + (order?.delivery_fee ?? 0);
@@ -109,17 +112,19 @@ export function BillDetail({ table, onClosed }: { table: CashierTable; onClosed:
       {order.status === "closed" && <div className="receipt-summary"><p>{t("Fechamento: ")}{t(order.closed_at ? new Date(order.closed_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : t("Não informado"))}</p><p>{t("Comprovante de atendimento — sem valor fiscal.")}</p></div>}
       {order.status === "closed" && <PaymentPanel orderId={order.id} total={order.total_amount} closed onRecorded={() => {}} />}
       <div className="cashier-actions cashier-screen-only">
+        {order.qr_prepaid_account&&order.payment_status==="paid"&&order.status!=="closed"&&<button className="primary-button" disabled={busy} onClick={async()=>{setBusy(true);try{const result=await db.rpc("release_paid_table",{p_table:table.id});if(result.error)throw result.error;await refresh();await onClosed();}catch{setNotice(t("Confira pagamentos e pedidos pendentes antes de liberar a mesa."));}finally{setBusy(false);}}}>{t("Liberar mesa paga")}</button>}
         {unpaid && <button className="primary-button" disabled={disabled} onClick={() => setConfirmation(fingerprint)}>{t("Fechar conta")}</button>}
         {order.status === "closed" && <button className="primary-button" disabled={disabled} onClick={() => window.print()}>{t("Imprimir comprovante")}</button>}
       </div>
     </>}
     <button className="ghost-button cashier-screen-only" disabled={busy || loading} onClick={() => void refresh()}>{t("Atualizar conta")}</button>
     <dialog ref={dialog} className="bill-dialog" aria-labelledby="bill-confirmation-title" onCancel={(event) => { if (busy) event.preventDefault(); else setConfirmation(null); }} onClose={() => { if (!mutation.current) setConfirmation(null); }}>
-      <h2 id="bill-confirmation-title">{t("Confirmar fechamento")}</h2><p>{t("Mesa ")}{table.table_number} {t(" · Total ")}{t(currency.format(total))}</p>
-      {undelivered && <p className="table-notice table-notice-info">{t("Ainda há itens não entregues. Confirme com o garçom.")}</p>}
-      {staleConfirmation && <p role="alert">{t("A conta foi alterada. Cancele e confira os itens novamente.")}</p>}
-      {!staleConfirmation && order && <PaymentPanel key={order.id} orderId={order.id} total={total} closed={order.status === "closed"} onBusyChange={setBusy} onRecorded={async (closed) => { await refresh(); await onClosed(); if (closed) setConfirmation(null); setNotice(t("Pagamentos atualizados.")); }} />}
-      <div className="cashier-actions"><button className="ghost-button" disabled={busy} onClick={() => setConfirmation(null)}>{t("Cancelar")}</button></div>
+      <div className="bill-dialog-shell"><header className="bill-dialog-header"><div><p className="eyebrow">{t("Mesa ")}{table.table_number}</p><h2 id="bill-confirmation-title">{t("Confirmar fechamento")}</h2></div><button type="button" className="ghost-button bill-dialog-close" disabled={busy} aria-label={t("Fechar confirmação")} onClick={()=>setConfirmation(null)}><X size={22} aria-hidden="true"/></button></header>
+      <div className="bill-dialog-total"><span>{t("Total")}</span><strong>{currency.format(total)}</strong></div>
+      {(undelivered||staleConfirmation)&&<div className="bill-dialog-notices">{undelivered && <p className="table-notice table-notice-info">{t("Ainda há itens não entregues. Confira antes de fechar.")}</p>}{staleConfirmation && <p role="alert">{t("A conta foi alterada. Cancele e confira os itens novamente.")}</p>}</div>}
+      {!staleConfirmation && order && <PaymentPanel key={order.id} orderId={order.id} total={total} closed={order.status === "closed"} onBusyChange={setBusy} secondaryAction={<button type="button" className="ghost-button" disabled={busy} onClick={()=>setConfirmation(null)}>{t("Cancelar")}</button>} onRecorded={async (closed) => { await refresh(); await onClosed(); if (closed) setConfirmation(null); setNotice(t("Pagamentos atualizados.")); }} />}
+      {staleConfirmation&&<footer className="bill-dialog-stale"><button type="button" className="ghost-button" disabled={busy} onClick={()=>setConfirmation(null)}>{t("Cancelar")}</button></footer>}
+      </div>
     </dialog>
   </section>;
 }

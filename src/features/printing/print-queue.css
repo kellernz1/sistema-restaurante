@@ -1,0 +1,60 @@
+.print-queue { margin: 20px 0; }
+html .print-queue-compact { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px 16px; padding: 16px 20px; margin: 12px 0; }
+html .print-queue-compact > h2 { margin: 0; font-size: 17px; }
+.print-queue-compact > button { grid-column: 2; grid-row: 1; min-height: 40px; font-size: 12px; }
+.print-queue-compact > :is(p,small,details) { grid-column: 1/-1; }
+html .print-queue-compact > small { margin: 0!important; font-size: 12px; color: var(--muted); }
+.print-queue-compact .print-history { margin-top: 0; }
+.print-queue-compact .print-history > summary { padding: 8px 0; font-size: 14px; }
+.print-history { margin-top: 22px; }
+.print-history > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; font-size: 17px; font-weight: 600; cursor: pointer; list-style: none; }
+.print-history > summary::-webkit-details-marker { display: none; }
+.print-history > summary svg { transition: transform 200ms; }
+.print-history[open] > summary svg { transform: rotate(180deg); }
+.print-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 4px 0 20px; }
+.print-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 5px; border-radius: 20px; background: color-mix(in srgb, var(--muted) 9%, transparent); }
+.print-filter { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 9px 14px; border: 0; border-radius: 15px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 200ms, color 200ms; }
+.print-filter[aria-pressed="true"] { background: #0071e3; color: white; }
+.print-filter:hover:not([aria-pressed="true"]) { background: color-mix(in srgb, var(--muted) 12%, transparent); }
+.print-filter-count { min-width: 22px; padding: 1px 6px; border-radius: 8px; background: color-mix(in srgb, currentColor 12%, transparent); font-size: 11px; font-variant-numeric: tabular-nums; }
+.print-archive-toggle { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; font-size: 13px; cursor: pointer; }
+.print-archive-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #0071e3; }
+.print-job-list { display: grid; gap: 12px; }
+.print-job { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; padding: 20px; border: 1px solid var(--line); border-radius: 20px; }
+.print-job-copy { flex: 1 1 320px; min-width: 0; }
+.print-job-title { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; line-height: 1.4; }
+.print-job-title strong { font-size: 15px; overflow-wrap: anywhere; }
+.print-job-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 11px; color: #0071e3; background: color-mix(in srgb, #0071e3 12%, transparent); flex-shrink: 0; }
+.print-job-status { padding: 5px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--muted) 12%, transparent); color: var(--muted); }
+.print-job-status-pending, .print-job-status-uncertain { background: color-mix(in srgb, #e89b20 14%, transparent); color: #956000; }
+.print-job-status-sent { background: color-mix(in srgb, #24874e 14%, transparent); color: #247244; }
+.print-job-status-failed { background: color-mix(in srgb, #e5484d 14%, transparent); color: #c1273c; }
+.print-job-status-processing { background: color-mix(in srgb, #0071e3 12%, transparent); color: #0071e3; }
+.print-job-meta { margin: 7px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.print-job-warning { margin: 8px 0 0; font-size: 13px; }
+.print-job-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.print-job-actions > div { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+.print-job-actions > div > button { background: color-mix(in srgb, #0071e3 10%, transparent); }
+.print-job-actions :is(button,a) { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; margin: 0; padding: 10px 14px; font-size: 12px; text-align: center; }
+.print-job-actions > div > p { max-width: 240px; font-size: 12px; overflow-wrap: anywhere; }
+.print-empty { padding: 24px; text-align: center; color: var(--muted); }
+.print-workers { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.print-workers > summary { padding: 6px 0; cursor: pointer; }
+.print-workers p { margin: 8px 0 0; }
+.print-history :is(summary,button,a,input):focus-visible { outline: 3px solid #2997ff; outline-offset: 3px; }
+@media(max-width:640px) {
+ html .print-queue-compact { grid-template-columns: 1fr; }
+ .print-queue-compact > button { grid-column: 1; grid-row: auto; justify-self: start; }
+ .print-filters { width: 100%; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+ .print-filter { padding: 9px 5px; font-size: 11px; gap: 5px; }
+ .print-job { padding: 16px; gap: 14px; }
+ .print-job-copy { flex-basis: 100%; }
+ .print-job-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; padding-top: 12px; border-top: 1px solid var(--line); }
+ .print-job-actions > button { grid-column: 1/-1; }
+ .print-job-actions :is(button,a) { width: 100%; }
+ .print-job-actions :is(button,a) { min-height: 44px; padding-inline: 10px; }
+}
+@media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) .print-job-status-pending,:root:not([data-theme="light"]) .print-job-status-uncertain { color: #f0bc59; }:root:not([data-theme="light"]) .print-job-status-sent { color: #75d99a; }:root:not([data-theme="light"]) .print-job-status-failed { color: #ff8c98; } }
+:root[data-theme="dark"] .print-job-status-pending,:root[data-theme="dark"] .print-job-status-uncertain { color: #f0bc59; }
+:root[data-theme="dark"] .print-job-status-sent { color: #75d99a; }
+:root[data-theme="dark"] .print-job-status-failed { color: #ff8c98; }

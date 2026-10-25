@@ -1,10 +1,16 @@
 # Counter service and business day
 
+Block 6 adds independent counter enablement and optional waiter use. Counter service does not require ordinary pickup or the waiter role to be enabled. Public counter QR/provisional tickets are deferred; see [service modes](service-modes.md).
+
 Block 5 reuses this business-day definition for operator cash sessions. Payments belong to the session open when received, including pay-at-end orders created earlier. Daily dashboard revenue now uses receipts net of change. See [cash sessions](cash-sessions.md).
 
 Printing update (block 4A): counter receipts now use the shared print queue/layout and destination configuration described in [printing-architecture.md](printing-architecture.md). Browser delivery still uses its print dialog, while the local file-test processor runs without a visible kitchen page. The earlier isolated receipt implementation below describes the original block-3 delivery; payment and ticket rules are unchanged.
 
 ## Channel and compatibility
+
+Cashier screens share a sticky navigation for Caixa e mesas, Pedido de balcão and Turnos de caixa. It respects enabled service modes and marks the active route. The counter catalog and order editor use aligned cards; support/printing information is compact on cashier routes while failure alerts remain visible. Header height is measured so the local navigation and sticky order editor do not collide with it.
+
+Unsubmitted counter drafts are kept in tab-local session storage scoped to the operator. They contain product IDs, quantities, notes, optional name and payment drafts, never authoritative catalog prices, exchange rates or a new submission key. Returning resolves products against the current active catalog and filters disabled payment methods; staff must review the recovered draft. Clearing/submitting the cart removes that draft. Existing uncertain-request UUID recovery remains separate and unchanged. Browser storage availability is required for navigation recovery; nothing is submitted automatically.
 
 Counter service reuses `order_type=pickup` and the internal `source=waiter`, with explicit `is_counter=true`. This avoids extending existing enums, routing, delivery, WhatsApp and QR contracts. It does not imply a waiter is present: source means staff entry. Ordinary pickup still requires its normal customer contact, counter orders require neither phone nor name and have no customer/address record. Public payloads cannot opt into counter service. Only active cashier/admin can call `create_counter_order` through `/api/staff/counter`; kitchen/waiter/anonymous callers cannot.
 

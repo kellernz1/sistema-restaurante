@@ -1,5 +1,7 @@
 ﻿-- Run after all three migrations and seed. Fixtures roll back.
 begin;
+-- Legacy role scenarios explicitly enable waiter service in this rolled-back fixture.
+update public.service_policy set uses_waiter=true where id;
 -- Legacy order scenarios use the configurable optional-session mode.
 update public.cash_session_policy set require_open_session=false where id;
 insert into public.exchange_rates(rate,rounding,created_by) select 1400,'none',id from public.profiles where role='admin' and is_active limit 1;
