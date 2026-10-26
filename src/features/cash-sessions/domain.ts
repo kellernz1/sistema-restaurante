@@ -1,6 +1,7 @@
 import {MAX_MONEY} from "../../lib/money.ts";
 export function cashExpected(opening:number,cashNet:number,supply:number,withdrawal:number){
- for(const value of [opening,cashNet,supply,withdrawal])if(!Number.isSafeInteger(value)||value<0||value>MAX_MONEY)throw new Error("Invalid cash amount");
+ for(const value of [opening,supply,withdrawal])if(!Number.isSafeInteger(value)||value<0||value>MAX_MONEY)throw new Error("Invalid cash amount");
+ if(!Number.isSafeInteger(cashNet)||Math.abs(cashNet)>MAX_MONEY)throw new Error("Invalid net cash amount");
  const result=opening+cashNet+supply-withdrawal;if(!Number.isSafeInteger(result)||Math.abs(result)>MAX_MONEY)throw new Error("Cash balance exceeds limit");return result;
 }
 export function denominationTotal(rows:{value:number;quantity:number}[]){

@@ -5,6 +5,7 @@ import {chromium} from "playwright-core";
 import {createServerClient} from "@supabase/ssr";
 import {loadEnvFile} from "./local/lib.mjs";
 import {textProblems} from "./check-text.mjs";
+import {money} from "../src/lib/money.ts";
 
 const env={...loadEnvFile(),...process.env};
 const base=env.PUBLIC_TEST_URL||env.NEXT_PUBLIC_APP_URL;
@@ -17,18 +18,85 @@ const auth=createServerClient(env.NEXT_PUBLIC_SUPABASE_URL,env.NEXT_PUBLIC_SUPAB
 const login=await auth.auth.signInWithPassword({email:env.VISUAL_EMAIL||"admin@restaurante.local",password:env.VISUAL_PASSWORD||env.DEMO_PASSWORD||"Demo@12345"});if(login.error)throw login.error;
 const table=await auth.from("tables").select("qr_token").limit(1).single();if(table.error)throw table.error;
 const payable=await auth.from("orders").select("table_id,tables!inner(table_number,status)").eq("order_type","dine_in").in("status",["open","ready"]).in("tables.status",["occupied","closing"]).neq("payment_status","paid").limit(1).maybeSingle();if(payable.error)throw payable.error;
+const cancelled=await auth.from("orders").select("id,order_number").eq("status","cancelled").limit(1).maybeSingle();if(cancelled.error)throw cancelled.error;
 const translations=JSON.parse(fs.readFileSync("src/lib/i18n/es.json","utf8"));
 const browser=await chromium.launch({executablePath:executable,headless:true});const failures=[];
 try{
  for(const locale of ["pt-BR","es"])for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
   const context=await browser.newContext({viewport,colorScheme:env.VISUAL_THEME==="dark"?"dark":"light"});
   await context.addCookies([...jar].map(([name,value])=>({name,value,url:base})).concat({name:"restaurant-locale",value:locale,url:base}));
-  for(const route of ["/cashier","/cashier/sessions","/cashier/counter","/kitchen","/admin","/admin/settings","/admin/settings/employees","/admin/reports","/order",`/t/${table.data.qr_token}`]){
+  for(const route of ["/cashier","/cashier/sessions","/cashier/counter","/orders","/kitchen","/admin","/admin/settings","/admin/settings/employees","/admin/settings/security","/admin/audit","/supervisor","/admin/reports","/order",`/t/${table.data.qr_token}`]){
    const page=await context.newPage();const errors=[];
    page.on("pageerror",e=>errors.push(e.message));page.on("console",message=>{if(message.type()==="error")errors.push(`${message.text()} (${message.location().url})`);});
    const name=`${locale}-${viewport.width}-${route.slice(1).replaceAll("/","-")}`;
    try{
     const response=await page.goto(base+route,{waitUntil:"networkidle",timeout:30000});assert.ok(response?.ok(),`HTTP ${response?.status()}`);assert.equal(new URL(page.url()).pathname,route,"Unexpected redirect");
+    if(route==="/orders"){
+      const card=page.locator(".hub-card").filter({hasNot:page.locator(".hub-status-cancelled")}).first();assert.ok(await card.count(),"Refund visual acceptance requires one existing non-cancelled order");
+      const label=value=>locale==="es"?translations[value]??value:value;
+      await card.locator("button[aria-label]").click();
+      await page.route("**/api/staff/refunds",async request=>{
+        const payload=request.request().postDataJSON();assert.equal(payload.command,"quote","Visual test must never register a real refund");
+        return request.fulfill({json:{binding:"a".repeat(64),number:123,ticket:24,total:40000,discount:10000,paid:40000,refunded:10000,available:30000,amount:30000,requires_approval:false,lines:[{payment_id:"11111111-1111-4111-8111-111111111111",method:"cash",currency:"PYG",original:30000,amount:30000,rate:null,rounding:0}]}});
+      });
+      await page.getByRole("button",{name:label("Estornos e cancelamento"),exact:true}).click();
+      const modal=page.getByRole("dialog",{name:label("Estornos e cancelamento"),exact:true});
+      await modal.getByLabel(label("Motivo obrigatório"),{exact:true}).fill("Visual discounted cancellation");await modal.getByRole("button",{name:label("Conferir estorno"),exact:true}).click();
+      await modal.getByText(label("Saldo estornável")+":",{exact:false}).waitFor();
+      assert.ok((await modal.innerText()).includes("Gs. 30.000"));
+      assert.equal(await modal.getByRole("button",{name:label("Registrar devolução"),exact:true}).isDisabled(),true);
+      const bounds=await modal.boundingBox();assert.ok(bounds&&bounds.x>=0&&bounds.x+bounds.width<=viewport.width+1&&bounds.y>=0&&bounds.y+bounds.height<=viewport.height+1,"Refund dialog exceeds viewport");
+      const heading=await modal.getByRole("heading").boundingBox();assert.ok(heading&&heading.y>=bounds.y&&heading.y+heading.height<=bounds.y+bounds.height,"Refund heading is clipped");
+      assert.deepEqual(textProblems(await modal.innerText()),[]);await modal.screenshot({path:path.join(output,name+"-discounted-refund.png")});
+      await modal.getByRole("button",{name:label("Cancelar"),exact:true}).click();
+      if(viewport.width<641)await page.locator(".sheet-close").getByRole("button").click();
+      if(cancelled.data){
+        // Recover a lost response even when the now-cancelled order disables new returns.
+        // Only browser storage is changed; this fake request is never submitted.
+        const key=`refund-pending:${cancelled.data.id}`;
+        await page.evaluate(key=>sessionStorage.setItem(key,JSON.stringify({command:"execute",request:"11111111-1111-4111-8111-111111111111"})),key);
+        const historyCard=page.locator(".hub-card").filter({has:page.locator(`button[aria-label$="#${cancelled.data.order_number}"]`)});
+        if(await historyCard.count()){
+          await historyCard.locator("button[aria-label]").click();
+          await page.locator(".hub-ticket").getByRole("button",{name:label("Consultar envio"),exact:true}).click();
+          await modal.waitFor();assert.equal(await modal.getByRole("button",{name:label("Consultar envio"),exact:true}).isEnabled(),true);
+          await modal.screenshot({path:path.join(output,name+"-cancelled-refund-recovery.png")});
+          await modal.getByRole("button",{name:label("Cancelar"),exact:true}).click();
+          if(viewport.width<641)await page.locator(".sheet-close").getByRole("button").click();
+        }
+        await page.evaluate(key=>sessionStorage.removeItem(key),key);
+      }
+    }
+    if(route==="/supervisor"){
+      const text=locale==="es"?translations["Descontos e cancelamentos"]:"Descontos e cancelamentos";
+      const action=page.getByRole("button",{name:text,exact:true}).first();
+      if(await action.count()){
+        let configured=false;
+        const label=value=>locale==="es"?translations[value]??value:value;
+        // Exercise setup guidance without configuring a real PIN or executing a financial action.
+        await page.route("**/api/staff/approvals",async request=>{
+          if(request.request().method()==="GET")return request.fulfill({json:{approvers:configured?[{id:"11111111-1111-4111-8111-111111111111",name:"Visual supervisor",role:"supervisor"}]:[],policy:{discount_reasons:[]}}});
+          const payload=request.request().postDataJSON();
+          if(payload.command==="quote")return request.fulfill({json:{binding:"a".repeat(64),requires_approval:true,operation:{amount:1000}}});
+          assert.equal(payload.command,"approve","Visual approval test must never execute an action");
+          return request.fulfill({json:{ok:false,code:"pin",attempts_remaining:4}});
+        });
+        await action.click();const modal=page.getByRole("dialog");await modal.waitFor();
+        await modal.screenshot({path:path.join(output,name+"-sensitive-action.png")});
+        const bounds=await modal.boundingBox();assert.ok(bounds&&bounds.x>=0&&bounds.x+bounds.width<=viewport.width+1,"Sensitive action modal exceeds viewport");
+        await modal.locator('input[type="number"]').fill("1000");await modal.locator("input[list]").fill("Visual setup check");
+        await modal.getByRole("button",{name:label("Conferir operação"),exact:true}).click();
+        await modal.getByText(label("Nenhum aprovador com PIN cadastrado. Peça ao administrador ou supervisor para configurar o próprio PIN."),{exact:true}).waitFor();
+        const confirm=modal.getByRole("button",{name:label("Confirmar ação"),exact:true});assert.equal(await confirm.isDisabled(),true);assert.equal(await modal.locator('input[type="password"]').count(),0);
+        await modal.screenshot({path:path.join(output,name+"-no-approvers.png")});
+        configured=true;await modal.getByRole("button",{name:label("Atualizar aprovadores"),exact:true}).click();
+        await modal.locator("select").selectOption("11111111-1111-4111-8111-111111111111");
+        assert.equal(await confirm.isDisabled(),true);await modal.getByLabel(label("PIN de aprovação"),{exact:true}).fill("1234");assert.equal(await confirm.isEnabled(),true);
+        await confirm.click();await modal.getByRole("alert").getByText(label("PIN incorreto. Restam {0} tentativas antes do bloqueio.").replace("{0}","4"),{exact:true}).waitFor();
+        await modal.screenshot({path:path.join(output,name+"-pin-feedback.png")});
+        await modal.getByRole("button",{name:locale==="es"?translations["Cancelar"]:"Cancelar",exact:true}).click();
+      }
+    }
     if(route==="/admin/settings"){
       await page.locator("#settings-nav-backup").click();
       await page.locator(".operations-panel input[type=number]").first().waitFor();
@@ -80,6 +148,57 @@ try{
       assert.ok(heading&&catalog&&catalog.y>=heading.y+heading.height,"Counter search must not overlap its heading");
       const nav=await page.locator(".cashier-workspace-nav").boundingBox(),header=await page.locator(".staff-header").boundingBox();
       assert.ok(nav&&header&&nav.y>=header.y+header.height-1,"Cashier tabs must remain below the main header");
+      const label=value=>locale==="es"?translations[value]??value:value;
+      await page.getByRole("button",{name:label("Adicionar desconto"),exact:true}).click();
+      const discount=page.locator(".counter-discount");
+      await discount.locator("select").selectOption("percent");await discount.locator('input[type="number"]').fill("10.12");await discount.locator("input[list]").fill("Visual discount quote");
+      const send=page.locator(".counter-total button");assert.equal(await send.isDisabled(),true,"Unapproved discount must block submission");
+      const response=page.waitForResponse(r=>r.url().endsWith("/api/staff/counter/discount")&&r.request().method()==="POST");
+      await discount.getByRole("button",{name:label("Conferir desconto"),exact:true}).click();
+      const quoteResponse=await response;assert.equal(quoteResponse.status(),200);const quote=await quoteResponse.json();
+      await discount.getByRole("status").waitFor();assert.ok((await page.locator(".counter-discount-summary").innerText()).includes(money.format(quote.discount)));
+      assert.equal(await send.isEnabled(),true);
+      if(viewport.width>800){
+        const body=await page.locator(".counter-cart-body").boundingBox(),footer=await page.locator(".counter-total").boundingBox(),heading=await page.locator(".counter-cart-header").boundingBox();
+        assert.ok(body&&footer&&heading&&body.y>=heading.y+heading.height-1&&body.y+body.height<=footer.y+1,"Cart header/footer must remain outside its scrolling body");
+      }
+      const preferences=await page.locator(".interface-preferences").boundingBox();
+      for(const selector of [".counter-total > strong",".counter-total > button"]){
+        const control=await page.locator(selector).boundingBox();
+        assert.ok(control&&preferences&&(control.x+control.width<=preferences.x||preferences.x+preferences.width<=control.x||control.y+control.height<=preferences.y||preferences.y+preferences.height<=control.y),`Counter action overlaps preferences: ${JSON.stringify({selector,control,preferences})}`);
+      }
+      await page.locator(".counter-cart").screenshot({path:path.join(output,name+"-discount.png")});
+      // Changing an item discards the grant; never click the actual order submission.
+      await page.getByRole("button",{name:label("Aumentar quantidade"),exact:true}).first().click();
+      assert.equal(await page.locator(".counter-discount").count(),0,"Changed cart retained approval UI");
+      assert.ok(!(await page.locator(".counter-discount-summary").innerText()).includes(label("Desconto")),"Changed cart retained its approved amount");
+      // The cashier PIN branch uses browser-only responses; never configure a real PIN or submit a sale.
+      await page.route("**/api/staff/approvals",request=>request.fulfill({json:{approvers:[{id:"11111111-1111-4111-8111-111111111111",name:"Visual supervisor",role:"supervisor"}],policy:{discount_reasons:[]}}}));
+      let approvalRequested=false;
+      const feedbackResponses=[{ok:false,code:"pin",attempts_remaining:4},{ok:false,code:"pin",attempts_remaining:1},{ok:false,code:"locked",attempts_remaining:0,retry_after_seconds:900},{ok:false,code:"limited",retry_after_seconds:30},{ok:true,authorization:"22222222-2222-4222-8222-222222222222"}];
+      await page.route("**/api/staff/counter/discount",request=>{
+        const payload=request.request().postDataJSON();
+        if(payload.command==="quote")return request.fulfill({json:{gross:quote.gross*2,discount:1000,total:quote.gross*2-1000,requires_approval:true,binding:"a".repeat(64)}});
+        assert.equal(payload.command,"approve");assert.equal(/^\d{4,6}$/.test(payload.pin),true);assert.match(payload.request_id,/^[a-f0-9-]{36}$/);approvalRequested=true;
+        const result=feedbackResponses.shift();assert.ok(result,"Unexpected extra approval request");return request.fulfill({json:result});
+      });
+      await page.getByRole("button",{name:label("Adicionar desconto"),exact:true}).click();
+      await discount.locator('input[type="number"]').fill("1000");await discount.locator("input[list]").fill("Visual PIN branch");
+      await discount.getByRole("button",{name:label("Conferir desconto"),exact:true}).click();
+      await discount.locator('select option[value="11111111-1111-4111-8111-111111111111"]').waitFor({state:"attached"});
+      await discount.locator("select").last().selectOption("11111111-1111-4111-8111-111111111111");
+      const authorize=discount.getByRole("button",{name:label("Autorizar desconto"),exact:true});assert.equal(await authorize.isDisabled(),true);
+      for(const [index,message]of [label("PIN incorreto. Restam {0} tentativas antes do bloqueio.").replace("{0}","4"),label("PIN incorreto. Resta 1 tentativa antes do bloqueio."),label("PIN deste aprovador bloqueado. Tente novamente em até {0} minutos.").replace("{0}","15"),label("Limite de tentativas atingido para sua conta. Aguarde {0} segundos.").replace("{0}","30")].entries()){
+        await discount.locator('input[type="password"]').fill("1234");await authorize.click();await discount.getByRole("alert").getByText(message,{exact:true}).waitFor();
+        assert.equal(await discount.locator('input[type="password"]').inputValue(),"");
+        if(index===0||index===2)await page.locator(".counter-cart").screenshot({path:path.join(output,name+`-pin-feedback-${index}.png`)});
+      }
+      await discount.locator('input[type="password"]').fill("1234");await authorize.click();await discount.getByRole("status").waitFor();
+      assert.equal(approvalRequested,true);assert.equal(feedbackResponses.length,0);assert.equal(await send.isEnabled(),true);assert.equal(await discount.locator('input[type="password"]').count(),0);
+      await page.locator(".counter-cart").screenshot({path:path.join(output,name+"-discount-pin.png")});
+      await page.locator(".counter-products button").nth(1).click();assert.equal(await page.locator(".counter-line").count(),2);
+      if(viewport.width>800)await page.locator(".counter-cart-body").evaluate(el=>{el.scrollTop=0;});
+      await page.locator(".counter-cart").screenshot({path:path.join(output,name+"-items.png")});
     }
     if(route.startsWith("/t/")){
       assert.ok(await page.locator(".menu-product").count()<=6,"Table menu must paginate products");

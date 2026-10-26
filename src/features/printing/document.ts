@@ -3,8 +3,8 @@ import type {CashReport} from "../cash-sessions/types.ts";
 
 export type PrintBlock = { type: "text"; text: string; bold?: boolean; large?: boolean; center?: boolean } | { type: "rule" } | { type: "qr"; value: string } | { type: "cut" };
 export type PrintDevice = { id: string; name: string; driver: "browser" | "file"; paper_mm: 58 | 80; columns: number; codepage: "cp860" | "cp850"; codepage_number: number; locale: "pt-BR" | "es"; last_success_at?: string | null };
-export type PrintSnapshot = { cash_report?:CashReport;restaurant?: string; timezone?: string; date?: string; number?: number; ticket?: number | null; name?: string | null; table?: number | null; orderType?:string; notes?:string|null; total?: number; token?: string; items?: { id: string; name: string; quantity: number; notes: string | null; price: number }[]; payments?: { method: string; currency: string; original: number; equivalent: number; change: number; rate: string | null }[] };
-export type PrintJob = { id: string; order_id: string | null; kind: "kitchen" | "receipt" | "test"|"cash_session"; destination: string; additional: boolean; reprint: boolean; snapshot: PrintSnapshot; device: PrintDevice; status: string; owner_id?: string; claim_token?: string; error_message?: string | null; created_at?: string; reviewed_at?:string|null;reviewed_by?:string|null;review_decision?:string|null;archived_at?:string|null };
+export type PrintSnapshot = { refunded?:number;refunds?:{method:string;currency:string;original:number;amount:number;rate:string|null;reason:string}[];payment_status?:string;discount?:number;cancellation?:boolean;reason?:string;cash_report?:CashReport;restaurant?: string; timezone?: string; date?: string; number?: number; ticket?: number | null; name?: string | null; table?: number | null; orderType?:string; notes?:string|null; total?: number; token?: string; items?: { id: string; name: string; quantity: number; notes: string | null; price: number }[]; payments?: { method: string; currency: string; original: number; equivalent: number; change: number; rate: string | null }[] };
+export type PrintJob = { id: string; order_id: string | null; kind: "kitchen" | "receipt" | "test"|"cash_session"|"cancellation"; destination: string; additional: boolean; reprint: boolean; snapshot: PrintSnapshot; device: PrintDevice; status: string; owner_id?: string; claim_token?: string; error_message?: string | null; created_at?: string; reviewed_at?:string|null;reviewed_by?:string|null;review_decision?:string|null;archived_at?:string|null };
 export type PrintDocument = { paperMm: 58 | 80; columns: number; blocks: PrintBlock[] };
 
 export function wrapText(text: string, width: number): string[] {
@@ -44,7 +44,9 @@ export function buildPrintDocument(job: Pick<PrintJob, "kind" | "additional" | "
     const labels:Record<string,string>=es?{cash:"Efectivo",transfer:"Transferencia",card:"Tarjeta",pix:"Pix"}:{cash:"Dinheiro",transfer:"Transferência",card:"Cartão",pix:"Pix"};
     for(const row of r.payments.methods){text(`${labels[row.method]} ${row.currency}: ${row.currency==="BRL"?brl.format(row.original):money.format(row.original)}`);text(`${es?"Equivalente neto":"Equivalente líquido"}: ${money.format(row.net)}`);}
     text(`${es?"Ajuste de redondeo (separado)":"Ajuste de arredondamento (separado)"}: ${money.format(r.payments.rounding_adjustment)}`);
-    text(`${es?"Total recibido":"Total recebido"}: ${money.format(r.payments.total)}`,true);
+    if(r.payments.adjustments){for(const [label,a] of [[es?"Descuentos":"Descontos",r.payments.adjustments.discounts],[es?"Cancelaciones después de cocina":"Cancelamentos após cozinha",r.payments.adjustments.kitchen_cancellations]] as const){text(`${label}: ${a.count} / ${money.format(a.amount)}`);for(const o of a.operators)text(`${o.full_name??o.actor_id}: ${money.format(o.amount)}`);}}
+    if(r.payments.refunds){text(`${es?"Devoluciones":"Devoluções"}: ${money.format(r.payments.refunds.amount)}`,true);for(const row of r.payments.refunds.methods)text(`${labels[row.method]}: ${row.currency==="BRL"?brl.format(row.original):money.format(row.original)} / ${money.format(row.amount)}`);text(`${es?"Ajuste de redondeo devuelto":"Ajuste devolvido de arredondamento"}: ${money.format(r.payments.refunds.rounding)}`);}
+    text(`${es?"Total recibido neto":"Total recebido líquido"}: ${money.format(r.payments.total)}`,true);
     text(`${es?"Pedidos":"Pedidos"}: ${r.payments.order_count}`);
     for(const row of r.payments.types)text(`${({counter:es?"Mostrador":"Balcão",pickup:"Retirada",delivery:"Entrega",dine_in:"Local"} as Record<string,string>)[row.type]??row.type}: ${row.orders} · ${money.format(row.net)}`);
     text(`${es?"Tasas de entrega":"Taxas de entrega"}: ${money.format(r.payments.delivery_fees)}`);
@@ -65,6 +67,7 @@ export function buildPrintDocument(job: Pick<PrintJob, "kind" | "additional" | "
     blocks.push({ type: "qr", value: new URL("/", appUrl).href }, { type: "cut" });
     return { paperMm: job.device.paper_mm, columns: job.device.columns, blocks };
   }
+  if(job.kind === "cancellation") { text(es ? "ITEM CANCELADO" : "ITEM CANCELADO",true,true,true); if(s.reason)text(s.reason,true); }
   text(s.restaurant ?? "Mesa Certa", true, false, true);
   text(job.kind === "kitchen" ? (es ? "COCINA" : "COZINHA") : (es ? "COMPROBANTE" : "COMPROVANTE"), true, false, true);
   text(s.ticket != null ? `${es ? "TURNO" : "SENHA"} ${s.ticket}` : `${es ? "PEDIDO" : "PEDIDO"} #${s.number}`, true, true, true);
@@ -79,6 +82,7 @@ export function buildPrintDocument(job: Pick<PrintJob, "kind" | "additional" | "
     if (job.kind === "receipt") text(money.format(item.price * item.quantity));
     blocks.push({ type: "rule" });
   }
+  if(s.discount) text(`${es ? "Descuento" : "Desconto"}: ${money.format(s.discount)}`,true);
   text(`${es ? "Total del pedido" : "Total do pedido"}: ${money.format(s.total ?? 0)}`, true);
   if (s.notes) text(`${es?"OBSERVACIONES DEL PEDIDO":"OBSERVAÇÕES DO PEDIDO"}: ${s.notes}`,true);
   if (job.kind === "receipt") {
@@ -88,7 +92,8 @@ export function buildPrintDocument(job: Pick<PrintJob, "kind" | "additional" | "
       if (p.rate) text(`${es ? "Cotización" : "Cotação"}: ${p.rate}`);
       if (p.change) text(`${es ? "Vuelto" : "Troco"}: ${money.format(p.change)}`);
     }
-    if (!s.payments?.length) text(es ? "Pago pendiente" : "Pagamento pendente");
+    if (!s.payments?.length) text(s.total===0&&s.discount&&s.payment_status==="paid"?(es?"Saldado con descuento completo":"Quitado por desconto integral"):(es ? "Pago pendiente" : "Pagamento pendente"));
+    if(s.refunds?.length){blocks.push({type:"rule"});text(`${es?"Devoluciones registradas":"Devoluções registradas"}: ${money.format(s.refunded??0)}`,true);const labels:Record<string,string>=es?{cash:"Efectivo",transfer:"Transferencia",card:"Tarjeta",pix:"Pix"}:{cash:"Dinheiro",transfer:"Transferência",card:"Cartão",pix:"Pix"};for(const r of s.refunds){text(`${labels[r.method]??r.method} · ${r.currency==="BRL"?brl.format(r.original):money.format(r.original)} / ${money.format(r.amount)}`);if(r.rate)text(`${es?"Cotización histórica":"Cotação histórica"}: ${r.rate}`);text(r.reason);}}
   }
   if (s.token) blocks.push({ type: "qr", value: new URL(`/track/${s.token}`, appUrl).href });
   if (job.kind === "receipt") text(es ? "Comprobante no fiscal" : "Comprovante não fiscal", false, false, true);

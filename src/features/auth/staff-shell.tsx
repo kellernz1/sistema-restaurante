@@ -1,4 +1,5 @@
 "use client";
+import "@/app/approvals.css";
 import { CashSessionBar } from "@/features/cash-sessions/session-bar";
 import { OperationsAlerts } from "@/features/operations/operations-panel";
 import {useServiceModes} from "@/features/service-modes/use-service-modes";
@@ -67,6 +68,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
           {modes?.counter_enabled && ["admin","cashier"].includes(role) && <Link href="/cashier/counter">{t("Balcão")}</Link>}
           {role && ["admin", "cashier", "waiter"].includes(role) && <Link href="/orders">{t("Pedidos")}</Link>}
           {role === "admin" && <><Link href="/kitchen">{t("Cozinha")}</Link><Link href="/admin/reports">{t("Relatórios")}</Link><Link href="/admin/menu">{t("Cardápio")}</Link>{modes?.dine_in_qr_enabled&&<Link href="/admin/tables/qr">{t("QR codes")}</Link>}<Link href="/admin/settings">{t("Configurações")}</Link></>}
+          {["admin","supervisor"].includes(role) && <Link href="/supervisor">{t("Aprovações")}</Link>}
         </nav>
         <div className="staff-account">
           <div className="staff-identity">

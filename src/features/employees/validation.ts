@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const employeeRoleSchema = z.enum(["admin", "cashier", "waiter", "kitchen"]);
+export const employeeRoleSchema = z.enum(["admin", "cashier", "waiter", "kitchen", "supervisor"]);
 export const employeeCreateSchema = z.strictObject({
   full_name: z.string().trim().min(2).max(120),
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),

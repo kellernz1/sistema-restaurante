@@ -1,3 +1,4 @@
+import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
@@ -38,7 +39,7 @@ test("employee lifecycle preserves role boundaries and blocks existing sessions"
   assert.equal((await mutate(`/api/staff/employees/${admin.id}`, { is_active: false }, admin.cookie)).status, 409);
   assert.equal((await mutate(`/api/staff/employees/${admin.id}`, { full_name: "Test", role: "waiter" }, admin.cookie)).status, 409);
   const ids = [];
-  t.after(async () => { for (const id of ids.reverse()) assert.ifError((await service.auth.admin.deleteUser(id)).error); });
+  // Keep users referenced by immutable audit events until instance disposal.
   const accounts = new Map();
   for (const role of ["waiter", "cashier", "kitchen", "admin"]) {
     const email = `employee-test-${randomUUID()}@restaurante.local`;

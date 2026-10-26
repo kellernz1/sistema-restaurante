@@ -6,6 +6,7 @@ import {buildPrintDocument} from "../src/features/printing/document.ts";
 test("expected cash uses net change and movements, not Pix or the order total",()=>{
  assert.equal(cashExpected(100000,20000,30000,5000),145000);
  assert.equal(cashExpected(0,0,0,1000),-1000);
+ assert.equal(cashExpected(50000,-40000,0,0),10000);
  assert.throws(()=>cashExpected(0,0.5,0,0));
  assert.equal(denominationTotal([{value:100000,quantity:1},{value:20000,quantity:2},{value:1000,quantity:4}]),144000);
  assert.throws(()=>denominationTotal([{value:1000,quantity:0.5}]));

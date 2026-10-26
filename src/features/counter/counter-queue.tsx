@@ -1,9 +1,11 @@
 "use client";
+import {RefundActions} from "@/features/refunds/refund-actions";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "@/components/language-provider";
 import { createClient } from "@/utils/supabase/client";
 import { customerApi } from "@/features/customer-ordering/public-client";
+import { SensitiveActions } from "@/features/approvals/sensitive-actions";
 import { PaymentPanel } from "@/features/payments/payment-panel";
 import type { StoredRow } from "@/types/records";
 import { counterWaitTone } from "./domain";
@@ -44,6 +46,8 @@ export function CounterQueue({ greenMinutes, yellowMinutes }: { greenMinutes: nu
       return <article key={order.id} className={`order-panel counter-ready counter-wait-${tone}`}><strong className="counter-ticket">{t("Senha {0}").replace("{0}", String(order.counter_ticket))}</strong>{order.counter_name && <h3>{order.counter_name}</h3>}
         <small>{t("Dia comercial")}: {order.counter_business_date}</small><p>{t("Pronto há {0} min").replace("{0}", String(now === null ? "—" : Math.max(0, Math.floor((now - Date.parse(readyAt)) / 60000))))} · {t(tone === "green" ? "Dentro do prazo" : tone === "yellow" ? "Atenção à espera" : "Prioridade de retirada")}</p>
         <div className="cashier-actions"><Link className="back-link" href={`/print/counter/${order.id}`}>{t("Comprovante")}</Link>{order.payment_status !== "paid" ? <button type="button" className="primary-button" onClick={() => setPaying(paying === order.id ? null : order.id)}>{t("Receber pagamento")}</button> : <button type="button" className="primary-button" disabled={busy !== null} onClick={() => void deliver(order.id)}>{t("Marcar como entregue")}</button>}</div>
+        <RefundActions orderId={order.id} onChanged={() => void refresh()} />
+        {order.payment_status !== "paid" && <SensitiveActions orderId={order.id} onChanged={() => void refresh()} />}
         {paying === order.id && <PaymentPanel orderId={order.id} total={order.total_amount} closed={order.payment_status === "paid"} onRecorded={async () => { setPaying(null); await refresh(); }} />}
       </article>;
     })}

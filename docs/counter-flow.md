@@ -1,5 +1,99 @@
 # Counter service and business day
 
+## Counter editor layout
+
+The desktop order panel keeps its heading/item-count badge and submission footer
+outside `.counter-cart-body`, the only internally scrolling region. Item cards
+group name/line value, a touch-sized quantity stepper, removal and item notes.
+Customer identification, discount, subtotal and payment sections have separate
+spacing; payment method/currency share a row while amounts and change use the
+full card width. Mobile retains page scrolling and the visible submission footer,
+with reserved space for language/theme controls. Financial and approval behavior
+is unchanged by this layout update.
+
+Layout validation (2026-10-26): text guard, lint, TypeScript/build and 41 Vitest
+cases passed. Browser checks cover Portuguese/Spanish at desktop/mobile widths,
+two distinct products, discount approval/invalidation, scrolling-body versus
+header/footer geometry and preference-control overlap. Reviewed captures are in
+ignored `artifacts/visual/2026-10-26T05-15-11.627Z/`. The full 46-migration clean
+chain and SQL/concurrency suites also passed. Its isolated counter-discount
+concurrency fixture now explicitly disables shared-drawer exclusivity, because a
+preceding fixture may leave another operator's session open; the development
+policy was not changed. No migration, financial workflow, commit or push was
+part of this layout update.
+
+## Discount before counter payment
+
+The order editor now offers **Adicionar desconto** before payment, for both
+`at_order` and `at_end`. Select whole PYG or a percentage (up to two decimal places),
+enter the required reason and request a server quote. Administrators apply under
+their own audited authority; cashiers use the existing configured approver/PIN
+policy. Only active administrators/supervisors with a personal PIN appear as
+approvers. There is no default approval PIN.
+
+`counter_discount_quote` prices the cart from current database products and returns
+gross, discount and net total. Percentages are integer basis points and PostgreSQL
+rounds positive half-guarani results up. The SHA-256 binding includes actor, random
+draft identity, normalized name, item order/IDs/quantities/notes/current prices,
+discount/reason, policy version and counter payment timing. Product rows stay
+share-locked while creation rechecks the quote. A changed price or disabled product
+requires review again. The UI discards approval on any item/name change or draft
+recovery; PINs and approval grants are never saved in ordinary navigation drafts.
+
+`request_counter_discount_approval` and existing order approvals share one private
+PIN issuer, preserving rate limits, lockouts and PIN-version checks. Only narrow
+wrappers can call it. The authorization remains actor/binding specific, short lived
+and single use. It is consumed inside `create_counter_order`, not by the browser.
+
+The existing three-argument creator accepts an optional strict `payload.discount`.
+Its original UUID/payload/lines replay check runs first. Private RLS-protected
+`counter_discount_claims` also allows only one committed order per approved draft,
+even with different submission UUIDs. Invalid/insufficient payment rolls back the
+claim, grant consumption, ticket, order/items, discount audit, payment ledger and
+deferred print jobs together. Recovery repeats the exact stored submission; it
+does not request a fresh approval after an ambiguous network failure.
+
+Net total is shown before cash/Pix/split-payment entry. Existing PostgreSQL FX,
+cash change and session linkage remain authoritative. A fully discounted order
+has no payment rows, is marked paid and remains open for kitchen/handoff. Its
+receipt says it was settled by full discount, not that payment is pending. A
+nonzero `at_end` order remains unpaid until its later payment session. Discount
+audit/report/snapshot fields are the same as existing-order discounts, so reports
+do not invent revenue or duplicate a discount on retry. Physical printing remains
+unvalidated.
+
+Manual check: add items, choose **Adicionar desconto**, enter Gs or %, reason and
+approval as required. Verify subtotal/discount/net total, then payment/troco and
+receipt. Changing quantity must remove the authorization. Test insufficient split
+payment, retry/reload recovery, 100% courtesy and pay-at-end in disposable fixtures
+or a dedicated acceptance database. Never apply these tests as real business data.
+
+Validation (2026-10-26): `db:validate-clean` passed 46 officially tracked migrations,
+seed, every SQL suite and concurrent discounted counter creation. SQL covers
+underpayment rollback (including grant/audit), changed cart/discount/price, expiry,
+replay, duplicate draft prevention, split payments/change, free orders, pay-at-end,
+private helper/table grants and final kitchen snapshot. Development history is
+46/46 after official `local:update` with a verified pre-update dump at
+`backups/2026-10-26T04-44-05-525Z_74faffed-5c71-428a-a789-680b6e346f0d.dump`.
+No development reset/restore or historical payment rewrite was performed.
+
+Text check, lint, TypeScript and production build passed. Vitest includes both
+counter and approval suites (41 passed); native tests passed 90 with 28 live
+integration cases skipped to avoid mutating development. The focused HTTP suite
+passed authorization, real database-price quotation, forged input and invalid
+binding rejection without creating a sale. The aggregate legacy `test:all`
+mutating HTTP workflows were not executed on development.
+
+Browser checks passed Portuguese/Spanish at 390/1440 px: real admin quotes,
+subtotal/net display, blocked unapproved submission, invalidation on quantity
+change, and the PIN UI using browser-only simulated approval responses (no real
+PIN configuration or financial execution). Screenshot review and control geometry
+checks cover the total/action versus floating language/theme preferences.
+Captures: ignored `artifacts/visual/2026-10-26T04-55-36.374Z/`.
+Receipt byte/layout tests cover full discount settlement; physical printing,
+real shared-device PIN acceptance and complete live HTTP sale acceptance remain
+manual checks. No commit or push was made. Services remain running for acceptance.
+
 Block 6 adds independent counter enablement and optional waiter use. Counter service does not require ordinary pickup or the waiter role to be enabled. Public counter QR/provisional tickets are deferred; see [service modes](service-modes.md).
 
 Block 5 reuses this business-day definition for operator cash sessions. Payments belong to the session open when received, including pay-at-end orders created earlier. Daily dashboard revenue now uses receipts net of change. See [cash sessions](cash-sessions.md).

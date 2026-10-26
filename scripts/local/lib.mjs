@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {integrationContext}from "../integration/context.mjs";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const LOCAL_STATE_DIR = path.join(ROOT, ".local-secrets");
@@ -123,12 +124,14 @@ export async function confirmWord(question, expected) {
 }
 
 export function findDbContainer() {
+  const integration=process.env.INTEGRATION_RUN_DIR?integrationContext():null;
   const result = run(
     "docker",
     ["ps", "--format", "{{.Names}}"],
     { capture: true },
   );
   const names = result.stdout.split(/\r?\n/).filter((name) => name.startsWith("supabase_db_"));
+  if(integration){const owned=`supabase_db_${integration.project}`;if(!names.includes(owned))throw new Error("Owned integration database unavailable");return owned;}
   const exact = names.find((name) => name === "supabase_db_sistema-restaurante");
   if (exact) return exact;
   if (names.length === 1) return names[0];

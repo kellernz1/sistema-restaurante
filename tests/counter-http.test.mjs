@@ -1,3 +1,4 @@
+import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
@@ -58,8 +59,6 @@ test("counter HTTP creation is idempotent and public tracking reveals only ticke
     assert.equal((await send({ "content-type": "application/json" })).status, 401);
     const admin = await login("admin"); assert.equal((await fetch(`${base}/admin`, { headers: admin })).status, 200);
   } finally {
-    assert.ifError((await service.from("counter_order_submissions").delete().eq("request_id", requestId)).error);
-    if (orderId) assert.ifError((await service.from("orders").delete().eq("id", orderId)).error);
     assert.ifError((await service.from("restaurant_settings").update(settings.data).eq("id", true)).error);
     for (const db of clients) await db.auth.signOut({ scope: "local" });
   }

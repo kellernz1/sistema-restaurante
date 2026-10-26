@@ -1,3 +1,4 @@
+import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import { randomInt, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -35,23 +36,8 @@ test("administrator manages photos and availability without changing order histo
   assert.equal((await fetch(`${base}/api/staff/products`, { headers: { cookie: cashier.cookie } })).status, 403);
   assert.equal((await mutate("/api/staff/products", "POST", {}, cashier.cookie)).status, 403);
   const categoryId = randomUUID(), requestId = randomUUID();
-  let productId, orderId, customerId;
-  t.after(async () => {
-    // Hide fixtures before cleanup: a later FK/network failure must not leave them on sale.
-    assert.ifError((await service.from("products").update({is_active:false}).eq("category_id",categoryId)).error);
-    const submission = await service.from("cashier_order_submissions").select("order_id").eq("request_id", requestId).maybeSingle();
-    orderId ||= submission.data?.order_id;
-    assert.ifError((await service.from("cashier_order_submissions").delete().eq("request_id", requestId)).error);
-    if (orderId) {
-      const order = await service.from("orders").select("customer_id").eq("id", orderId).single();
-      customerId = order.data?.customer_id;
-      assert.ifError((await service.from("orders").delete().eq("id", orderId)).error);
-    }
-    if (customerId) assert.ifError((await service.from("customers").delete().eq("id", customerId)).error);
-    const products = await service.from("products").select("id").eq("category_id", categoryId);
-    for (const product of products.data ?? []) assert.ifError((await service.from("products").delete().eq("id", product.id)).error);
-    assert.ifError((await service.from("categories").delete().eq("id", categoryId)).error);
-  });
+  let productId, orderId;
+  t.after(async () => {assert.ifError((await service.from("products").update({is_active:false}).eq("category_id",categoryId)).error);});
   assert.ifError((await service.from("categories").insert({ id: categoryId, name: `__menu_http_test__${categoryId}` })).error);
   const fields = { name: "__menu_test_dish__", category_id: categoryId, price: 12350, description: "Test dish", is_active: true };
   const response = await mutate("/api/staff/products", "POST", fields, admin.cookie);

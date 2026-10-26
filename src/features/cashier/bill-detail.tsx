@@ -1,4 +1,5 @@
 "use client";
+import {RefundActions} from "@/features/refunds/refund-actions";
 
 import { useTranslation } from "@/components/language-provider";
 
@@ -9,6 +10,7 @@ import { OrderTypeBadge } from "@/components/order-type-badge";
 import { PaymentPanel } from "@/features/payments/payment-panel";
 import type { StoredRow } from "@/types/records";
 import { createClient } from "@/utils/supabase/client";
+import { SensitiveActions } from "@/features/approvals/sensitive-actions";
 import {X} from "lucide-react";
 import "./bill-dialog.css";
 
@@ -86,7 +88,7 @@ export function BillDetail({ table, onClosed }: { table: CashierTable; onClosed:
   useEffect(()=>{if(confirmation===null)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous;};},[confirmation]);
 
   const subtotal = billSubtotal(items);
-  const total = subtotal + (order?.delivery_fee ?? 0);
+  const total = subtotal + (order?.delivery_fee ?? 0) - (order?.discount_amount ?? 0);
   const fingerprint = JSON.stringify([order?.id, order?.status, order?.total_amount, items]);
   const unpaid = !!order && !["closed", "cancelled"].includes(order.status);
   const undelivered = items.some((item) => item.status !== "delivered");
@@ -107,6 +109,9 @@ export function BillDetail({ table, onClosed }: { table: CashierTable; onClosed:
         <tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.products?.name ?? t("Produto")}</strong>{item.notes && <p>{item.notes}</p>}<small className="cashier-screen-only">{t(statuses[item.status])}</small></td><td>{item.quantity}</td><td>{t(currency.format(item.unit_price))}</td><td>{t(currency.format(lineSubtotal(item)))}</td></tr>)}</tbody></table></div>
       {!items.length && <p>{t("Nenhum item nesta comanda.")}</p>}
       {order.notes && <p>{t("Observações: ")}{order.notes}</p>}
+      <RefundActions orderId={order.id} disabled={order.status === "cancelled"} onChanged={() => {void refresh();void onClosed();}} />
+      {order.status !== "closed" && order.payment_status !== "paid" && <SensitiveActions orderId={order.id} items={items.map(i => ({id:i.id,name:i.products?.name ?? "Produto"}))} onChanged={() => { void refresh(); void onClosed(); }} />}
+      {order.discount_amount > 0 && <p>{t("Desconto")}: {currency.format(order.discount_amount)}</p>}
       <p className="order-total">{t("Total ")}<strong>{t(currency.format(order.status === "closed" ? order.total_amount : total))}</strong></p>
       {!totalsMatch && <p className="table-notice table-notice-error cashier-screen-only" role="alert">{t("Os totais estão sendo conferidos. Atualize a conta antes de continuar.")}</p>}
       {order.status === "closed" && <div className="receipt-summary"><p>{t("Fechamento: ")}{t(order.closed_at ? new Date(order.closed_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : t("Não informado"))}</p><p>{t("Comprovante de atendimento — sem valor fiscal.")}</p></div>}

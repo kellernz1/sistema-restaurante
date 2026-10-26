@@ -1,3 +1,4 @@
+import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import { randomInt, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -9,7 +10,7 @@ import { coordinatesMapLink } from "../src/features/customer-ordering/delivery-l
 const base = process.env.PUBLIC_TEST_URL;
 const api = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-test("real road quote is cached and charged by public checkout", { skip: !(base && api && secret && process.env.DELIVERY_ROUTE_SMOKE === "true") }, async (t) => {
+test("road-provider contract quote is cached and charged by public checkout", { skip: !(base && api && secret && process.env.DELIVERY_ROUTE_SMOKE === "true") }, async (t) => {
   const db = createClient(api, secret, { auth: { persistSession: false, autoRefreshToken: false } });
   const settingsResult = await db.from("restaurant_settings").select("*").eq("id", true).single();
   assert.ifError(settingsResult.error);
@@ -17,7 +18,7 @@ test("real road quote is cached and charged by public checkout", { skip: !(base 
   assert.equal(settings.delivery_fee_mode, "distance");
   assert.ok(Number.isFinite(settings.delivery_origin_latitude) && Number.isFinite(settings.delivery_origin_longitude), "Configure the restaurant delivery origin first");
   const destination = process.env.DELIVERY_ROUTE_SMOKE_LOCATION || coordinatesMapLink(settings.delivery_origin_latitude + 0.002, settings.delivery_origin_longitude + 0.002);
-  // A unique valid map URL guarantees the first request reaches the routing service.
+  // A unique valid map URL guarantees the first request reaches the local provider fixture.
   const locationUrl = new URL(destination);
   locationUrl.searchParams.set("route_test", randomUUID());
   const location = locationUrl.href;
@@ -34,18 +35,7 @@ test("real road quote is cached and charged by public checkout", { skip: !(base 
   const categoryId = randomUUID(), productId = randomUUID(), phone = `+5511${randomInt(900000000, 999999999)}`;
   const staffRequestId = randomUUID();
   assert.equal((await db.from("customers").select("id", { count: "exact", head: true }).eq("phone", phone)).count, 0);
-  t.after(async () => {
-    assert.ifError((await db.from("cashier_order_submissions").delete().eq("request_id", staffRequestId)).error);
-    const customers = await db.from("customers").select("id").eq("phone", phone);
-    assert.ifError(customers.error);
-    for (const customer of customers.data) {
-      assert.ifError((await db.from("orders").delete().eq("customer_id", customer.id)).error);
-      assert.ifError((await db.from("customer_addresses").delete().eq("customer_id", customer.id)).error);
-      assert.ifError((await db.from("customers").delete().eq("id", customer.id)).error);
-    }
-    assert.ifError((await db.from("products").delete().eq("id", productId)).error);
-    assert.ifError((await db.from("categories").delete().eq("id", categoryId)).error);
-  });
+  // The disposable instance owns fixture cleanup; immutable history is retained.
   const price = Math.max(30, Math.ceil(settings.min_delivery_order));
   assert.ifError((await db.from("categories").insert({ id: categoryId, name: "__route_test__" })).error);
   assert.ifError((await db.from("products").insert({ id: productId, category_id: categoryId, name: "__route_test__", price })).error);

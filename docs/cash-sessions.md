@@ -1,5 +1,8 @@
 # Cash sessions and business-day reports
 
+Block 8B adds manual refunds and atomic paid cancellation, capped by discounted net receipts. Return-time cash sessions and net reports supersede earlier refund exclusions below. See [refunds.md](refunds.md).
+
+
 Block 6 adds a default-on single shared-session rule across operators. Administrators can disable it to use simultaneous operator sessions as described below. See [service modes](service-modes.md); the existing one-open-session-per-operator rule always applies.
 
 ## Accounting rules

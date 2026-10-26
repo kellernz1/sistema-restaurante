@@ -5,7 +5,109 @@ export type Database = {
 
   "public": {
           Tables: {
-            "blocked_phones": {
+            "approval_actor_limits": {
+                  Row: {
+                    "actor_id": string,"hits": number,"window_start": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"hits"?: number,"window_start"?: string
+                  }
+                  Update: {
+                    "actor_id"?: string,"hits"?: number,"window_start"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "approval_actor_limits_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"approval_attempts": {
+                  Row: {
+                    "actor_id": string,"approver_id": string,"binding": string,"request_id": string,"result": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"approver_id": string,"binding": string,"request_id": string,"result": NonNullable<Json>
+                  }
+                  Update: {
+                    "actor_id"?: string,"approver_id"?: string,"binding"?: string,"request_id"?: string,"result"?: NonNullable<Json>
+                  }
+                  Relationships: [
+
+                  ]
+                },"approval_policy": {
+                  Row: {
+                    "authorization_seconds": number,"discount_limit_bps": number,"discount_limit_pyg": number,"discount_reasons": (string)[],"id": boolean,"pin_failures": number,"pin_lock_minutes": number,"require_discount_approval": boolean,"require_item_approval": boolean,"require_order_approval": boolean,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "authorization_seconds"?: number,"discount_limit_bps"?: number,"discount_limit_pyg"?: number,"discount_reasons"?: (string)[],"id"?: boolean,"pin_failures"?: number,"pin_lock_minutes"?: number,"require_discount_approval"?: boolean,"require_item_approval"?: boolean,"require_order_approval"?: boolean,"version"?: number
+                  }
+                  Update: {
+                    "authorization_seconds"?: number,"discount_limit_bps"?: number,"discount_limit_pyg"?: number,"discount_reasons"?: (string)[],"id"?: boolean,"pin_failures"?: number,"pin_lock_minutes"?: number,"require_discount_approval"?: boolean,"require_item_approval"?: boolean,"require_order_approval"?: boolean,"version"?: number
+                  }
+                  Relationships: [
+
+                  ]
+                },"approver_pins": {
+                  Row: {
+                    "blocked_until": string | null,"changed_at": string,"failures": number,"pin_hash": string,"user_id": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "blocked_until"?: string | null,"changed_at"?: string,"failures"?: number,"pin_hash": string,"user_id": string,"version"?: number
+                  }
+                  Update: {
+                    "blocked_until"?: string | null,"changed_at"?: string,"failures"?: number,"pin_hash"?: string,"user_id"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "approver_pins_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"audit_events": {
+                  Row: {
+                    "action": string,"actor_id": string | null,"after_summary": NonNullable<Json>,"amount_pyg": number,"approver_id": string | null,"before_summary": NonNullable<Json>,"business_date": string,"cash_session_id": string | null,"created_at": string,"id": string,"reason": string | null,"target_id": string | null,"target_type": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"actor_id"?: string | null,"after_summary"?: NonNullable<Json>,"amount_pyg"?: number,"approver_id"?: string | null,"before_summary"?: NonNullable<Json>,"business_date": string,"cash_session_id"?: string | null,"created_at"?: string,"id"?: string,"reason"?: string | null,"target_id"?: string | null,"target_type": string
+                  }
+                  Update: {
+                    "action"?: string,"actor_id"?: string | null,"after_summary"?: NonNullable<Json>,"amount_pyg"?: number,"approver_id"?: string | null,"before_summary"?: NonNullable<Json>,"business_date"?: string,"cash_session_id"?: string | null,"created_at"?: string,"id"?: string,"reason"?: string | null,"target_id"?: string | null,"target_type"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "audit_events_cash_session_id_fkey"
+      columns: ["cash_session_id"]
+isOneToOne: false
+      referencedRelation: "cash_sessions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"audit_pseudonym_key": {
+                  Row: {
+                    "id": boolean,"secret": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: boolean,"secret": string
+                  }
+                  Update: {
+                    "id"?: boolean,"secret"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"blocked_phones": {
                   Row: {
                     "created_at": string,"created_by": string,"phone": string,"reason": string
                   }
@@ -85,14 +187,14 @@ isOneToOne: false
                   ]
                 },"cash_session_events": {
                   Row: {
-                    "action": string,"actor_id": string,"created_at": string,"id": string,"payload": NonNullable<Json>,"request_id": string,"result": NonNullable<Json>,"session_id": string
+                    "action": string,"actor_id": string,"business_date": string | null,"created_at": string,"id": string,"payload": NonNullable<Json>,"request_id": string,"result": NonNullable<Json>,"session_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "action": string,"actor_id": string,"created_at"?: string,"id"?: string,"payload": NonNullable<Json>,"request_id": string,"result": NonNullable<Json>,"session_id": string
+                    "action": string,"actor_id": string,"business_date"?: string | null,"created_at"?: string,"id"?: string,"payload": NonNullable<Json>,"request_id": string,"result": NonNullable<Json>,"session_id": string
                   }
                   Update: {
-                    "action"?: string,"actor_id"?: string,"created_at"?: string,"id"?: string,"payload"?: NonNullable<Json>,"request_id"?: string,"result"?: NonNullable<Json>,"session_id"?: string
+                    "action"?: string,"actor_id"?: string,"business_date"?: string | null,"created_at"?: string,"id"?: string,"payload"?: NonNullable<Json>,"request_id"?: string,"result"?: NonNullable<Json>,"session_id"?: string
                   }
                   Relationships: [
                     {
@@ -196,6 +298,26 @@ isOneToOne: false
                   }
                   Relationships: [
 
+                  ]
+                },"counter_discount_claims": {
+                  Row: {
+                    "actor_id": string,"created_at": string,"draft_id": string,"order_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"created_at"?: string,"draft_id": string,"order_id"?: string | null
+                  }
+                  Update: {
+                    "actor_id"?: string,"created_at"?: string,"draft_id"?: string,"order_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "counter_discount_claims_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"counter_order_submissions": {
                   Row: {
@@ -317,6 +439,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"kitchen_cancellations": {
+                  Row: {
+                    "actor_id": string,"created_at": string,"id": string,"order_id": string,"print_job_id": string | null,"reason": string,"request_id": string,"snapshot": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"created_at"?: string,"id"?: string,"order_id": string,"print_job_id"?: string | null,"reason": string,"request_id": string,"snapshot": NonNullable<Json>
+                  }
+                  Update: {
+                    "actor_id"?: string,"created_at"?: string,"id"?: string,"order_id"?: string,"print_job_id"?: string | null,"reason"?: string,"request_id"?: string,"snapshot"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "kitchen_cancellations_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "kitchen_cancellations_print_job_id_fkey"
+      columns: ["print_job_id"]
+isOneToOne: false
+      referencedRelation: "print_jobs"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"kitchen_print_jobs": {
                   Row: {
                     "claim_token": string | null,"claimed_at": string | null,"claimed_by": string | null,"created_at": string,"dispatched_at": string | null,"error_message": string | null,"id": string,"order_id": string,"status": string,"terminal_id": string | null
@@ -358,6 +506,32 @@ isOneToOne: true
                     {
       foreignKeyName: "kitchen_printer_lease_user_id_fkey"
       columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"operation_authorizations": {
+                  Row: {
+                    "actor_id": string,"approver_id": string,"binding": string,"consumed_at": string | null,"expires_at": string,"id": string,"pin_version": number,"request_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"approver_id": string,"binding": string,"consumed_at"?: string | null,"expires_at": string,"id"?: string,"pin_version": number,"request_id": string
+                  }
+                  Update: {
+                    "actor_id"?: string,"approver_id"?: string,"binding"?: string,"consumed_at"?: string | null,"expires_at"?: string,"id"?: string,"pin_version"?: number,"request_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "operation_authorizations_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "operation_authorizations_approver_id_fkey"
+      columns: ["approver_id"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -417,14 +591,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "cancel_reason": string | null,"cash_change_for": number | null,"closed_at": string | null,"confirmed_at": string | null,"counter_business_date": string | null,"counter_name": string | null,"counter_payment_timing": string | null,"counter_ready_at": string | null,"counter_ticket": number | null,"created_at": string,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_address": Json | null,"delivery_fee": number,"id": string,"is_counter": boolean,"notes": string | null,"order_number": number,"order_type": Database["public"]['Enums']["order_type"],"payment_method": Database["public"]['Enums']["payment_method"] | null,"payment_status": Database["public"]['Enums']["payment_status"],"public_token": string,"qr_prepaid_account": boolean,"source": Database["public"]['Enums']["order_source"],"status": Database["public"]['Enums']["order_status"],"table_id": string | null,"total_amount": number,"waiter_id": string | null,"can_update_order": boolean | null
+                    "cancel_reason": string | null,"cash_change_for": number | null,"closed_at": string | null,"confirmed_at": string | null,"counter_business_date": string | null,"counter_name": string | null,"counter_payment_timing": string | null,"counter_ready_at": string | null,"counter_ticket": number | null,"created_at": string,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_address": Json | null,"delivery_fee": number,"discount_amount": number,"discount_mode": string | null,"discount_reason": string | null,"discount_value": number | null,"id": string,"is_counter": boolean,"notes": string | null,"order_number": number,"order_type": Database["public"]['Enums']["order_type"],"payment_method": Database["public"]['Enums']["payment_method"] | null,"payment_status": Database["public"]['Enums']["payment_status"],"public_token": string,"qr_prepaid_account": boolean,"source": Database["public"]['Enums']["order_source"],"status": Database["public"]['Enums']["order_status"],"table_id": string | null,"total_amount": number,"waiter_id": string | null,"can_update_order": boolean | null
                   }
                   ComputedFields: "can_update_order"
                   Insert: {
-                    "cancel_reason"?: string | null,"cash_change_for"?: number | null,"closed_at"?: string | null,"confirmed_at"?: string | null,"counter_business_date"?: string | null,"counter_name"?: string | null,"counter_payment_timing"?: string | null,"counter_ready_at"?: string | null,"counter_ticket"?: number | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_address"?: Json | null,"delivery_fee"?: number,"id"?: string,"is_counter"?: boolean,"notes"?: string | null,"order_number"?: number,"order_type": Database["public"]['Enums']["order_type"],"payment_method"?: Database["public"]['Enums']["payment_method"] | null,"payment_status"?: Database["public"]['Enums']["payment_status"],"public_token"?: string,"qr_prepaid_account"?: boolean,"source": Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"table_id"?: string | null,"total_amount"?: number,"waiter_id"?: string | null
+                    "cancel_reason"?: string | null,"cash_change_for"?: number | null,"closed_at"?: string | null,"confirmed_at"?: string | null,"counter_business_date"?: string | null,"counter_name"?: string | null,"counter_payment_timing"?: string | null,"counter_ready_at"?: string | null,"counter_ticket"?: number | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_address"?: Json | null,"delivery_fee"?: number,"discount_amount"?: number,"discount_mode"?: string | null,"discount_reason"?: string | null,"discount_value"?: number | null,"id"?: string,"is_counter"?: boolean,"notes"?: string | null,"order_number"?: number,"order_type": Database["public"]['Enums']["order_type"],"payment_method"?: Database["public"]['Enums']["payment_method"] | null,"payment_status"?: Database["public"]['Enums']["payment_status"],"public_token"?: string,"qr_prepaid_account"?: boolean,"source": Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"table_id"?: string | null,"total_amount"?: number,"waiter_id"?: string | null
                   }
                   Update: {
-                    "cancel_reason"?: string | null,"cash_change_for"?: number | null,"closed_at"?: string | null,"confirmed_at"?: string | null,"counter_business_date"?: string | null,"counter_name"?: string | null,"counter_payment_timing"?: string | null,"counter_ready_at"?: string | null,"counter_ticket"?: number | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_address"?: Json | null,"delivery_fee"?: number,"id"?: string,"is_counter"?: boolean,"notes"?: string | null,"order_number"?: number,"order_type"?: Database["public"]['Enums']["order_type"],"payment_method"?: Database["public"]['Enums']["payment_method"] | null,"payment_status"?: Database["public"]['Enums']["payment_status"],"public_token"?: string,"qr_prepaid_account"?: boolean,"source"?: Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"table_id"?: string | null,"total_amount"?: number,"waiter_id"?: string | null
+                    "cancel_reason"?: string | null,"cash_change_for"?: number | null,"closed_at"?: string | null,"confirmed_at"?: string | null,"counter_business_date"?: string | null,"counter_name"?: string | null,"counter_payment_timing"?: string | null,"counter_ready_at"?: string | null,"counter_ticket"?: number | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_address"?: Json | null,"delivery_fee"?: number,"discount_amount"?: number,"discount_mode"?: string | null,"discount_reason"?: string | null,"discount_value"?: number | null,"id"?: string,"is_counter"?: boolean,"notes"?: string | null,"order_number"?: number,"order_type"?: Database["public"]['Enums']["order_type"],"payment_method"?: Database["public"]['Enums']["payment_method"] | null,"payment_status"?: Database["public"]['Enums']["payment_status"],"public_token"?: string,"qr_prepaid_account"?: boolean,"source"?: Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"table_id"?: string | null,"total_amount"?: number,"waiter_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -553,14 +727,14 @@ isOneToOne: false
                   ]
                 },"print_job_reviews": {
                   Row: {
-                    "actor_id": string,"created_at": string,"decision": string,"id": string,"job_id": string,"reprint_job_id": string | null,"request_id": string
+                    "actor_id": string,"business_date": string | null,"cash_session_id": string | null,"created_at": string,"decision": string,"id": string,"job_id": string,"reprint_job_id": string | null,"request_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "actor_id": string,"created_at"?: string,"decision": string,"id"?: string,"job_id": string,"reprint_job_id"?: string | null,"request_id": string
+                    "actor_id": string,"business_date"?: string | null,"cash_session_id"?: string | null,"created_at"?: string,"decision": string,"id"?: string,"job_id": string,"reprint_job_id"?: string | null,"request_id": string
                   }
                   Update: {
-                    "actor_id"?: string,"created_at"?: string,"decision"?: string,"id"?: string,"job_id"?: string,"reprint_job_id"?: string | null,"request_id"?: string
+                    "actor_id"?: string,"business_date"?: string | null,"cash_session_id"?: string | null,"created_at"?: string,"decision"?: string,"id"?: string,"job_id"?: string,"reprint_job_id"?: string | null,"request_id"?: string
                   }
                   Relationships: [
                     {
@@ -568,6 +742,12 @@ isOneToOne: false
       columns: ["actor_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "print_job_reviews_cash_session_id_fkey"
+      columns: ["cash_session_id"]
+isOneToOne: false
+      referencedRelation: "cash_sessions"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "print_job_reviews_job_id_fkey"
@@ -807,6 +987,76 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"refund_submissions": {
+                  Row: {
+                    "actor_id": string,"payload": NonNullable<Json>,"request_id": string,"result": Json | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"payload": NonNullable<Json>,"request_id": string,"result"?: Json | null
+                  }
+                  Update: {
+                    "actor_id"?: string,"payload"?: NonNullable<Json>,"request_id"?: string,"result"?: Json | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "refund_submissions_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"refunds": {
+                  Row: {
+                    "amount_pyg": number,"approver_id": string | null,"business_date": string,"cash_session_id": string,"created_at": string,"currency": string,"delivery_fee_pyg": number,"exchange_rate": number | null,"id": string,"method": Database["public"]['Enums']["payment_method"],"operator_id": string,"order_id": string,"original_amount": number,"payment_id": string,"reason": string,"request_id": string,"rounding_adjustment_pyg": number,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_pyg": number,"approver_id"?: string | null,"business_date": string,"cash_session_id": string,"created_at"?: string,"currency": string,"delivery_fee_pyg": number,"exchange_rate"?: number | null,"id"?: string,"method": Database["public"]['Enums']["payment_method"],"operator_id": string,"order_id": string,"original_amount": number,"payment_id": string,"reason": string,"request_id": string,"rounding_adjustment_pyg": number,"status"?: string
+                  }
+                  Update: {
+                    "amount_pyg"?: number,"approver_id"?: string | null,"business_date"?: string,"cash_session_id"?: string,"created_at"?: string,"currency"?: string,"delivery_fee_pyg"?: number,"exchange_rate"?: number | null,"id"?: string,"method"?: Database["public"]['Enums']["payment_method"],"operator_id"?: string,"order_id"?: string,"original_amount"?: number,"payment_id"?: string,"reason"?: string,"request_id"?: string,"rounding_adjustment_pyg"?: number,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "refunds_approver_id_fkey"
+      columns: ["approver_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "refunds_cash_session_id_fkey"
+      columns: ["cash_session_id"]
+isOneToOne: false
+      referencedRelation: "cash_sessions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "refunds_operator_id_fkey"
+      columns: ["operator_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "refunds_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "refunds_payment_id_fkey"
+      columns: ["payment_id"]
+isOneToOne: false
+      referencedRelation: "payments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "refunds_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "refund_submissions"
+      referencedColumns: ["request_id"]
+    }
+                  ]
                 },"restaurant_settings": {
                   Row: {
                     "business_day_start": string,"business_timezone": string,"counter_green_minutes": number,"counter_payment_timing": string,"counter_yellow_minutes": number,"default_phone_country": string,"delivery_distance_step_fee": number,"delivery_distance_step_km": number,"delivery_enabled": boolean,"delivery_fee": number,"delivery_fee_mode": string,"delivery_origin_latitude": number | null,"delivery_origin_longitude": number | null,"dine_in_qr_enabled": boolean,"enabled_payment_methods": (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes": number,"estimated_pickup_minutes": number,"id": boolean,"is_accepting_orders": boolean,"kitchen_auto_print_enabled": boolean,"min_delivery_order": number,"pickup_enabled": boolean,"require_confirmation_for_qr": boolean,"restaurant_name": string,"whatsapp_enabled": boolean,"delivery_pricing_snapshot": Json | null
@@ -817,6 +1067,34 @@ isOneToOne: false
                   }
                   Update: {
                     "business_day_start"?: string,"business_timezone"?: string,"counter_green_minutes"?: number,"counter_payment_timing"?: string,"counter_yellow_minutes"?: number,"default_phone_country"?: string,"delivery_distance_step_fee"?: number,"delivery_distance_step_km"?: number,"delivery_enabled"?: boolean,"delivery_fee"?: number,"delivery_fee_mode"?: string,"delivery_origin_latitude"?: number | null,"delivery_origin_longitude"?: number | null,"dine_in_qr_enabled"?: boolean,"enabled_payment_methods"?: (Database["public"]['Enums']["payment_method"])[],"estimated_delivery_minutes"?: number,"estimated_pickup_minutes"?: number,"id"?: boolean,"is_accepting_orders"?: boolean,"kitchen_auto_print_enabled"?: boolean,"min_delivery_order"?: number,"pickup_enabled"?: boolean,"require_confirmation_for_qr"?: boolean,"restaurant_name"?: string,"whatsapp_enabled"?: boolean
+                  }
+                  Relationships: [
+
+                  ]
+                },"security_action_context": {
+                  Row: {
+                    "actor_id": string,"approver_id": string | null,"backend_id": number,"operation": NonNullable<Json>,"reason": string,"request_id": string,"transaction_id": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"approver_id"?: string | null,"backend_id": number,"operation": NonNullable<Json>,"reason": string,"request_id": string,"transaction_id": number
+                  }
+                  Update: {
+                    "actor_id"?: string,"approver_id"?: string | null,"backend_id"?: number,"operation"?: NonNullable<Json>,"reason"?: string,"request_id"?: string,"transaction_id"?: number
+                  }
+                  Relationships: [
+
+                  ]
+                },"sensitive_submissions": {
+                  Row: {
+                    "actor_id": string,"payload": NonNullable<Json>,"request_id": string,"result": Json | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"payload": NonNullable<Json>,"request_id": string,"result"?: Json | null
+                  }
+                  Update: {
+                    "actor_id"?: string,"payload"?: NonNullable<Json>,"request_id"?: string,"result"?: Json | null
                   }
                   Relationships: [
 
@@ -934,6 +1212,10 @@ isOneToOne: false
 "customer_phone": string | null,
 "delivery_address": Json | null,
 "delivery_fee": number,
+"discount_amount": number,
+"discount_mode": string | null,
+"discount_reason": string | null,
+"discount_value": number | null,
 "id": string,
 "is_counter": boolean,
 "notes": string | null,
@@ -958,11 +1240,26 @@ isOneToOne: false
 "advance_kitchen_order":
 { Args: { "p_action": string,"p_order_id": string,"p_request_id": string }; Returns: Json
                            },
+"append_audit":
+{ Args: { "p_action": string,"p_actor"?: string,"p_after": Json,"p_amount": number,"p_approver"?: string,"p_before": Json,"p_reason"?: string,"p_target": string,"p_type": string }; Returns: string
+                           },
+"approval_budget":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"approval_workbench":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "assert_print_document_idle":
 { Args: { "p_job_id"?: string,"p_kind": string,"p_order_id": string }; Returns: undefined
                            },
 "attend_service_request":
 { Args: { "p_request_id": string }; Returns: undefined
+                           },
+"audit_adjustments":
+{ Args: { "p_day": string,"p_session": string }; Returns: Json
+                           },
+"audit_timeline":
+{ Args: { "p_action"?: string,"p_actor"?: string,"p_approver"?: string,"p_day"?: string,"p_offset"?: number }; Returns: Json
                            },
 "brl_cents_for":
 { Args: { "p_pyg": number,"p_rate": number,"p_rounding": string }; Returns: number
@@ -991,7 +1288,19 @@ isOneToOne: false
 "cash_day_report":
 { Args: { "p_day"?: string }; Returns: Json
                            },
+"cash_day_report_before_discounts":
+{ Args: { "p_day"?: string }; Returns: Json
+                           },
+"cash_day_report_before_refunds":
+{ Args: { "p_day"?: string }; Returns: Json
+                           },
 "cash_payment_summary":
+{ Args: { "p_day": string,"p_session": string }; Returns: Json
+                           },
+"cash_payment_summary_before_discounts":
+{ Args: { "p_day": string,"p_session": string }; Returns: Json
+                           },
+"cash_payment_summary_before_refunds":
 { Args: { "p_day": string,"p_session": string }; Returns: Json
                            },
 "cash_session_command":
@@ -1047,6 +1356,10 @@ isOneToOne: false
 "customer_phone": string | null,
 "delivery_address": Json | null,
 "delivery_fee": number,
+"discount_amount": number,
+"discount_mode": string | null,
+"discount_reason": string | null,
+"discount_value": number | null,
 "id": string,
 "is_counter": boolean,
 "notes": string | null,
@@ -1085,6 +1398,10 @@ isOneToOne: false
 "customer_phone": string | null,
 "delivery_address": Json | null,
 "delivery_fee": number,
+"discount_amount": number,
+"discount_mode": string | null,
+"discount_reason": string | null,
+"discount_value": number | null,
 "id": string,
 "is_counter": boolean,
 "notes": string | null,
@@ -1112,6 +1429,9 @@ isOneToOne: false
 "count_print_delivery":
 { Args: { "p_job_id": string }; Returns: undefined
                            },
+"counter_discount_quote":
+{ Args: { "p_discount": Json,"p_draft_id": string,"p_payload": Json }; Returns: Json
+                           },
 "create_cashier_order":
 { Args: { "p_actor_id": string,"p_payload": Json,"p_request_id": string }; Returns: {
               "cancel_reason": string | null,
@@ -1129,6 +1449,10 @@ isOneToOne: false
 "customer_phone": string | null,
 "delivery_address": Json | null,
 "delivery_fee": number,
+"discount_amount": number,
+"discount_mode": string | null,
+"discount_reason": string | null,
+"discount_value": number | null,
 "id": string,
 "is_counter": boolean,
 "notes": string | null,
@@ -1170,6 +1494,10 @@ isOneToOne: false
 "customer_phone": string | null,
 "delivery_address": Json | null,
 "delivery_fee": number,
+"discount_amount": number,
+"discount_mode": string | null,
+"discount_reason": string | null,
+"discount_value": number | null,
 "id": string,
 "is_counter": boolean,
 "notes": string | null,
@@ -1194,6 +1522,9 @@ isOneToOne: false
 "create_table_service_request":
 { Args: { "p_token": string,"p_type": string }; Returns: string
                            },
+"current_security_context":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "current_user_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]
                            },
@@ -1217,6 +1548,10 @@ isOneToOne: false
 "customer_phone": string | null,
 "delivery_address": Json | null,
 "delivery_fee": number,
+"discount_amount": number,
+"discount_mode": string | null,
+"discount_reason": string | null,
+"discount_value": number | null,
 "id": string,
 "is_counter": boolean,
 "notes": string | null,
@@ -1241,11 +1576,20 @@ isOneToOne: false
 "delivery_pricing_snapshot":
 { Args: { "settings": Omit<Database["public"]['Tables']["restaurant_settings"]['Row'], Database["public"]['Tables']["restaurant_settings"]['ComputedFields']> }; Returns: Json
                            },
+"execute_refund":
+{ Args: { "p_authorization"?: string,"p_binding": string,"p_confirmed"?: boolean,"p_operation": Json,"p_request_id": string }; Returns: Json
+                           },
+"execute_sensitive_action":
+{ Args: { "p_authorization"?: string,"p_binding": string,"p_operation": Json,"p_request_id": string }; Returns: Json
+                           },
 "finish_kitchen_print_job":
 { Args: { "p_claim_token": string,"p_error"?: string,"p_job_id": string,"p_terminal_id": string }; Returns: undefined
                            },
 "finish_print_job":
 { Args: { "p_error"?: string,"p_job_id": string,"p_owner_id": string,"p_status": string,"p_token": string }; Returns: undefined
+                           },
+"issue_operation_approval":
+{ Args: { "p_approver": string,"p_binding": string,"p_pin": string,"p_quote": Json,"p_request_id": string }; Returns: Json
                            },
 "mark_manual_kitchen_print":
 { Args: { "p_order_id": string }; Returns: undefined
@@ -1273,6 +1617,10 @@ isOneToOne: false
 "customer_phone": string | null,
 "delivery_address": Json | null,
 "delivery_fee": number,
+"discount_amount": number,
+"discount_mode": string | null,
+"discount_reason": string | null,
+"discount_value": number | null,
 "id": string,
 "is_counter": boolean,
 "notes": string | null,
@@ -1294,6 +1642,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"owner_maintenance":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "payment_configuration":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -1307,6 +1658,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "print_order_snapshot":
+{ Args: { "p_items"?: Json,"p_order_id": string }; Returns: Json
+                           },
+"print_order_snapshot_before_discounts":
 { Args: { "p_items"?: Json,"p_order_id": string }; Returns: Json
                            },
 "print_worker_health":
@@ -1324,6 +1678,12 @@ isOneToOne: false
 "record_order_payments":
 { Args: { "p_lines": Json,"p_order_id": string,"p_request_id": string }; Returns: Json
                            },
+"record_order_payments_before_discounts":
+{ Args: { "p_lines": Json,"p_order_id": string,"p_request_id": string }; Returns: Json
+                           },
+"refund_quote":
+{ Args: { "p_operation": Json }; Returns: Json
+                           },
 "release_kitchen_printer":
 { Args: { "p_terminal_id": string }; Returns: undefined
                            },
@@ -1336,8 +1696,17 @@ isOneToOne: false
 "request_cash_session_print":
 { Args: { "p_request_id": string,"p_session": string }; Returns: string
                            },
+"request_counter_discount_approval":
+{ Args: { "p_approver": string,"p_binding": string,"p_discount": Json,"p_draft_id": string,"p_payload": Json,"p_pin": string,"p_request_id": string }; Returns: Json
+                           },
+"request_operation_approval":
+{ Args: { "p_approver": string,"p_binding": string,"p_operation": Json,"p_pin": string,"p_request_id": string }; Returns: Json
+                           },
 "request_print":
 { Args: { "p_destination"?: string,"p_job_id"?: string,"p_kind"?: string,"p_order_id"?: string,"p_request_id": string }; Returns: string
+                           },
+"request_refund_approval":
+{ Args: { "p_approver": string,"p_binding": string,"p_operation": Json,"p_pin": string,"p_request_id": string }; Returns: Json
                            },
 "require_pyg":
 { Args: { "p_value": string }; Returns: number
@@ -1357,6 +1726,15 @@ isOneToOne: false
 "rotate_table_token":
 { Args: { "p_table_id": string }; Returns: string
                            },
+"security_configuration":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"sensitive_quote":
+{ Args: { "p_operation": Json }; Returns: Json
+                           },
+"set_approval_pin":
+{ Args: { "p_password": string,"p_pin": string }; Returns: Json
+                           },
 "set_exchange_rate":
 { Args: { "p_rate": string,"p_rounding": string }; Returns: string
                            },
@@ -1368,6 +1746,9 @@ isOneToOne: false
                            },
 "set_product_photo":
 { Args: { "p_content": string,"p_product_id": string }; Returns: string
+                           },
+"set_security_policy":
+{ Args: { "p_policy": Json }; Returns: undefined
                            },
 "submit_qr_order":
 { Args: { "p_payload": Json,"p_request_id": string,"p_token": string }; Returns: Json
@@ -1382,7 +1763,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "order_item_status": "pending"|"preparing"|"ready"|"delivered","order_source": "waiter"|"qr"|"nfc"|"whatsapp"|"web","order_status": "pending_confirmation"|"open"|"ready"|"out_for_delivery"|"closed"|"cancelled","order_type": "dine_in"|"pickup"|"delivery","payment_method": "cash"|"card"|"pix"|"transfer","payment_status": "pending"|"paid","table_status": "available"|"occupied"|"closing","user_role": "admin"|"waiter"|"kitchen"|"cashier"
+            "order_item_status": "pending"|"preparing"|"ready"|"delivered","order_source": "waiter"|"qr"|"nfc"|"whatsapp"|"web","order_status": "pending_confirmation"|"open"|"ready"|"out_for_delivery"|"closed"|"cancelled","order_type": "dine_in"|"pickup"|"delivery","payment_method": "cash"|"card"|"pix"|"transfer","payment_status": "pending"|"paid","table_status": "available"|"occupied"|"closing","user_role": "admin"|"waiter"|"kitchen"|"cashier"|"supervisor"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1498,7 +1879,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "order_item_status": ["pending", "preparing", "ready", "delivered"],"order_source": ["waiter", "qr", "nfc", "whatsapp", "web"],"order_status": ["pending_confirmation", "open", "ready", "out_for_delivery", "closed", "cancelled"],"order_type": ["dine_in", "pickup", "delivery"],"payment_method": ["cash", "card", "pix", "transfer"],"payment_status": ["pending", "paid"],"table_status": ["available", "occupied", "closing"],"user_role": ["admin", "waiter", "kitchen", "cashier"]
+            "order_item_status": ["pending", "preparing", "ready", "delivered"],"order_source": ["waiter", "qr", "nfc", "whatsapp", "web"],"order_status": ["pending_confirmation", "open", "ready", "out_for_delivery", "closed", "cancelled"],"order_type": ["dine_in", "pickup", "delivery"],"payment_method": ["cash", "card", "pix", "transfer"],"payment_status": ["pending", "paid"],"table_status": ["available", "occupied", "closing"],"user_role": ["admin", "waiter", "kitchen", "cashier", "supervisor"]
           }
         }
 } as const

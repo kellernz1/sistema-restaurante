@@ -1,3 +1,5 @@
+import "./helpers/integration-guard.mjs";
+import {fixtureSql}from "./helpers/integration-sql.mjs";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
@@ -23,11 +25,10 @@ test("print engine uses immutable deltas, secure configuration and idempotent ma
   assert.equal((await fetch(base+"/api/staff/printing",{method:"PATCH",headers:admin,body:JSON.stringify(config)})).status,200);
   assert.equal((await fetch(base+"/api/staff/printing",{method:"PATCH",headers:admin,body:JSON.stringify({...config,columns:34})})).status,200);
   const product=await service.from("products").select("id").eq("is_active",true).limit(1).single();assert.ifError(product.error);
-  const created=await service.from("orders").insert({order_type:"pickup",source:"waiter",status:"pending_confirmation",customer_name:"__print_4a_http__",customer_phone:"+595981999902"}).select("id").single();assert.ifError(created.error);orderId=created.data.id;
-  assert.ifError((await service.from("order_items").insert({order_id:orderId,product_id:product.data.id,quantity:2,unit_price:0,notes:"Original"})).error);
-  assert.ifError((await service.from("orders").update({status:"open"}).eq("id",orderId)).error);
+  orderId=randomUUID();
+  await fixtureSql(`insert into public.orders(id,order_type,source,status,customer_name,customer_phone)values('${orderId}','pickup','waiter','pending_confirmation','__print_4a_http__','+595981999902');insert into public.order_items(order_id,product_id,quantity,unit_price,notes)values('${orderId}','${product.data.id}',2,0,'Original');update public.orders set status='open'where id='${orderId}';`);
   const initial=await service.from("print_jobs").select("*").eq("order_id",orderId).single();assert.ifError(initial.error);assert.equal(initial.data.additional,false);assert.equal(initial.data.snapshot.items.length,1);
-  assert.ifError((await service.from("order_items").insert({order_id:orderId,product_id:product.data.id,quantity:1,unit_price:0,notes:"Extra"})).error);
+  await fixtureSql(`insert into public.order_items(order_id,product_id,quantity,unit_price,notes)values('${orderId}','${product.data.id}',1,0,'Extra');`);
   const extra=await service.from("print_jobs").select("*").eq("order_id",orderId).eq("additional",true).single();assert.ifError(extra.error);assert.equal(extra.data.snapshot.items.length,1);assert.equal(extra.data.snapshot.items[0].notes,"Extra");
   const receiptRequest={action:"request",request_id:randomUUID(),kind:"receipt",order_id:orderId};
   const receiptA=await post(receiptRequest,cashier),receiptB=await post(receiptRequest,cashier);assert.equal(receiptA.status,200);assert.equal(receiptB.status,200);const receiptId=await receiptA.json();assert.equal(receiptId,await receiptB.json());
@@ -48,9 +49,6 @@ test("print engine uses immutable deltas, secure configuration and idempotent ma
   assert.equal((await post({action:"request",request_id:randomUUID(),job_id:testJob},admin)).status,409);
   const ledger=await service.from("print_jobs").select("snapshot").eq("order_id",orderId);assert.ok(ledger.data.every(j=>!("phone"in j.snapshot)&&!("address"in j.snapshot)));
  }finally{
-  if(deviceId)assert.ifError((await service.from("print_devices").delete().eq("id",deviceId)).error);
-  if(testJob)assert.ifError((await service.from("print_jobs").delete().eq("id",testJob)).error);
-  if(orderId)assert.ifError((await service.from("orders").delete().eq("id",orderId)).error);
   for(const client of clients)await client.auth.signOut({scope:"local"});
  }
 });

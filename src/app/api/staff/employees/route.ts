@@ -13,14 +13,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { db } = await requireStaff(["admin"]);
+    const { db, userId } = await requireStaff(["admin"]);
     const parsed = employeeCreateSchema.safeParse(await readPublicBody(request));
     if (!parsed.success) throw new PublicApiError(400, "Confira nome, e-mail, perfil e senha de 8 a 72 caracteres.");
     const { full_name, email, password, role, is_active } = parsed.data;
     if(role==="waiter"){const policy=await db.from("service_policy").select("uses_waiter").single();if(!policy.data?.uses_waiter)throw new PublicApiError(409,"O atendimento com garçom está desativado.");}
     const admin = createAdminClient();
     // Keep the account unable to sign in until its intended profile is saved.
-    const created = await admin.auth.admin.createUser({ email, password, email_confirm: true, ban_duration: "876000h", user_metadata: { full_name } });
+    const created = await admin.auth.admin.createUser({ email, password, email_confirm: true, ban_duration: "876000h", user_metadata: { full_name }, app_metadata: { staff_created_by: userId } });
     if (created.error || !created.data.user) throw new PublicApiError(409, "Não foi possível criar a conta. Confira se o e-mail já está cadastrado e se a senha atende aos requisitos.");
     const id = created.data.user.id;
     let profile = await db.from("profiles").update({ full_name, role, is_active: false }).eq("id", id).select("id, full_name, role, is_active, created_at").single();

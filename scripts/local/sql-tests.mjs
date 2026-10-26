@@ -9,8 +9,15 @@ import { runPrintConcurrencyTest } from "./print-concurrency-test.mjs";
 import { runPrintDocumentConcurrencyTest } from "./print-document-concurrency-test.mjs";
 import { runCashSessionConcurrencyTest } from "./cash-session-concurrency-test.mjs";
 import {runServiceConcurrencyTest} from "./service-concurrency-test.mjs";
+import {runApprovalConcurrencyTest} from "./approval-concurrency-test.mjs";
+import {runCounterDiscountConcurrencyTest} from "./counter-discount-concurrency-test.mjs";
+import {runRefundConcurrencyTest} from "./refund-concurrency-test.mjs";
 
 const testFiles = [
+  "refunds_test.sql",
+  "pin_feedback_test.sql",
+  "counter_discounts_test.sql",
+  "approvals_test.sql",
   "rls_smoke_test.sql",
   "service_modes_test.sql",
   "offsite_orders_test.sql",
@@ -48,6 +55,9 @@ export async function runSqlTests() {
   await runPrintDocumentConcurrencyTest();
   await runCashSessionConcurrencyTest();
   await runServiceConcurrencyTest();
+  await runApprovalConcurrencyTest();
+  await runCounterDiscountConcurrencyTest();
+  await runRefundConcurrencyTest();
 }
 
 if (isMain(import.meta.url)) {

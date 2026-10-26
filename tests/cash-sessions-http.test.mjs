@@ -1,3 +1,4 @@
+import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {randomUUID} from "node:crypto";
@@ -21,7 +22,11 @@ test("cash HTTP reports enforce role boundaries and daily totals include legacy 
   // SQL supplies today's exact commercial window, including legacy rows without a saved date.
   const window=await clients[0].rpc("business_day_window",{});assert.ifError(window.error);
   const rows=payment.data.filter(p=>p.business_date?p.business_date===report.day:Date.parse(p.created_at)>=Date.parse(window.data.start)&&Date.parse(p.created_at)<Date.parse(window.data.end));
-  assert.equal(report.payments.total,rows.reduce((sum,p)=>sum+p.equivalent_pyg-p.change_pyg,0));
+  // Block 8B recognizes returns on their own business date without rewriting receipts.
+  const refunds=await clients[0].from("refunds").select("amount_pyg,business_date");assert.ifError(refunds.error);
+  const returned=refunds.data.filter(r=>r.business_date===report.day).reduce((sum,r)=>sum+r.amount_pyg,0);
+  assert.equal(report.payments.total,rows.reduce((sum,p)=>sum+p.equivalent_pyg-p.change_pyg,0)-returned);
+  assert.equal(report.payments.refunds.amount,returned);
   assert.equal((await fetch(base+"/api/staff/cash-reports?day=bad",{headers:admin})).status,400);
   assert.equal((await fetch(base+"/admin/reports",{headers:admin})).status,200);
   assert.equal((await fetch(base+"/cashier/sessions",{headers:cashier})).status,200);

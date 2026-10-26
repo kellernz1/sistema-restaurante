@@ -10,6 +10,7 @@ import { OrderTypeBadge } from "@/components/order-type-badge";
 import { createClient } from "@/utils/supabase/client";
 
 import { kitchenQuery, type KitchenItem, type KitchenStatus } from "./kitchen-query";
+import { KitchenCancellations } from "@/features/approvals/kitchen-cancellations";
 import { uuid } from "@/lib/uuid";
 import { groupKitchenOrders } from "./group-orders";
 
@@ -208,7 +209,7 @@ export function KitchenBoard({ initialItems, initialError }: {
   const groupedOrders = groupKitchenOrders(items);
 
   return (
-    <section className="kitchen-dashboard">
+    <section className="kitchen-dashboard"><KitchenCancellations />
       <div className="table-dashboard-heading">
         <div><span className="eyebrow">{t("Painel da cozinha")}</span><h1>{t("Fila de preparo")}</h1>
           <p>{t("Pedidos abertos em tempo real. Comece pelos itens com maior tempo de espera.")}</p></div>

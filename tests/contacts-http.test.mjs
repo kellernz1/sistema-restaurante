@@ -1,3 +1,4 @@
+import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHmac, randomInt, randomUUID } from "node:crypto";
@@ -61,12 +62,5 @@ test("public PY/BR identity and WhatsApp aliases share canonical contacts", { sk
     assert.equal(simulated.status, 200);
     const pyConversation = await db.from("whatsapp_conversations").select("phone,provider_recipient").eq("phone", py).single();
     assert.ifError(pyConversation.error); assert.equal(pyConversation.data.provider_recipient, py.slice(1));
-  } finally {
-    for (const phone of [py, br]) {
-      assert.ifError((await db.from("whatsapp_messages").delete().eq("phone", phone)).error);
-      assert.ifError((await db.from("whatsapp_conversations").delete().eq("phone", phone)).error);
-    }
-    for (const id of orderIds) assert.ifError((await db.from("orders").delete().eq("id", id)).error);
-    for (const id of new Set(customerIds)) assert.ifError((await db.from("customers").delete().eq("id", id)).error);
-  }
+  } finally { /* Fixture history is removed with the temporary instance. */ }
 });

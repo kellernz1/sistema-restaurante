@@ -1,3 +1,4 @@
+import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import { randomInt, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -43,27 +44,8 @@ test("cashier can submit all channels and retries do not duplicate kitchen items
   assert.equal(page.status, 200);
 
   const categoryId = randomUUID(), productId = randomUUID(), tableId = randomUUID();
-  const requestIds = [], orderIds = [], customerIds = [];
-  t.after(async () => {
-    if (requestIds.length) {
-      const submissions = await admin.from("cashier_order_submissions").select("order_id").in("request_id", requestIds);
-      assert.ifError(submissions.error);
-      orderIds.push(...submissions.data.map((row) => row.order_id).filter(Boolean));
-      assert.ifError((await admin.from("cashier_order_submissions").delete().in("request_id", requestIds)).error);
-    }
-    if (orderIds.length) {
-      const orders = await admin.from("orders").select("customer_id").in("id", orderIds);
-      customerIds.push(...orders.data.map((row) => row.customer_id).filter(Boolean));
-      assert.ifError((await admin.from("orders").delete().in("id", orderIds)).error);
-    }
-    if (customerIds.length) {
-      assert.ifError((await admin.from("customer_addresses").delete().in("customer_id", customerIds)).error);
-      assert.ifError((await admin.from("customers").delete().in("id", customerIds)).error);
-    }
-    assert.ifError((await admin.from("tables").delete().eq("id", tableId)).error);
-    assert.ifError((await admin.from("products").delete().eq("id", productId)).error);
-    assert.ifError((await admin.from("categories").delete().eq("id", categoryId)).error);
-  });
+  const requestIds = [];
+  // The disposable instance owns fixture cleanup; immutable history is retained.
   const settings = await admin.from("restaurant_settings").select("*").eq("id", true).single();
   assert.ifError(settings.error);
   assert.ok(settings.data.is_accepting_orders && settings.data.pickup_enabled && settings.data.delivery_enabled, "Enable local ordering channels for this smoke test");

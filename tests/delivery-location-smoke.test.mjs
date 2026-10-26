@@ -1,3 +1,4 @@
+import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import { randomInt, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -13,17 +14,7 @@ test("public checkout persists the delivery map pin with its address", { skip: !
   const productId = randomUUID(), categoryId = randomUUID();
   const phone = `+5511${randomInt(900000000, 999999999)}`;
   assert.equal((await db.from("customers").select("id", { count: "exact", head: true }).eq("phone", phone)).count, 0);
-  t.after(async () => {
-    const customers = await db.from("customers").select("id").eq("phone", phone);
-    assert.ifError(customers.error);
-    for (const customer of customers.data) {
-      assert.ifError((await db.from("orders").delete().eq("customer_id", customer.id)).error);
-      assert.ifError((await db.from("customer_addresses").delete().eq("customer_id", customer.id)).error);
-      assert.ifError((await db.from("customers").delete().eq("id", customer.id)).error);
-    }
-    assert.ifError((await db.from("products").delete().eq("id", productId)).error);
-    assert.ifError((await db.from("categories").delete().eq("id", categoryId)).error);
-  });
+  // The disposable instance owns fixture cleanup; immutable history is retained.
   const settings = await db.from("restaurant_settings").select("*").eq("id", true).single();
   assert.ifError(settings.error);
   assert.ok(settings.data.is_accepting_orders && settings.data.delivery_enabled);

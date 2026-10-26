@@ -1,5 +1,9 @@
 # Local operations — block 7
 
+Automated HTTP/native integration acceptance provisions and destroys a separate
+full stack. Run `npm run test:all`; see [integration-testing.md](integration-testing.md)
+for isolation guards, prerequisites, evidence and provider/hardware boundaries.
+
 ## Installation record
 
 - Restaurant / responsible administrator: ____________________

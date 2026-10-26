@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { ROOT, findDbContainer, runSupabase, loadEnvFile } from "./lib.mjs";
 import { command } from "./operations-process.mjs";
+import {integrationContext}from "../integration/context.mjs";
 
 export function localMigrations(directory=path.join(ROOT,"supabase/migrations")) {
   const sqlFiles=fs.readdirSync(directory).filter(name=>name.endsWith(".sql"));
@@ -36,9 +37,10 @@ export async function verifyHistory(database="postgres",container=findDbContaine
 }
 export function isolatedDatabaseUrl(database) {
   if(!/^mesa_(history|clean|restore|source)_[a-f0-9]{24}$/.test(database))throw new Error("Official temporary migration requires an isolated database");
-  const env=loadEnvFile();
-  const url=new URL(`postgresql://postgres@127.0.0.1:54322/${database}`);
-  url.password=env.LOCAL_DB_PASSWORD||process.env.LOCAL_DB_PASSWORD||"postgres";
+  const integration=process.env.INTEGRATION_RUN_DIR?integrationContext():null;
+  const env=integration?{}:loadEnvFile();
+  const url=new URL(`postgresql://postgres@127.0.0.1:${integration?.dbPort??54322}/${database}`);
+  url.password=integration?process.env.INTEGRATION_DB_PASSWORD:(env.LOCAL_DB_PASSWORD||process.env.LOCAL_DB_PASSWORD||"postgres");
   url.searchParams.set("sslmode","disable");
   return url.toString();
 }

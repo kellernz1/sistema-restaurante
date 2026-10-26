@@ -1,5 +1,8 @@
 # Payments and base currency
 
+Block 8B adds manual refunds and atomic paid cancellation, capped by discounted net receipts. Return-time cash sessions and net reports supersede earlier refund exclusions below. See [refunds.md](refunds.md).
+
+
 Block 6 reuses the payment ledger for atomic table-QR receive-and-confirm, keeping prepaid table accounts open until explicit release. Shared cash-session exclusivity defaults on. See [service modes](service-modes.md).
 
 Block 5 adds operator cash sessions and payment-based daily reporting. See [cash sessions](cash-sessions.md); its rules supersede earlier exclusions of shifts and instructions that allowed payment without opening a session. Mandatory sessions are enabled by default.
