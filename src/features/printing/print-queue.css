@@ -20,6 +20,10 @@ html .print-queue-compact > small { margin: 0!important; font-size: 12px; color:
 .print-archive-toggle { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; font-size: 13px; cursor: pointer; }
 .print-archive-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #0071e3; }
 .print-job-list { display: grid; gap: 12px; }
+.print-bulk { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:14px; margin-bottom:16px; border-radius:18px; background:color-mix(in srgb,var(--muted) 8%,transparent); font-size:13px; }
+.print-bulk label { display:flex; align-items:center; gap:10px; min-height:44px; }
+.print-bulk input,.print-job-select { width:20px; height:20px; accent-color:#0071e3; flex-shrink:0; }
+.print-bulk :is(p,small) { width:100%; margin:0; }
 .print-job { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; padding: 20px; border: 1px solid var(--line); border-radius: 20px; }
 .print-job-copy { flex: 1 1 320px; min-width: 0; }
 .print-job-title { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; line-height: 1.4; }

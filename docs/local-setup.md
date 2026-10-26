@@ -7,7 +7,7 @@ Este guia coloca o Mesa Certa para funcionar em um computador do restaurante. O 
 Instale no computador:
 
 - Docker Desktop e mantenha-o aberto;
-- Node.js LTS 20 ou mais recente;
+- Node.js 22.18+ ou 24 LTS (os scripts operacionais usam suporte nativo a TypeScript);
 - Git, para baixar e atualizar o projeto;
 - um navegador moderno.
 
@@ -20,10 +20,13 @@ Abra um terminal na pasta do projeto e execute, nesta ordem:
 ```text
 npm ci
 npm run local:setup
+npm run local:update
 npm run local:start
 ```
 
 `local:setup` inicia o Supabase, aplica todas as migrations e o seed base, cria `.env.local`, as contas da equipe e os dados demonstrativos. Na primeira execução, aceite no firewall apenas as portas indicadas na seção de rede. O comando é idempotente: em uma nova execução ele não apaga o banco. Para escolher manualmente o IP, use:
+
+As migrações são aplicadas e registradas pela CLI oficial; o setup não executa reset nem aceita `--reset`. Atualizações usam `local:update`; consulte primeiro `local:update -- --dry-run` e `db:verify-history`. Nunca cole arquivos de migração no SQL Editor/psql. Havendo divergência, siga [migration-history.md](migration-history.md).
 
 ```text
 npm run local:setup -- --ip 192.168.1.50
@@ -39,7 +42,7 @@ Com o Docker Desktop aberto, inicie tudo com:
 npm run local:start
 ```
 
-Esse comando preserva os dados, inicia o Supabase, recompila a aplicação quando necessário, publica o servidor em toda a rede local e inicia o worker do WhatsApp. Os registros ficam em `logs/`.
+Esse comando preserva os dados, espera o Docker, inicia o Supabase e supervisiona aplicação e workers. **Não recompila nem aplica migrações.** Atualizações usam `npm run local:update`, com backup antes de migrar. Os registros rotativos ficam em `logs/`. Consulte [operations.md](operations.md) para limites, alertas e recuperação.
 
 Antes de desligar o computador, execute:
 
@@ -112,15 +115,15 @@ Crie um backup manual com:
 npm run db:backup
 ```
 
-O arquivo SQL é salvo em `backups/`; os 14 mais recentes são mantidos. Programe esse comando uma vez por dia e copie a pasta para um pendrive ou outro computador. Um backup no mesmo disco não protege contra defeito ou furto.
+O arquivo customizado `.dump` e seu manifesto `.json` são publicados em `backups/` após verificação de estrutura e SHA-256, com nomes únicos. O supervisor executa a cada seis horas e após fechamento do caixa. Retenção padrão: 14 diários e oito semanais. Configure os intervalos, alertas e pasta externa em Configurações → Backup e serviços locais. Um backup no mesmo disco não protege contra defeito ou furto.
 
-Para restaurar, mantenha o Supabase iniciado e execute `npm run db:restore`. Escolha o arquivo e digite `RESTORE`. A restauração substitui os dados atuais. O comando `npm run db:reset` é ainda mais destrutivo: exige `RESETAR`, cria um backup primeiro e recria o banco pelas migrations.
+Para restaurar, use `npm run local:restore -- --file backups/NOME.dump`. O script exige confirmação digitada, cria backup de segurança e restaura em banco candidato separado. Não substitui o banco ativo por padrão. O corte definitivo, backups SQL antigos, divergências de histórico e ensaio de desastre estão documentados em [operations.md](operations.md). Nunca use `db:reset` como tentativa de recuperação.
 
-No Agendador de Tarefas do Windows, crie uma tarefa diária cuja ação seja `cmd.exe /c npm run db:backup` e informe a pasta do projeto em “Iniciar em”. No Linux, use o mesmo comando em um cron com o diretório correto.
+O agendamento de backups é interno ao supervisor; mantenha-o ativo. A cópia externa é verificada por checksum, mas sincronização efetiva com nuvem depende do provedor. Backups contêm dados pessoais e devem ter acesso restrito.
 
 ## Iniciar automaticamente com o computador
 
-No Windows, crie uma tarefa “Ao iniciar” ou “Ao fazer logon”, com atraso de cerca de um minuto para o Docker Desktop subir. Use `cmd.exe /c npm run local:start` e configure a pasta do projeto em “Iniciar em”. Execute a tarefa mesmo sem a janela aberta e faça um teste após reiniciar.
+Primeiro simule: `npm run local:autostart:install -- --dry-run`. A remoção tem `npm run local:autostart:remove -- --dry-run`. Revise o plano e só depois execute sem `--dry-run`. Nenhuma tarefa é instalada automaticamente pelo projeto. Configure manualmente Docker Desktop ao entrar no Windows, energia, firewall e IP reservado, conforme [operations.md](operations.md). Valide após reiniciar o notebook.
 
 No Linux, um serviço `systemd` pode executar `npm run local:start` depois do Docker e chamar `npm run local:stop` ao encerrar. `pm2` também pode manter o comando ativo, mas é opcional. Em qualquer sistema, configure o Docker para iniciar automaticamente. Um nobreak (UPS) é recomendado para evitar desligamentos abruptos do banco e do roteador.
 

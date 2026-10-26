@@ -1,0 +1,33 @@
+import fs from "node:fs";
+import path from "node:path";
+import { createBackup, validateBackup } from "./backup.mjs";
+import { LOCAL_STATE_DIR, isProcessRunning, runSupabase, run, loadEnvFile } from "./lib.mjs";
+import { command, waitFor } from "./operations-process.mjs";
+import { verifyHistory, localMigrations } from "./migration-history.mjs";
+import { assertInstalledSchema } from "./audit-history.mjs";
+import { patchOperationsState } from "../../src/lib/operations.ts";
+
+const stateFile=path.join(LOCAL_STATE_DIR,"processes.json");
+const state=fs.existsSync(stateFile)?JSON.parse(fs.readFileSync(stateFile,"utf8")):{};
+const dryRun=process.argv.includes("--dry-run");
+if(!dryRun&&[state.supervisor,state.app,state.worker,state.printWorker].some(isProcessRunning))throw new Error("Stop app, supervisor and workers before updating.");
+await waitFor(()=>command("docker",["info","--format","{{.ServerVersion}}"],{timeout:10000}),"Docker Desktop");
+runSupabase(["start"],{timeout:300000,capture:true});
+console.log("Supabase ready; connection secrets are not logged.");
+const history=await verifyHistory();
+const latest=localMigrations().filter(file=>!history.missing.some(missing=>missing.version===file.version)).at(-1)?.version??"";
+if(history.orphaned.length||history.renamed.length||history.missing.some(file=>file.version<latest))throw new Error("Migration history has gaps, unknown versions or renamed files. Audit before updating.");
+await assertInstalledSchema();
+if(dryRun){
+  runSupabase(["db","push","--local","--dry-run","--skip-vault"],{timeout:120000});
+  console.log("DRY RUN complete: no backup, project migration or build was executed.");
+  process.exit(0);
+}
+const backup=await createBackup({reason:"before-update"});
+await validateBackup(backup);
+// Backup errors abort before any migration. Never reset the local database.
+runSupabase(["migration","up","--local"],{timeout:600000});
+if(!(await verifyHistory()).ok)throw new Error("Post-update migration history does not match files");
+patchOperationsState({migration_warning:false});
+run(process.execPath,["scripts/next-command.mjs","build"],{env:loadEnvFile()});
+console.log("Update complete. Run local:start. Restore the rescue backup through local:restore if recovery is needed.");

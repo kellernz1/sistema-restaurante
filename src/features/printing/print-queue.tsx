@@ -9,6 +9,7 @@ import type { PrintJob } from "./document";
 import { uuid } from "@/lib/uuid";
 import { processBrowserPrint,browserPrintHeartbeat } from "./browser-processor";
 import { PrintRequestButton } from "./print-request-button";
+import { PrintBulkActions } from "@/features/printing/bulk-actions";
 function subscribe(callback:()=>void){window.addEventListener("mesa-print-preference",callback);window.addEventListener("storage",callback);return()=>{window.removeEventListener("mesa-print-preference",callback);window.removeEventListener("storage",callback);};}
 let preference=false;
 function readPreference(){try{return localStorage.getItem("mesa-browser-print-v2")==="true";}catch{return preference;}}
@@ -19,6 +20,7 @@ export function PrintQueue({compact=false}:{compact?:boolean}) {
  const [status,setStatus]=useState("all"),[archived,setArchived]=useState(false),[counts,setCounts]=useState<Record<string,number>>({});
  const [health,setHealth]=useState<Health|null>(null),[admin,setAdmin]=useState(false),[revision,setRevision]=useState(0);
  const enabled=useSyncExternalStore(subscribe,readPreference,()=>false);
+ const [selected,setSelected]=useState<string[]>([]);
  useEffect(()=>{
   let alive=true;let timer:ReturnType<typeof setTimeout>;
   async function tick(){
@@ -47,7 +49,9 @@ export function PrintQueue({compact=false}:{compact?:boolean}) {
   <small style={{display:"block",margin:"12px 0"}}>{t("Navegador: mantenha esta aba visível. Arquivo de teste: processador local independente. Enviado não confirma saída no papel.")}</small>
   <details className="print-history"><summary><span>{t("Trabalhos recentes")}</span><ChevronDown size={18} aria-hidden="true"/></summary>
    <div className="print-toolbar"><div className="print-filters" role="group" aria-label={t("Filtrar trabalhos de impressão")}>{Object.entries(labels).map(([value,label])=><button type="button" className="print-filter" aria-pressed={status===value} title={t(label)} key={value} onClick={()=>setStatus(value)}>{t(value==="uncertain"?"Incerto":label)}{value!=="all"&&<span className="print-filter-count">{counts[value]??0}</span>}</button>)}</div><label className="print-archive-toggle"><input type="checkbox" checked={archived} onChange={e=>setArchived(e.target.checked)}/>{t("Mostrar arquivados")}</label></div>
+   <PrintBulkActions jobs={jobs} selected={selected} setSelected={setSelected} admin={admin} refresh={()=>setRevision(v=>v+1)}/>
    <div className="print-job-list">{jobs.map(job=><article key={job.id} className="print-job">
+    {!job.archived_at&&<input className="print-job-select" type="checkbox" aria-label={t("Selecionar trabalho {0}").replace("{0}",job.id)} checked={selected.includes(job.id)} onChange={event=>setSelected(current=>event.target.checked?[...current,job.id]:current.filter(id=>id!==job.id))}/>}
     <div className="print-job-copy"><div className="print-job-title"><span className="print-job-icon"><Printer size={19} aria-hidden="true"/></span><strong>{job.kind==="cash_session"?`${t("Fechamento de caixa")} · ${job.snapshot.cash_report?.session.business_date??""}`:job.snapshot?.ticket!=null?t("Senha {0}").replace("{0}",String(job.snapshot.ticket)):`#${job.snapshot?.number??"—"}`}</strong><span className={`print-job-status print-job-status-${job.status}`}>{t(job.status==="uncertain"?"Incerto":labels[job.status]??job.status)}</span></div>
     <p className="print-job-meta">{t(job.destination==="kitchen"?"Cozinha":"Caixa")} · {job.device?.name} · {t(job.additional?"Adicional":job.reprint?"Reimpressão":"Original")}{job.archived_at?` · ${t("Arquivado")}`:""}</p>
     {job.status==="uncertain"&&<p className="print-job-warning">{t("Incerto: conferir antes de reimprimir")}</p>}

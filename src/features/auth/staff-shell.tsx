@@ -1,5 +1,6 @@
 "use client";
 import { CashSessionBar } from "@/features/cash-sessions/session-bar";
+import { OperationsAlerts } from "@/features/operations/operations-panel";
 import {useServiceModes} from "@/features/service-modes/use-service-modes";
 import {CashierNavigation} from "@/features/cashier/cashier-navigation";
 import {usePathname} from "next/navigation";
@@ -89,6 +90,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
       </header>
 
       {logoutError ? <p className="header-error" role="alert">{t(logoutError)}</p> : null}
+      {["admin","cashier"].includes(role)&&<OperationsAlerts/>}
       <main className="staff-content">{role==="waiter"&&!modes?.uses_waiter?<p className="order-panel">{t("O atendimento com garçom está desativado. Fale com o administrador.")}</p>:<>{pathname.startsWith("/cashier")&&["admin","cashier"].includes(role)&&<CashierNavigation counterEnabled={modes?.counter_enabled??false} tablesEnabled={modes?.dine_in_qr_enabled??false}/>}{["admin","cashier","kitchen"].includes(role) && <PrintQueue compact={pathname.startsWith("/cashier")}/>}{["admin","cashier"].includes(role)&&<CashSessionBar/>}{t(children)}</>}</main>
     </div>
   );

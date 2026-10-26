@@ -11,9 +11,11 @@ import {
 } from "./lib.mjs";
 import { generateLocalEnv } from "./env.mjs";
 import { printLocalInfo } from "./info.mjs";
+import { assertInstalledSchema } from "./audit-history.mjs";
+import { verifyHistory } from "./migration-history.mjs";
 
-const nodeMajor = Number(process.versions.node.split(".")[0]);
-if (nodeMajor < 20) throw new Error(`Node 20 or newer is required. Found ${process.versions.node}.`);
+const [nodeMajor,nodeMinor] = process.versions.node.split(".").map(Number);
+if (nodeMajor < 22 || (nodeMajor === 22 && nodeMinor < 18)) throw new Error(`Node 22.18+ or 24 LTS is required. Found ${process.versions.node}.`);
 
 let docker;
 try {
@@ -29,17 +31,17 @@ if (docker.status !== 0) throw new Error("Docker Desktop is installed but its en
 console.log(`Node ${process.versions.node}`);
 console.log(`Supabase CLI ${SUPABASE_CLI_VERSION} (pinned by local scripts)`);
 runSupabase(["--version"]);
-runSupabase(["start"]);
+runSupabase(["start"],{capture:true,timeout:300000});
 
 ensureDirectory(LOCAL_STATE_DIR);
 const markerFile = path.join(LOCAL_STATE_DIR, "setup.json");
-const firstSetup = !fs.existsSync(markerFile) || process.argv.includes("--reset");
-if (firstSetup) {
-  runSupabase(["db", "reset", "--local"]);
-  fs.writeFileSync(markerFile, JSON.stringify({ databaseInitializedAt: new Date().toISOString() }, null, 2));
-} else {
-  console.log("Database was already initialized; skipping destructive reset.");
-}
+if(process.argv.includes("--reset"))throw new Error("Setup never resets an existing database. Use the separately confirmed recovery procedure.");
+const existingHistory=await verifyHistory();
+if(existingHistory.registered>0&&!existingHistory.ok)throw new Error("Existing installation has pending/divergent history. Use local:update with its backup and audit guards.");
+await assertInstalledSchema();
+runSupabase(["migration","up","--local"],{timeout:600000});
+if(!(await verifyHistory()).ok)throw new Error("Setup history does not match migration files");
+fs.writeFileSync(markerFile, JSON.stringify({ databaseInitializedAt: new Date().toISOString() }, null, 2));
 
 const ipArgumentIndex = process.argv.indexOf("--ip");
 const env = generateLocalEnv({ ip: ipArgumentIndex >= 0 ? process.argv[ipArgumentIndex + 1] : undefined });

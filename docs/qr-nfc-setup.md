@@ -5,7 +5,7 @@ O bloco 6 substitui a confirmação antiga pelo fluxo configurável de caixa: pe
 ## Preparar o sistema
 
 1. Configure o Supabase conforme `supabase-setup.md` e aplique a nova migration `supabase/migrations/202610220002_table_self_service.sql` depois da migration inicial. Ela cria chamados, limites de uso e funções com verificação de acesso, e atualiza a criação de pedidos para conferir o token dentro da transação. Não execute a migration inicial novamente em um banco já configurado.
-2. Execute `supabase/tests/table_self_service_test.sql` no SQL Editor com os usuários admin e garçom já cadastrados. O teste usa uma transação e termina em `ROLLBACK`.
+2. Execute `npm run db:verify-history` e `npm run db:validate-clean`. A suíte atual `supabase/tests/service_modes_test.sql` substitui a antiga de autoatendimento; as suítes usam bancos temporários e transações com rollback. Migrações são aplicadas apenas pela CLI oficial, nunca coladas no SQL Editor.
 3. Em `.env.local`, preencha as credenciais reais do Supabase, incluindo `SUPABASE_SERVICE_ROLE_KEY` apenas no servidor, e defina `NEXT_PUBLIC_APP_URL` com a origem pública, por exemplo `https://restaurante.exemplo.com`. Não use localhost nos códigos destinados aos clientes. O telefone precisa alcançar o servidor.
 4. Habilite os pedidos pela mesa em `restaurant_settings`: `dine_in_qr_enabled = true` e `is_accepting_orders = true`. `require_confirmation_for_qr = true` faz o primeiro pedido de uma mesa disponível aguardar o garçom. A tela de configurações será feita na Fase 9; por enquanto altere os valores no Supabase.
 5. Publique a aplicação no ambiente escolhido, configure as mesmas variáveis nele e confira HTTPS. Esta fase não publica automaticamente.

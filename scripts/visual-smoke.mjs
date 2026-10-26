@@ -23,13 +23,28 @@ try{
  for(const locale of ["pt-BR","es"])for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
   const context=await browser.newContext({viewport,colorScheme:env.VISUAL_THEME==="dark"?"dark":"light"});
   await context.addCookies([...jar].map(([name,value])=>({name,value,url:base})).concat({name:"restaurant-locale",value:locale,url:base}));
-  for(const route of ["/cashier","/cashier/sessions","/cashier/counter","/kitchen","/admin/settings","/admin/settings/employees","/admin/reports","/order",`/t/${table.data.qr_token}`]){
+  for(const route of ["/cashier","/cashier/sessions","/cashier/counter","/kitchen","/admin","/admin/settings","/admin/settings/employees","/admin/reports","/order",`/t/${table.data.qr_token}`]){
    const page=await context.newPage();const errors=[];
    page.on("pageerror",e=>errors.push(e.message));page.on("console",message=>{if(message.type()==="error")errors.push(`${message.text()} (${message.location().url})`);});
    const name=`${locale}-${viewport.width}-${route.slice(1).replaceAll("/","-")}`;
    try{
     const response=await page.goto(base+route,{waitUntil:"networkidle",timeout:30000});assert.ok(response?.ok(),`HTTP ${response?.status()}`);assert.equal(new URL(page.url()).pathname,route,"Unexpected redirect");
+    if(route==="/admin/settings"){
+      await page.locator("#settings-nav-backup").click();
+      await page.locator(".operations-panel input[type=number]").first().waitFor();
+      assert.equal(await page.locator(".operations-panel input[type=number]").count(),5);
+      await page.locator(".operations-panel").screenshot({path:path.join(output,name+"-operations.png")});
+    }
     await page.locator(".print-history").evaluateAll(elements=>elements.forEach(element=>{element.open=true;}));
+    if(await page.locator(".print-job-select").count()){
+      const bulk=page.locator(".print-bulk");
+      await bulk.locator('input[type="checkbox"]').check();
+      assert.ok(await bulk.locator("strong").isVisible());
+      assert.equal(await page.locator('.print-job-select:not(:checked)').count(),0);
+      await page.locator(".print-history").screenshot({path:path.join(output,name+"-print-selection.png")});
+      await bulk.locator('input[type="checkbox"]').uncheck();
+      assert.equal(await page.locator('.print-job-select:checked').count(),0);
+    }
     if(route==="/cashier"&&payable.data?.tables){
       const label=value=>locale==="es"?translations[value]??value:value;
       await page.locator(".cashier-table").filter({has:page.locator("strong").filter({hasText:new RegExp(`^Mesa\\s*${payable.data.tables.table_number}$`)})}).click();

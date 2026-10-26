@@ -46,6 +46,7 @@
 - Role-specific RLS policies use security-definer helpers to compare proposed updates with stored rows, preventing unauthorized column changes.
 - Customer-created orders use the service-role-only `create_customer_order(jsonb)` RPC.
 - Database types live in `src/types/database.types.ts` and must be regenerated after schema changes.
+- Apply application migrations only with the official Supabase CLI (`migration up` / tracked `db push`), including temporary/clean validation and restored candidates. Never execute migration files directly through psql/SQL Editor or manually insert migration-history rows. Keep applied files immutable; use a new version for corrective changes. Run `db:verify-history` before concluding database work; `local:update` also checks schema against the officially tracked prefix. Metadata repair requires a matching clean schema, preserved configuration, a verified backup and an explicit audit, then the official `migration repair` command. See `docs/migration-history.md`.
 - Every new block must validate the complete ordered migration chain and SQL suites in a clean, separate temporary database/instance. Never reset or delete the development database for validation. Use `npm run db:validate-clean`; document the boundary (SQL validation is not a full Auth/Realtime HTTP installation).
 - Counter service reuses pickup with `is_counter`, optional normalized name and an atomic per-business-day ticket. Timezone/cutoff default to America/Asuncion and 05:00. Pay-at-order creation and payments commit together; pay-at-end remains supported. Kitchen group actions are transactional and idempotent. See `docs/counter-flow.md`.
 - Printing separates immutable document snapshots from browser/file-test drivers. Claim/finish/reprint operations preserve RLS and share a PostgreSQL processor lease. Uncertain output is never automatically resent. Both request paths use the same document-busy guard; human decisions record actor/time and are audited. Only admin can archive/discard, and archived work cannot dispatch. Forwarded units count committed kitchen reservations; copy acknowledgements are separate. See `docs/printing-architecture.md`.
@@ -61,6 +62,8 @@
 
 ## Local-First Operation
 
+- Operations use atomic custom PostgreSQL backups with checksummed manifests, local admin policy and supervised app/workers. Daily `local:start` never builds or migrates; `local:update` backs up before migration/build. See `docs/operations.md`. Never restore/reset development for tests; use protected randomly named candidates. Windows task installation/removal must be simulated with `--dry-run` during implementation, never installed automatically. Preserve dump owners/ACLs and refuse unverified migration provenance rather than guessing.
+
 - Supabase runs locally in Docker with fixed ports: API/Realtime `54321`, PostgreSQL `54322`, Studio `54323`, and shadow database `54320`.
 - The Next.js production server listens on `0.0.0.0:3000`. LAN clients reach both the app and Supabase API through the computer's reserved LAN IP; never use loopback URLs in their generated environment.
 - Expose only ports `3000` and `54321` to the private LAN. Keep PostgreSQL and Studio blocked from the network and never forward local ports to the public internet.
@@ -73,7 +76,7 @@
 ## Current Phase
 
 - Phase 1: complete.
-- Phase 2: complete; migration execution in Supabase remains a manual environment step.
+- Phase 2: complete; deployment migrations use the official tracked CLI; environment acceptance remains an operational step.
 - Phase 3: complete.
 - Phase 4: confirmed by the user.
 - Phase 5: implemented; lint, build, and TypeScript checks pass. Live Supabase acceptance tests remain pending environment setup; see `docs/phase-5-validation.md`.

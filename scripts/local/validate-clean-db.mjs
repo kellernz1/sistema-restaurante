@@ -1,39 +1,38 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { spawnSync } from "node:child_process";
 import { findDbContainer, ROOT, run } from "./lib.mjs";
+import { createBackup } from "./backup.mjs";
+import { restoreToTemporary, assertTemporary, temporaryDatabase } from "./restore.mjs";
+import { createIsolatedDatabase, dropIsolatedDatabase, databaseSql } from "./isolated-database.mjs";
+import { migrateIsolated, localMigrations, verifyHistory } from "./migration-history.mjs";
+import { assertInstalledSchema } from "./audit-history.mjs";
+import assert from "node:assert/strict";
 
-// A separate database in the local cluster: no reset, migration or data write targets postgres.
-const database=`mesa_clean_${randomBytes(12).toString("hex")}`;
-if(!/^mesa_clean_[a-f0-9]{24}$/.test(database))throw new Error("Unsafe temporary database name");
-const container=findDbContainer();
-function sql(source){
- const result=spawnSync("docker",["exec","-i",container,"psql","-X","-U","postgres","-d",database,"-v","ON_ERROR_STOP=1"],{input:source,encoding:"utf8",maxBuffer:20*1024*1024,windowsHide:true});
- if(result.status!==0)throw new Error(result.stderr||result.error?.message||"Temporary SQL failed");
- return result.stdout;
-}
-run("docker",["exec",container,"createdb","-U","postgres","--template=template0",database],{capture:true});
-console.log(`Created isolated database ${database}; development database is untouched.`);
-try{
- // Copy Supabase Auth definitions only, never users or application schema/data.
- const auth=run("docker",["exec",container,"pg_dump","-U","postgres","-d","postgres","--schema-only","--section=pre-data","--schema=auth","--no-owner","--no-privileges"],{capture:true}).stdout;
- sql(`create schema extensions; create publication supabase_realtime; ${auth}
- alter table auth.users add primary key(id);
- grant usage on schema public,auth,extensions to anon,authenticated,service_role;
- alter default privileges for role postgres in schema public grant all on tables to service_role;
- alter default privileges for role postgres in schema public grant all on sequences to service_role;
- `);
- const files=fs.readdirSync(path.join(ROOT,"supabase/migrations")).filter(name=>/^\d+_.+\.sql$/.test(name)).sort();
- for(const file of files){sql(fs.readFileSync(path.join(ROOT,"supabase/migrations",file),"utf8"));console.log(`Applied ${file}`);}
- sql(`insert into auth.users(id,email,raw_user_meta_data) select gen_random_uuid(),email,jsonb_build_object('full_name','Clean test') from (values('admin@restaurante.local'),('caixa@restaurante.local'),('cozinha@restaurante.local'),('garcom@restaurante.local'),('garcom2@restaurante.local')) v(email);`);
- sql(fs.readFileSync(path.join(ROOT,"supabase/seed.sql"),"utf8"));
- const result=run(process.execPath,["scripts/local/sql-tests.mjs"],{capture:true,allowFailure:true,env:{SQL_TEST_DATABASE:database}});
- if(result.status!==0)throw new Error(result.stdout.slice(-2500)+"\n"+result.stderr);
- console.log(`CLEAN VALIDATION PASSED: ${files.length} ordered migrations, seed and all SQL suites/concurrency tests.`);
-}finally{
- // Only this randomly named, isolated database is eligible for deletion.
- if(!/^mesa_clean_[a-f0-9]{24}$/.test(database))throw new Error("Refusing database cleanup");
- run("docker",["exec",container,"dropdb","-U","postgres",database],{capture:true});
- console.log(`Removed isolated database ${database}. Development database was not reset.`);
+const database=`mesa_clean_${randomBytes(12).toString("hex")}`,container=findDbContainer(),recovery=temporaryDatabase("restore");
+try {
+  await createIsolatedDatabase(container,database);
+  console.log(`Created isolated database ${database}; development is untouched.`);
+  const files=localMigrations();
+  migrateIsolated(database,{through:files.at(-2).version});
+  const upgradeBackup=await createBackup({database,directory:path.join(ROOT,"artifacts","clean-recovery"),record:false,reason:"older-migration-recovery",container});
+  migrateIsolated(database);
+  if(!(await verifyHistory(database,container)).ok)throw new Error("Official clean history mismatch");
+  const upgraded=await restoreToTemporary(upgradeBackup,{container,database:recovery});
+  if(upgraded.health.migration!==files.at(-1).version)throw new Error("Older-backup migration upgrade failed");
+  console.log("Official CLI applied/tracked all migrations; older-backup upgrade passed in isolated candidate.");
+  await databaseSql(container,database,"set role postgres; insert into auth.users(id,email,raw_user_meta_data) select gen_random_uuid(),email,jsonb_build_object('full_name','Clean test') from (values('admin@restaurante.local'),('caixa@restaurante.local'),('cozinha@restaurante.local'),('garcom@restaurante.local'),('garcom2@restaurante.local')) v(email);");
+  await databaseSql(container,database,"set role postgres;\n"+fs.readFileSync(path.join(ROOT,"supabase/seed.sql"),"utf8"));
+  const result=run(process.execPath,["scripts/local/sql-tests.mjs"],{capture:true,allowFailure:true,env:{SQL_TEST_DATABASE:database}});
+  if(result.status!==0)throw new Error(result.stdout.slice(-3000)+"\n"+result.stderr);
+  // A synthetic, non-migration DDL probe exists only in this disposable database.
+  await databaseSql(container,database,"alter table public.orders add column untracked_history_guard_probe integer;");
+  assert.equal((await verifyHistory(database,container)).ok,true);
+  await assert.rejects(()=>assertInstalledSchema(database,container),/schema differs/);
+  console.log("PASS: untracked DDL is refused even when version lists match.");
+  console.log(`CLEAN VALIDATION PASSED: ${files.length} officially tracked migrations, seed and all SQL suites/concurrency tests.`);
+} finally {
+  await dropIsolatedDatabase(container,database);
+  assertTemporary(recovery);run("docker",["exec",container,"dropdb","-U","postgres","--if-exists",recovery],{capture:true});
+  console.log("Removed isolated databases. Development was not reset or migrated.");
 }

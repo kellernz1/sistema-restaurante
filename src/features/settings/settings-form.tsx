@@ -12,6 +12,7 @@ import type { StoredRow } from "@/types/records";
 import { createClient } from "@/utils/supabase/client";
 
 import { PrintingSettings } from "@/features/printing/printing-settings";
+import { OperationsPanel } from "@/features/operations/operations-panel";
 import { CashPolicySettings } from "@/features/cash-sessions/policy-settings";
 import {ServiceSettings} from "@/features/service-modes/service-settings";
 import { PaymentSettings } from "@/features/payments/payment-settings";
@@ -22,6 +23,7 @@ import { customerApi } from "@/features/customer-ordering/public-client";
 const switches = { kitchen_auto_print_enabled: "Impressão automática na cozinha", is_accepting_orders: "Aceitar novos pedidos", pickup_enabled: "Permitir retirada", delivery_enabled: "Permitir entrega", dine_in_qr_enabled: "Permitir QR/NFC nas mesas", require_confirmation_for_qr: "Exigir confirmação do primeiro pedido QR/NFC", whatsapp_enabled: "Habilitar pedidos pelo WhatsApp" };
 const numbers = { min_delivery_order: "Pedido mínimo para entrega (PYG)", estimated_pickup_minutes: "Previsão de retirada (minutos)", estimated_delivery_minutes: "Previsão de entrega (minutos)", delivery_fee: "Taxa fixa de entrega (PYG)", delivery_distance_step_km: "Tamanho de cada faixa (km)", delivery_distance_step_fee: "Valor por faixa (PYG)" };
 const sections = [
+  { id: "backup", label: "Backup e serviços locais", description: "Proteção dos dados e recuperação", icon: Store },
   { id: "payments", label: "Pagamentos e câmbio", description: "Formas e cotação do real", icon: Store },
   { id: "counter", label: "Balcão e dia comercial", description: "Senhas, pagamento e espera", icon: Store },
   { id: "operations", label: "Atendimento", description: "Pedidos, retirada e mesas", icon: Store },
@@ -102,6 +104,7 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
       <section id="settings-content" className="order-panel settings-section-card" aria-labelledby={`settings-nav-${section}`}>
         <header className="settings-section-heading"><h2 ref={panelHeading} tabIndex={-1}>{t(selected.label)}</h2><p>{t(selected.description)}</p></header>
         {section === "payments" && <><PaymentSettings /><CashPolicySettings /></>}
+        {section === "backup" && <OperationsPanel editable/>}
         {section === "counter" && <>
           <label className="field-group">{t("Nome do restaurante")}<input className="order-input" maxLength={80} value={form.restaurant_name} disabled={busy} onChange={(event)=>setForm({...form,restaurant_name:event.target.value})} /></label>
           <label className="field-group">{t("Fuso do dia comercial")}<input className="order-input" value={form.business_timezone} disabled={busy} onChange={(event)=>setForm({...form,business_timezone:event.target.value})} /></label>
@@ -133,6 +136,6 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
         {section === "whatsapp" && <fieldset className="settings-fieldset"><legend>{t("Pedidos pelo WhatsApp")}</legend>{t(renderSwitch("whatsapp_enabled", t("Envie o link do cardápio para o cliente montar o pedido.")))}<div className="settings-context-note"><p>{t("Os pedidos recebidos pelo link aparecem na Central de pedidos.")}</p><p>{t("Para pausar todos os canais, use a opção Aceitar novos pedidos em Atendimento.")}</p></div></fieldset>}
       </section>
     </div>
-    <footer className="settings-save-bar"><div><strong>{t(dirty ? t("Alterações não salvas") : t("Configurações atualizadas"))}</strong><small>{t("Você pode trocar de seção antes de salvar. As alterações valem para novos pedidos.")}</small></div><button type="button" className="primary-button" disabled={busy || !dirty} onClick={() => void save()}>{t(busy ? t("Aguarde...") : t("Salvar alterações"))}</button></footer>
+    {section!=="backup"&&<footer className="settings-save-bar"><div><strong>{t(dirty ? t("Alterações não salvas") : t("Configurações atualizadas"))}</strong><small>{t("Você pode trocar de seção antes de salvar. As alterações valem para novos pedidos.")}</small></div><button type="button" className="primary-button" disabled={busy || !dirty} onClick={() => void save()}>{t(busy ? t("Aguarde...") : t("Salvar alterações"))}</button></footer>}
   </section>;
 }

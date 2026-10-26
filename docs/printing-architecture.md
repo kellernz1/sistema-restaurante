@@ -1,5 +1,9 @@
 # Printing architecture — block 4A
 
+## Bulk queue actions
+
+Recent jobs support checkbox selection and bulk reprint/admin archive of currently displayed filter results, not the complete history. Each job uses the existing authorized RPC separately, preserving document guards and idempotent request recovery in session storage. Processing/uncertain jobs cannot be bulk reprinted. Actions require confirmation, stop on the first failure and report the completed count; successful prior jobs are not rolled back. No automatic retry is performed. Archive never dispatches output. Physical printer compatibility remains unvalidated.
+
 Block 5 adds closed-session reports to the cashier destination, with the same browser/file-test drivers and 58/80 mm document engine. Report jobs enforce session ownership. See [cash sessions](cash-sessions.md).
 
 Current reliability rules: [printing-reliability.md](printing-reliability.md) supersedes the old marker/review behavior below with forwarded units versus copy counts, unified guards, audited decisions/admin archive, persisted browser requests, deadlines/heartbeat and clean-database acceptance.

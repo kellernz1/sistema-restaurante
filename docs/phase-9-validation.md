@@ -55,7 +55,7 @@ The four HTTP tests skip if `PUBLIC_TEST_URL` is unset. Pure tests cover phone n
 
 ## Manual setup
 
-Apply migration `202610220003_offsite_orders.sql` after the previous two, using the SQL Editor. Run `supabase/tests/offsite_orders_test.sql`, then the earlier regression scripts. Configure `.env.local` with real Supabase credentials and the public app URL. Regenerate database types after applying the migration using the command in `supabase-setup.md`. No provider account or new secret is required in this phase.
+This is historical phase acceptance. Current installation/update must use the official tracked CLI through `local:setup` / `local:update`, never SQL Editor migration application. Run `db:verify-history` and the isolated `db:validate-clean` suites, including `offsite_orders_test.sql`. Configure the environment and regenerate types through the current local setup guide. No provider account or new secret is required in this phase.
 
 ## Manual acceptance steps
 

@@ -3,6 +3,7 @@ import { ArrowLink, LineupCard } from "@/components/ui";
 import { createClient } from "@/utils/supabase/server";
 
 import { money } from "@/lib/money";
+import { OperationsPanel } from "@/features/operations/operations-panel";
 
 async function loadSummary() {
   const db = await createClient();
@@ -28,6 +29,7 @@ export default async function AdminDashboard() {
     { title: t("Faturamento do dia"), description: t("Pagamentos líquidos do dia comercial."), value: revenueError ? "—" : money.format(revenuePyg), tone: "lavender", href: "/cashier" },
   ];
   return <section className="dashboard-lineup">
+    <OperationsPanel/>
     <header className="section-heading"><div><span className="eyebrow">{t("Visão geral")}</span><h1>{t("Meu painel")}</h1><p>{t("Seu restaurante. Em um olhar.")}</p></div><ArrowLink href="/orders">{t("Ver todos os pedidos")}</ArrowLink></header>
     {(pending.error || preparing.error || ready.error || revenueError) && <p role="alert" className="table-notice table-notice-error">{t("Alguns indicadores estão indisponíveis. Atualize a página para tentar novamente.")}</p>}
     <div className="lineup-grid dashboard-metrics">{metrics.map((metric) => <LineupCard key={metric.title} tone={metric.tone}

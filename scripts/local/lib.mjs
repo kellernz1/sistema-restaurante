@@ -33,6 +33,8 @@ export function run(command, args, options = {}) {
     encoding: "utf8",
     stdio: options.capture ? "pipe" : "inherit",
     maxBuffer: 20 * 1024 * 1024,
+    timeout: options.timeout,
+    windowsHide: true,
   });
 
   if (result.error) throw result.error;
@@ -168,6 +170,7 @@ export async function pipeFileToProcess(file, command, args) {
       cwd: ROOT,
       stdio: [input, "inherit", "inherit"],
     });
+    fs.closeSync(input);
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`${command} exited with code ${code}.`)));
   });
@@ -180,6 +183,7 @@ export async function pipeProcessToFile(command, args, file) {
       cwd: ROOT,
       stdio: ["ignore", output, "inherit"],
     });
+    fs.closeSync(output);
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`${command} exited with code ${code}.`)));
   });
