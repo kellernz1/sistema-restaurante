@@ -92,12 +92,18 @@ async function incoming(job: Job) {
   const conversation = await db.from("whatsapp_conversations").select("*").eq("phone", job.phone).single();
   if (conversation.error) throw conversation.error;
   const row = conversation.data;
+  const entitlement=await db.rpc("license_public_status");if(entitlement.error)throw entitlement.error;
+  const license=entitlement.data as {whatsapp_enabled:boolean};
   const inbound=job.payload as {provider_recipient?:string;received_at?:string};
   if(inbound.provider_recipient && inbound.received_at){const updated=await db.rpc("remember_whatsapp_recipient",{p_phone:job.phone,p_recipient:inbound.provider_recipient,p_at:inbound.received_at});if(updated.error)throw updated.error;}
   const stored = row.context as unknown as Partial<Context>;
   const session: Session = { state: row.state, context: { ...stored, cart: stored.cart ?? [] }, needs_human: row.needs_human, opted_out: row.opted_out, last_message_at: row.last_message_at };
   const env = await environment(job.phone);
   const result = transitionToMenuLink(session, job.payload as unknown as Input, env);
+  if(!license.whatsapp_enabled&&!result.session.opted_out){
+    result.submit=false;result.session.needs_human=true;
+    result.replies=session.needs_human?[]:[{kind:"text",body:"Pedidos temporariamente indisponíveis. Fale com o atendimento. / Pedidos temporalmente no disponibles. Consulte al personal."}];
+  }
   const commit = async (order?: Json) => {
     result.replies.forEach(assertReply);
     await commitWhatsAppTurn(job.id, job.lease_token!, json({ ...result.session,

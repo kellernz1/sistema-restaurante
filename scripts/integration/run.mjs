@@ -6,6 +6,7 @@ import {spawn}from "node:child_process";
 import {randomBytes,randomInt}from "node:crypto";
 import {createClient}from "@supabase/supabase-js";
 import {ROOT,runSupabase,parseEnv,run,isWindows}from "../local/lib.mjs";
+import {seedTestLicense}from "../../tests/helpers/license-fixture.mjs";
 
 // No development environment file, database URL, build output or operations directory is reused.
 const id=randomBytes(12).toString("hex"),project=`mesa-it-${id}`;
@@ -83,16 +84,26 @@ token_refresh = 10000
  const status=parseEnv(checkedCli(["status","-o","env"]));
  if(interrupted||status.API_URL!==`http://127.0.0.1:${apiPort}`||new URL(status.DB_URL).port!==String(dbPort))throw Error("Temporary CLI target mismatch or interrupted setup");
  const env={INTEGRATION_RUN_DIR:directory,INTEGRATION_NONCE:marker.nonce,NEXT_PUBLIC_APP_URL:`http://127.0.0.1:${appPort}`,PUBLIC_TEST_URL:`http://127.0.0.1:${appPort}`,NEXT_PUBLIC_SUPABASE_URL:`http://127.0.0.1:${apiPort}`,NEXT_PUBLIC_SUPABASE_ANON_KEY:status.ANON_KEY,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:status.ANON_KEY,SUPABASE_SECRET_KEY:status.SERVICE_ROLE_KEY,SUPABASE_SERVICE_ROLE_KEY:status.SERVICE_ROLE_KEY,APP_MODE:"local",WHATSAPP_MOCK:"true",WHATSAPP_WORKER_SECRET:randomBytes(32).toString("hex"),WHATSAPP_APP_SECRET:randomBytes(32).toString("hex"),WHATSAPP_VERIFY_TOKEN:randomBytes(32).toString("hex"),WHATSAPP_PHONE_NUMBER_ID:"integration-local",CONTACT_HTTP_TEST:"true",DELIVERY_ROUTE_SMOKE:"true",DELIVERY_ROUTING_URL:`http://127.0.0.1:${base+4}`,DEMO_PASSWORD:"Integration@"+randomBytes(10).toString("hex")};
- env.WEBHOOK_TEST_SECRET=env.WHATSAPP_APP_SECRET;env.WEBHOOK_TEST_TOKEN=env.WHATSAPP_VERIFY_TOKEN;
+ env.WEBHOOK_TEST_SECRET=env.WHATSAPP_APP_SECRET;env.WEBHOOK_TEST_TOKEN=env.WHATSAPP_VERIFY_TOKEN;env.LICENSE_PUBLIC_KEY="";
  env.INTEGRATION_DB_PASSWORD=decodeURIComponent(new URL(status.DB_URL).password);
  if(!status.ANON_KEY||!status.SERVICE_ROLE_KEY)throw Error("Temporary API credentials unavailable");
  const sql=source=>command("docker",["exec","-i",container,"psql","-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1"],{input:source,log:"fixtures"});
- await sql(fs.readFileSync(path.join(ROOT,"supabase/seed.sql"),"utf8"));
  const service=createClient(env.NEXT_PUBLIC_SUPABASE_URL,env.SUPABASE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+ // Exercise the public empty-development command before installing any test fixtures.
+ await command(process.execPath,["scripts/local/setup.mjs","--no-demo","--ip","127.0.0.1"],{cwd:app,log:"empty-setup"});
+ const emptyUsers=await service.auth.admin.listUsers();
+ const emptyProducts=await service.from("products").select("id",{count:"exact",head:true});
+ if(emptyUsers.error||emptyUsers.data.users.length||emptyProducts.error||emptyProducts.count)throw Error("No-demo setup created Auth users or menu records");
+ if(parseEnv(fs.readFileSync(path.join(app,".env.local"),"utf8")).DEMO_PASSWORD)throw Error("No-demo setup created a demonstration password");
+ console.log("No-demo setup verified: zero Auth accounts, zero products, no demonstration password.");
+ await sql(fs.readFileSync(path.join(ROOT,"supabase/seed.sql"),"utf8"));
  for(const [name,role]of [["admin","admin"],["caixa","cashier"],["cozinha","kitchen"],["garcom","waiter"],["garcom2","waiter"]]){
   const r=await service.auth.admin.createUser({email:`${name}@restaurante.local`,password:env.DEMO_PASSWORD,email_confirm:true,user_metadata:{full_name:`Integration ${name}`}});if(r.error)throw r.error;
   const p=await service.from("profiles").update({role}).eq("id",r.data.user.id);if(p.error)throw p.error;
  }
+ marker.active=true;fs.writeFileSync(path.join(directory,"owner.json"),JSON.stringify(marker));
+ const priorEnvironment={INTEGRATION_RUN_DIR:process.env.INTEGRATION_RUN_DIR,INTEGRATION_NONCE:process.env.INTEGRATION_NONCE,NEXT_PUBLIC_APP_URL:process.env.NEXT_PUBLIC_APP_URL,PUBLIC_TEST_URL:process.env.PUBLIC_TEST_URL,NEXT_PUBLIC_SUPABASE_URL:process.env.NEXT_PUBLIC_SUPABASE_URL};
+ try{Object.assign(process.env,{INTEGRATION_RUN_DIR:directory,INTEGRATION_NONCE:marker.nonce,NEXT_PUBLIC_APP_URL:env.NEXT_PUBLIC_APP_URL,PUBLIC_TEST_URL:env.PUBLIC_TEST_URL,NEXT_PUBLIC_SUPABASE_URL:env.NEXT_PUBLIC_SUPABASE_URL});await seedTestLicense(container,"postgres");}finally{for(const[k,v]of Object.entries(priorEnvironment)){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
  await sql(`update public.service_policy set uses_waiter=true;update public.cash_session_policy set single_open_session=false;
  update public.products set price=price*1000;
  update public.restaurant_settings set is_accepting_orders=true,pickup_enabled=true,delivery_enabled=true,whatsapp_enabled=true,enabled_payment_methods=array['cash','transfer','card','pix']::public.payment_method[],delivery_fee_mode='distance',delivery_fee=6000,min_delivery_order=25000,delivery_distance_step_fee=6000,delivery_origin_latitude=-25.3,delivery_origin_longitude=-57.6;
@@ -115,6 +126,7 @@ token_refresh = 10000
  console.log("Running all HTTP/native suites against the disposable instance...");
  marker.active=true;fs.writeFileSync(path.join(directory,"owner.json"),JSON.stringify(marker));
  await command(process.execPath,["scripts/integration/smoke-worker.mjs"],{env,log:"tests"});
+ if(process.env.INTEGRATION_VISUAL==="true"){await command(process.execPath,["scripts/visual-smoke.mjs"],{env,log:"visual"});console.log(fs.readFileSync(path.join(logs,"visual.log"),"utf8").slice(-1800));}
  console.log(fs.readFileSync(path.join(logs,"tests.log"),"utf8").slice(-3500));result="passed";
 }finally{
  marker.active=false;fs.writeFileSync(path.join(directory,"owner.json"),JSON.stringify(marker));

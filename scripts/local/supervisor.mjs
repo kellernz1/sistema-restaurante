@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { ROOT, LOCAL_STATE_DIR, loadEnvFile, isProcessRunning } from "./lib.mjs";
+import { ROOT, LOCAL_STATE_DIR, loadEnvFile, isProcessRunning , findDbContainer } from "./lib.mjs";
 import { atomicJson, operationsDirectory, readOperationsPolicy, readOperationsState, patchOperationsState } from "../../src/lib/operations.ts";
 import { command, logLine } from "./operations-process.mjs";
 import { RestartBudget, backupReason } from "./restart-budget.mjs";
@@ -20,6 +20,7 @@ const definitions = {
   app: ["scripts/next-command.mjs","start","-H","0.0.0.0"],
   worker: ["scripts/whatsapp-worker.mjs"],
   printWorker: ["scripts/print-worker.mjs"],
+  licenseWorker: ["scripts/license-worker.mjs"],
 };
 let stopping = false, backup = null, lastBackupAttempt = 0, lastProbe = 0;
 const startedAt=new Date().toISOString();
@@ -67,7 +68,7 @@ const timer=setInterval(async()=>{
       const response=await fetch(new URL("/api/health",env.NEXT_PUBLIC_APP_URL),{signal:AbortSignal.timeout(8000)});
       if(response.ok)failures.delete("app-health");else failures.add("app-health");
       if(policy.after_cash_close){
-        const latest=(await command("docker",["exec","supabase_db_sistema-restaurante","psql","-X","-U","postgres","-d","postgres","-Atc","select max(created_at) from public.cash_session_events where action='close'"],{timeout:10000})).trim();
+        const latest=(await command("docker",["exec",findDbContainer(),"psql","-X","-U","postgres","-d","postgres","-Atc","select max(created_at) from public.cash_session_events where action='close'"],{timeout:10000})).trim();
         const closeDue=backupReason(state,policy,lastBackupAttempt,latest);
         if(closeDue)runBackup(closeDue);
       }

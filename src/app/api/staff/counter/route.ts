@@ -1,4 +1,5 @@
 import { counterRequestSchema } from "@/features/counter/validation";
+import {licensingError}from "@/lib/licensing";
 import { requireStaff } from "@/lib/staff-api";
 import { PublicApiError, publicError, publicJson, readPublicBody } from "@/lib/public-table-api";
 export async function POST(request: Request) {
@@ -7,6 +8,7 @@ export async function POST(request: Request) {
     const input = counterRequestSchema.safeParse(await readPublicBody(request));
     if (!input.success) throw new PublicApiError(400, "Confira o nome, os itens e os pagamentos.");
     const { data, error } = await db.rpc("create_counter_order", { p_request_id: input.data.request_id, p_payload: input.data.payload, p_lines: input.data.lines });
+    if(licensingError(error))throw licensingError(error);
     if (error?.message.includes("Open cash session required")) throw new PublicApiError(409,"Abra o caixa antes de registrar pagamentos.");
     if (error) {
       if(!/^[0-9A-Z]{5}$/.test(error.code??""))throw error;

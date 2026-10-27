@@ -31,7 +31,9 @@ if (docker.status !== 0) throw new Error("Docker Desktop is installed but its en
 console.log(`Node ${process.versions.node}`);
 console.log(`Supabase CLI ${SUPABASE_CLI_VERSION} (pinned by local scripts)`);
 runSupabase(["--version"]);
-runSupabase(["start"],{capture:true,timeout:300000});
+const demo=process.argv.includes("--demo");
+if(demo&&process.argv.includes("--no-demo"))throw new Error("Choose --demo or --no-demo, not both");
+runSupabase(["start"],{capture:true,timeout:300000,env:{SUPABASE_DB_SEED_ENABLED:demo?"true":"false"}});
 
 ensureDirectory(LOCAL_STATE_DIR);
 const markerFile = path.join(LOCAL_STATE_DIR, "setup.json");
@@ -44,13 +46,10 @@ if(!(await verifyHistory()).ok)throw new Error("Setup history does not match mig
 fs.writeFileSync(markerFile, JSON.stringify({ databaseInitializedAt: new Date().toISOString() }, null, 2));
 
 const ipArgumentIndex = process.argv.indexOf("--ip");
-const env = generateLocalEnv({ ip: ipArgumentIndex >= 0 ? process.argv[ipArgumentIndex + 1] : undefined });
-const noDemo = process.argv.includes("--no-demo");
-if (noDemo) {
-  run(process.execPath, [path.join(ROOT, "scripts", "seed-demo.mjs"), "--staff-only"], { env });
-} else {
+const env = generateLocalEnv({ ip: ipArgumentIndex >= 0 ? process.argv[ipArgumentIndex + 1] : undefined,demo });
+if (demo) {
   run(process.execPath, [path.join(ROOT, "scripts", "seed-demo.mjs")], { env });
 }
 
 await printLocalInfo();
-console.log("\nSetup complete. Run `npm run local:start` to start the production app and worker.");
+console.log(demo?"\nDEMONSTRATION setup complete. Credentials are available only in .env.local.":"\nEmpty development setup complete: no demo accounts or menu created. Use local:provision for a restaurant.");

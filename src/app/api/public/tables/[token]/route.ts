@@ -1,5 +1,6 @@
 import { publicLimit, publicJson, publicError, resolvePublicTable, type PublicTableContext } from "@/lib/public-table-api";
 import { createAdminClient } from "@/utils/supabase/admin";
+import {publicLicense}from "@/lib/licensing";
 
 export async function GET(request: Request, context: PublicTableContext) {
   try {
@@ -15,6 +16,7 @@ export async function GET(request: Request, context: PublicTableContext) {
     const policy=await db.from("service_policy").select("qr_phone").single();
     const restaurant=await db.from("restaurant_settings").select("restaurant_name,default_phone_country").single();
     if(policy.error||restaurant.error)throw policy.error||restaurant.error;
-    return publicJson({table_number:table.table_number,accepting:settings.is_accepting_orders&&table.status!=="closing",restaurant_name:restaurant.data.restaurant_name,phone_mode:policy.data.qr_phone,default_phone_country:restaurant.data.default_phone_country,products:products.data,categories:categories.data});
+    const license=await publicLicense();
+    return publicJson({table_number:table.table_number,accepting:settings.is_accepting_orders&&table.status!=="closing"&&license.orders_enabled,ordering_notice:license.orders_enabled?null:"Pedidos temporariamente indisponíveis. Fale com o atendimento.",restaurant_name:restaurant.data.restaurant_name,phone_mode:policy.data.qr_phone,default_phone_country:restaurant.data.default_phone_country,products:products.data,categories:categories.data});
   } catch (error) { return publicError(error); }
 }

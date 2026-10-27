@@ -6,11 +6,15 @@ import { command, waitFor } from "./operations-process.mjs";
 import { verifyHistory, localMigrations } from "./migration-history.mjs";
 import { assertInstalledSchema } from "./audit-history.mjs";
 import { patchOperationsState } from "../../src/lib/operations.ts";
+import { publicKeyConfiguration } from "../../src/features/licensing/validation.ts";
 
 const stateFile=path.join(LOCAL_STATE_DIR,"processes.json");
 const state=fs.existsSync(stateFile)?JSON.parse(fs.readFileSync(stateFile,"utf8")):{};
 const dryRun=process.argv.includes("--dry-run");
-if(!dryRun&&[state.supervisor,state.app,state.worker,state.printWorker].some(isProcessRunning))throw new Error("Stop app, supervisor and workers before updating.");
+const keyState=publicKeyConfiguration(loadEnvFile().LICENSE_PUBLIC_KEY);
+if(keyState==="invalid")throw new Error("LICENSE_PUBLIC_KEY must contain exactly 64 hexadecimal characters. No environment value was logged.");
+if(keyState==="missing")console.warn("LICENSE_PUBLIC_KEY is missing or empty; first license import requires configuring the public key.");
+if(!dryRun&&[state.supervisor,state.app,state.worker,state.printWorker,state.licenseWorker].some(isProcessRunning))throw new Error("Stop app, supervisor and workers before updating.");
 await waitFor(()=>command("docker",["info","--format","{{.ServerVersion}}"],{timeout:10000}),"Docker Desktop");
 runSupabase(["start"],{timeout:300000,capture:true});
 console.log("Supabase ready; connection secrets are not logged.");

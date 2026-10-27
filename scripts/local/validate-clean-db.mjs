@@ -8,6 +8,7 @@ import { createIsolatedDatabase, dropIsolatedDatabase, databaseSql } from "./iso
 import { migrateIsolated, localMigrations, verifyHistory } from "./migration-history.mjs";
 import { assertInstalledSchema } from "./audit-history.mjs";
 import assert from "node:assert/strict";
+import {seedTestLicense}from "../../tests/helpers/license-fixture.mjs";
 
 const database=`mesa_clean_${randomBytes(12).toString("hex")}`,container=findDbContainer(),recovery=temporaryDatabase("restore");
 try {
@@ -23,6 +24,7 @@ try {
   console.log("Official CLI applied/tracked all migrations; older-backup upgrade passed in isolated candidate.");
   await databaseSql(container,database,"set role postgres; insert into auth.users(id,email,raw_user_meta_data) select gen_random_uuid(),email,jsonb_build_object('full_name','Clean test') from (values('admin@restaurante.local'),('caixa@restaurante.local'),('cozinha@restaurante.local'),('garcom@restaurante.local'),('garcom2@restaurante.local')) v(email);");
   await databaseSql(container,database,"set role postgres;\n"+fs.readFileSync(path.join(ROOT,"supabase/seed.sql"),"utf8"));
+  await seedTestLicense(container,database);
   const result=run(process.execPath,["scripts/local/sql-tests.mjs"],{capture:true,allowFailure:true,env:{SQL_TEST_DATABASE:database}});
   if(result.status!==0)throw new Error(result.stdout.slice(-3000)+"\n"+result.stderr);
   // A synthetic, non-migration DDL probe exists only in this disposable database.

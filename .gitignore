@@ -10,7 +10,40 @@
 
 # local environment variables
 .env*
+*.env
+*.env.*
 !.env.example
+
+# Signing keys, credentials and issued licenses (including nested owner copies)
+*.pem
+*.pem.*
+*.pem~
+*.key
+*.key.*
+*.key~
+*.p12
+*.pfx
+*.jks
+id_rsa*
+id_ed25519*
+private*.json
+*-private.json
+*_private.json
+private-key*
+private_key*
+*.license
+*.license.*
+*.lic
+license-*.txt
+*-license.txt
+issued-licenses/
+license-registry*.json
+registry.json
+registry.json.*
+**/licensing/registry*.json
+**/licensing/registry*.json.*
+**/LicenseVault/
+**/license-vault/
 
 # debug logs
 logs/

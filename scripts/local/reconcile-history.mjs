@@ -15,7 +15,7 @@ const root=path.join(ROOT,"artifacts","migration-history");if(!directory.startsW
 if(!report.identical_schema||report.differences.length||report.history.orphaned.length||report.history.renamed.length)throw new Error("Only an identical, unambiguous schema can be reconciled");
 const processes=path.join(LOCAL_STATE_DIR,"processes.json");
 const state=fs.existsSync(processes)?JSON.parse(fs.readFileSync(processes,"utf8")):{};
-if([state.supervisor,state.app,state.worker,state.printWorker].some(isProcessRunning))throw new Error("App/supervisor/workers must remain stopped");
+if([state.supervisor,state.app,state.worker,state.printWorker,state.licenseWorker].some(isProcessRunning))throw new Error("App/supervisor/workers must remain stopped");
 for(const file of report.files){if(path.basename(file.file)!==file.file)throw new Error("Unsafe migration filename");const digest=createHash("sha256").update(fs.readFileSync(path.join(ROOT,"supabase/migrations",file.file))).digest("hex");assert.equal(digest,file.sha256,"Migration changed after audit");}
 const container=findDbContainer(),clean=JSON.parse(fs.readFileSync(path.join(directory,"clean.json"),"utf8"));
 assert.deepEqual(schemaDifferences(clean,await snapshot(container,"postgres")),[],"Development schema changed after audit");

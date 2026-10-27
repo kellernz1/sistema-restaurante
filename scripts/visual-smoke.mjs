@@ -6,6 +6,7 @@ import {createServerClient} from "@supabase/ssr";
 import {loadEnvFile} from "./local/lib.mjs";
 import {textProblems} from "./check-text.mjs";
 import {money} from "../src/lib/money.ts";
+import {licenseErrors} from "../src/features/licensing/validation.ts";
 
 const env={...loadEnvFile(),...process.env};
 const base=env.PUBLIC_TEST_URL||env.NEXT_PUBLIC_APP_URL;
@@ -25,12 +26,55 @@ try{
  for(const locale of ["pt-BR","es"])for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
   const context=await browser.newContext({viewport,colorScheme:env.VISUAL_THEME==="dark"?"dark":"light"});
   await context.addCookies([...jar].map(([name,value])=>({name,value,url:base})).concat({name:"restaurant-locale",value:locale,url:base}));
-  for(const route of ["/cashier","/cashier/sessions","/cashier/counter","/orders","/kitchen","/admin","/admin/settings","/admin/settings/employees","/admin/settings/security","/admin/audit","/supervisor","/admin/reports","/order",`/t/${table.data.qr_token}`]){
-   const page=await context.newPage();const errors=[];
-   page.on("pageerror",e=>errors.push(e.message));page.on("console",message=>{if(message.type()==="error")errors.push(`${message.text()} (${message.location().url})`);});
+  for(const route of ["/cashier","/cashier/sessions","/cashier/counter","/orders","/kitchen","/admin","/admin/settings","/admin/settings/employees","/admin/settings/security","/admin/settings/license","/admin/audit","/supervisor","/admin/reports","/order",`/t/${table.data.qr_token}`]){
+   const page=await context.newPage();const errors=[];let expectedLicenseFailures=0;
+   page.on("pageerror",e=>errors.push(e.message));page.on("console",message=>{
+     if(message.type()!=="error")return;
+     // Each deliberately mocked import rejection emits Chromium's HTTP 400 notice.
+     // Exempt only that exact resource/status and consume one explicit mock budget.
+     if(expectedLicenseFailures>0&&message.location().url===base+"/api/staff/license"&&/^Failed to load resource:.*status of 400 \(Bad Request\)$/.test(message.text())){expectedLicenseFailures--;return;}
+     errors.push(`${message.text()} (${message.location().url})`);
+   });
    const name=`${locale}-${viewport.width}-${route.slice(1).replaceAll("/","-")}`;
    try{
+    let visualLicense;
+    if(route==="/admin/settings/license"){
+      visualLicense={installation_id:"11111111-1111-4111-8111-111111111111",state:"active",plan:"pilot",expires_at:new Date(Date.now()+30*86400000).toISOString(),grace_until:new Date(Date.now()+37*86400000).toISOString(),days_remaining:30,last_online_at:new Date().toISOString(),key_configured:true,renewal_url:"https://license.example/v1/renew",renewal_interval_days:7,features:["delivery","whatsapp"]};
+      await page.route("**/api/staff/license",request=>{
+        if(request.request().method()==="POST"){
+          assert.equal(request.request().postDataJSON().command,"import","Visual acceptance must never renew or configure real licenses");
+          expectedLicenseFailures++;
+          return request.fulfill({status:400,json:{error:visualLicense.import_error??licenseErrors.signature}});
+        }
+        return request.fulfill({json:visualLicense});
+      });
+    }
     const response=await page.goto(base+route,{waitUntil:"networkidle",timeout:30000});assert.ok(response?.ok(),`HTTP ${response?.status()}`);assert.equal(new URL(page.url()).pathname,route,"Unexpected redirect");
+    if(visualLicense){
+      const label=value=>locale==="es"?translations[value]??value:value;
+      for(const[state,remaining,warning]of [["active",30,null],["expiring",7,7],["expiring",3,3],["grace",-1,null],["restricted",-9,null]]){
+        Object.assign(visualLicense,{state,days_remaining:remaining,warning_days:warning,clock_suspect:state==="restricted",requires_online:state==="restricted"});
+        await page.reload({waitUntil:"networkidle"});await page.locator(".license-panel h2").filter({hasText:label(({active:"Ativa",expiring:"A vencer",grace:"Em tolerância",restricted:"Restrita"})[state])}).waitFor();
+        assert.deepEqual(textProblems(await page.locator(".license-panel").innerText()),[]);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1));
+        await page.screenshot({path:path.join(output,name+`-${state}-${remaining}.png`),fullPage:true});
+      }
+      const panel=page.locator(".license-import"),button=panel.getByRole("button",{name:label("Importar licença"),exact:true});
+      await panel.locator("textarea").fill("invalid");await button.click();
+      await panel.getByRole("alert").filter({hasText:label(licenseErrors.format)}).waitFor();
+      await panel.locator('input[type="file"]').setInputFiles({name:"empty.license",mimeType:"text/plain",buffer:Buffer.alloc(0)});
+      await panel.getByRole("alert").filter({hasText:label(licenseErrors.emptyFile)}).waitFor();
+      for(const [cause,message]of Object.entries({signature:licenseErrors.signature,installation:licenseErrors.installation,older:licenseErrors.older,missingKey:licenseErrors.missingKey,invalidKey:licenseErrors.invalidKey})){
+        visualLicense.import_error=message;await panel.locator("textarea").fill("e30."+"a".repeat(86));await button.click();
+        const alert=panel.getByRole("alert");await alert.filter({hasText:label(message)}).waitFor();
+        const a=await alert.boundingBox(),b=await button.boundingBox();assert.ok(a&&b&&Math.abs(b.y-(a.y+a.height))<80,"Import error must be next to its button");
+        await panel.screenshot({path:path.join(output,name+`-import-${cause}.png`)});
+      }
+      for(const environment of ["missing","invalid"]){
+        visualLicense.public_key_environment=environment;await page.reload({waitUntil:"networkidle"});
+        await page.locator(".license-panel").getByText(label(environment==="missing"?licenseErrors.keyEmpty:licenseErrors.invalidKey),{exact:true}).waitFor();
+        await page.screenshot({path:path.join(output,name+`-key-${environment}.png`),fullPage:true});
+      }
+    }
     if(route==="/orders"){
       const card=page.locator(".hub-card").filter({hasNot:page.locator(".hub-status-cancelled")}).first();assert.ok(await card.count(),"Refund visual acceptance requires one existing non-cancelled order");
       const label=value=>locale==="es"?translations[value]??value:value;

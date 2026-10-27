@@ -12,8 +12,10 @@ import {runServiceConcurrencyTest} from "./service-concurrency-test.mjs";
 import {runApprovalConcurrencyTest} from "./approval-concurrency-test.mjs";
 import {runCounterDiscountConcurrencyTest} from "./counter-discount-concurrency-test.mjs";
 import {runRefundConcurrencyTest} from "./refund-concurrency-test.mjs";
+import {licensingSql}from "../../tests/helpers/license-fixture.mjs";
 
 const testFiles = [
+  "licensing_test.sql",
   "refunds_test.sql",
   "pin_feedback_test.sql",
   "counter_discounts_test.sql",
@@ -42,6 +44,7 @@ export async function runSqlTests() {
   for (const file of testFiles) {
     const source = path.join(ROOT, "supabase", "tests", file);
     if (!fs.existsSync(source)) throw new Error(`Missing SQL test: ${file}`);
+    if(file==="licensing_test.sql"){await licensingSql(container,sqlTestDatabase(),fs.readFileSync(source,"utf8"));console.log("Licensing SQL passed.");continue;}
     console.log(`Running SQL test ${file}...`);
     if (file === "counter_concurrency_test.sql") { await runCounterConcurrencyTest(); continue; }
     await pipeFileToProcess(

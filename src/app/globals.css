@@ -1157,3 +1157,4 @@ textarea.order-input { resize: vertical; min-height: 74px; }
   .hub-ticket p { color: black; }
   .hub-ticket .sent-items li { break-inside: avoid; }
 }
+.license-banner{margin:18px auto;padding:18px 24px;width:min(1180px,calc(100% - 32px));box-sizing:border-box;border-radius:20px;background:var(--surface-soft);display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;line-height:1.5;overflow-wrap:anywhere}.license-banner a{color:var(--accent,#0071e3);font-weight:600}.license-grace,.license-restricted{border:1px solid #e5862380;background:color-mix(in srgb,#e58623 10%,var(--surface));}.license-restricted{border-color:#ff453a80}

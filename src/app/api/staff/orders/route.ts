@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       const order = await createCashierOrder(userId, input.data.request_id, input.data.payload);
       return publicJson({ order_id: order.id, order_number: order.order_number, total_amount: order.total_amount }, 201);
     } catch (failure) {
+      if(failure instanceof PublicApiError)throw failure;
       const code = typeof failure === "object" && failure !== null && "code" in failure ? String(failure.code) : "";
       if (/^(22|23|42|P0)/.test(code)) {
         throw new PublicApiError(409, "Não foi possível lançar o pedido. Confira a mesa, disponibilidade dos produtos, mínimo de entrega e troco.");

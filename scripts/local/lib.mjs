@@ -6,6 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {integrationContext}from "../integration/context.mjs";
+import {providerMetadata,providerCompose,readProviderSecrets,prepareProviderCli} from "./restaurant-provider.mjs";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const LOCAL_STATE_DIR = path.join(ROOT, ".local-secrets");
@@ -29,7 +30,7 @@ export function run(command, args, options = {}) {
     command = process.execPath;
   }
   const result = spawnSync(command, args, {
-    cwd: ROOT,
+    cwd: options.cwd ?? ROOT,
     env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1", ...options.env },
     encoding: "utf8",
     stdio: options.capture ? "pipe" : "inherit",
@@ -47,6 +48,28 @@ export function run(command, args, options = {}) {
 }
 
 export function runSupabase(args, options = {}) {
+  const workIndex=args.indexOf("--workdir");
+  const root=workIndex>=0?path.resolve(args[workIndex+1]):ROOT;
+  const provider=providerMetadata(root);
+  if(provider){
+    if(args[0]==="start"||args[0]==="stop"){
+      const result=providerCompose(root,args[0]==="start"?["up","-d"]:["stop"],{timeout:options.timeout});
+      if(!options.capture)console.log("Restaurant provider "+args[0]+" completed; secrets suppressed.");
+      return {...result,stdout:"Restaurant provider ready\n",stderr:""};
+    }
+    const secrets=readProviderSecrets(root);
+    if(args[0]==="status"){
+      const values={API_URL:provider.apiUrl,DB_URL:`postgresql://postgres@127.0.0.1:${provider.dbPort}/postgres`,PUBLISHABLE_KEY:secrets.SUPABASE_PUBLISHABLE_KEY,SECRET_KEY:secrets.SUPABASE_SECRET_KEY,ANON_KEY:secrets.ANON_KEY,SERVICE_ROLE_KEY:secrets.SERVICE_ROLE_KEY};
+      return {status:0,stdout:options.capture?Object.entries(values).map(([k,v])=>k+"="+v).join("\n"):"Restaurant provider configured; credentials suppressed.\n",stderr:""};
+    }
+    const transformed=args.filter((a,i)=>a!=="--local"&&a!=="--workdir"&&args[i-1]!=="--workdir");
+    transformed.push("--workdir",prepareProviderCli(root));
+    if(args.includes("--local"))transformed.push("--db-url",`postgresql://postgres@127.0.0.1:${provider.dbPort}/postgres?sslmode=disable`);
+    const result=run(executable("npx"),["--yes",`supabase@${SUPABASE_CLI_VERSION}`,...transformed],{...options,capture:true,allowFailure:true,env:{...options.env,PGPASSWORD:secrets.POSTGRES_PASSWORD}});
+    if(result.status!==0&&!options.allowFailure)throw new Error("Official provider CLI command failed; output suppressed to protect credentials");
+    if(!options.capture)console.log("Official provider CLI command completed; secrets suppressed.");
+    return result;
+  }
   return run(
     executable("npx"),
     ["--yes", `supabase@${SUPABASE_CLI_VERSION}`, ...args],
@@ -132,6 +155,11 @@ export function findDbContainer() {
   );
   const names = result.stdout.split(/\r?\n/).filter((name) => name.startsWith("supabase_db_"));
   if(integration){const owned=`supabase_db_${integration.project}`;if(!names.includes(owned))throw new Error("Owned integration database unavailable");return owned;}
+  const provider=providerMetadata(ROOT);
+  if(provider){const owned=`supabase_db_${provider.project}`;if(!names.includes(owned))throw new Error("Restaurant provider database unavailable");return owned;}
+  const configFile=path.join(ROOT,"supabase/config.toml");
+  const configured=fs.existsSync(configFile)?fs.readFileSync(configFile,"utf8").match(/^project_id\s*=\s*"([A-Za-z0-9_-]+)"/m)?.[1]:null;
+  if(configured){const owned=`supabase_db_${configured}`;if(!names.includes(owned))throw new Error("Configured local database unavailable");return owned;}
   const exact = names.find((name) => name === "supabase_db_sistema-restaurante");
   if (exact) return exact;
   if (names.length === 1) return names[0];

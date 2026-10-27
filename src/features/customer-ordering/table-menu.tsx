@@ -11,7 +11,7 @@ import {PhoneInput} from "@/components/phone-input";
 import type {PhoneCountry} from "@/lib/phone";
 
 import { ProductCatalog, CartEditor, cartSubtotal, money, type CatalogProduct as Product, type CartLine } from "./menu-cart";
-type Menu = { table_number: number; restaurant_name: string; accepting: boolean;phone_mode:"required"|"optional"|"off";default_phone_country:PhoneCountry; products: Product[]; categories: { id: string; name: string }[] };
+type Menu = { ordering_notice?:string|null; table_number: number; restaurant_name: string; accepting: boolean;phone_mode:"required"|"optional"|"off";default_phone_country:PhoneCountry; products: Product[]; categories: { id: string; name: string }[] };
 type Tracking = { order_number: number; status: string;reason?:string|null;actor_kind?:string|null; items: { id: string; quantity: number; status: string; products: { name: string } | null }[] };
 const labels: Record<string, string> = { pending_confirmation: "Aguardando confirmação do atendente", open: "Pedido confirmado", ready: "Pedido pronto", closed: "Atendimento concluído", cancelled: "Pedido não confirmado. Chame o atendente.", pending: "Recebido", preparing: "Preparando", delivered: "Entregue" };
 
@@ -127,7 +127,7 @@ export function TableMenu({ token, source }: { token: string; source: "qr" | "nf
     {uncertain&&<button className="primary-button" disabled={busy} onClick={()=>void send("order")}>{t("Consultar envio")}</button>}
     <button className="ghost-button" disabled={loading || busy} onClick={() => void loadMenu()}>{t("Atualizar cardápio")}</button>
     {menu && !fatal && <>
-      {!menu.accepting && <p className="table-notice table-notice-info">{t("No momento esta mesa não está recebendo novos pedidos. Fale com o atendente.")}</p>}
+      {!menu.accepting && <p className="table-notice table-notice-info">{t(menu.ordering_notice??"No momento esta mesa não está recebendo novos pedidos. Fale com o atendente.")}</p>}
       <div className="customer-service"><button className="ghost-button" disabled={busy} onClick={() => void send("waiter")}>{t("Chamar atendente")}</button><button className="ghost-button" disabled={busy} onClick={() => void send("bill")}>{t("Pedir a conta")}</button></div>
       <div className="table-menu-catalog"><ProductCatalog pageSize={6} categoryPages products={menu.products} categories={menu.categories} disabled={disabled} cartCount={cart.length} onAdd={(product) => setCart((lines) => [...lines, { id: uuid(), product, quantity: 1, notes: "" }])} />
       </div>

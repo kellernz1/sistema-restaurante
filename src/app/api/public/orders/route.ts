@@ -12,7 +12,8 @@ export async function POST(request: Request) {
     try {
       const order = await createCustomerOrder({ ...parsed.data, source: "web" });
       return publicJson({ order_number: order.order_number, tracking_path: `/track/${order.public_token}` }, 201);
-    } catch {
+    } catch(error) {
+      if(error instanceof PublicApiError)throw error;
       throw new PublicApiError(409, "Não foi possível confirmar o envio. Confira se o restaurante está aberto, os produtos, o valor mínimo e o troco. Antes de reenviar após falha de conexão, consulte o restaurante.");
     }
   } catch (error) { return publicError(error); }

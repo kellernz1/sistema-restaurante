@@ -43,7 +43,11 @@
     "test:whatsapp": "vitest run",
     "check:text": "node scripts/check-text.mjs",
     "test:visual": "node scripts/visual-smoke.mjs",
-    "test:integration": "node scripts/integration/run.mjs"
+    "test:integration": "node scripts/integration/run.mjs",
+    "local:provision": "node scripts/local/provision.mjs",
+    "local:preflight": "node scripts/local/preflight.mjs",
+    "local:setup:demo": "node scripts/local/setup.mjs --demo",
+    "test:provision": "node scripts/local/test-provision.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

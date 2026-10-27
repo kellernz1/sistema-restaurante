@@ -1,0 +1,3 @@
+export type LicenseStatus={public_key_environment?:PublicKeyEnvironment;installation_id:string;state:"active"|"expiring"|"grace"|"restricted";plan:string|null;restaurant:string|null;expires_at:string|null;grace_until:string|null;days_remaining:number|null;warning_days:3|7|null;last_online_at:string|null;last_attempt_at:string|null;key_configured:boolean;pending_restriction:boolean;clock_suspect:boolean;requires_online:boolean;orders_enabled:boolean;delivery_enabled:boolean;whatsapp_enabled:boolean;features:string[];renewal_url?:string|null;renewal_interval_days?:number};
+export const licenseLabels={active:"Ativa",expiring:"A vencer",grace:"Em tolerância",restricted:"Restrita"};
+export type PublicKeyEnvironment = "missing" | "invalid" | "valid";

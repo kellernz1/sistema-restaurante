@@ -1,5 +1,6 @@
 import { publicError, publicJson, publicQuota } from "@/lib/public-table-api";
 import { createAdminClient } from "@/utils/supabase/admin";
+import {publicLicense}from "@/lib/licensing";
 
 export async function GET(request: Request) {
   try {
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
     if (settings.error || products.error || categories.error) throw settings.error ?? products.error ?? categories.error;
     const configuration = await db.rpc("payment_configuration");
     if (configuration.error) throw configuration.error;
-    return publicJson({ payment_configuration: configuration.data, settings: settings.data, products: products.data, categories: categories.data });
+    const license=await publicLicense();
+    return publicJson({ payment_configuration: configuration.data,settings:{...settings.data,is_accepting_orders:settings.data.is_accepting_orders&&license.orders_enabled,delivery_enabled:settings.data.delivery_enabled&&license.delivery_enabled},products:products.data,categories:categories.data,ordering_notice:license.orders_enabled?null:"Pedidos temporariamente indisponíveis. Fale com o atendimento." });
   } catch (error) { return publicError(error); }
 }

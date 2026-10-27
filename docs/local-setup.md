@@ -13,7 +13,11 @@ Instale no computador:
 
 O primeiro preparo baixa as imagens do Supabase e, portanto, precisa de internet. Depois que as imagens, pacotes e o código estiverem presentes, a operação diária é local. O projeto fixa a versão `2.121.0` da CLI do Supabase e a executa com `npx`, sem instalação global.
 
-## Primeira instalação
+## Development setup (restaurant installation uses local:provision)
+
+For real deployment follow [restaurant-provisioning.md](restaurant-provisioning.md)
+and [operations.md](operations.md). These setup commands use development provider
+credentials and do not constitute restaurant provisioning.
 
 Abra um terminal na pasta do projeto e execute, nesta ordem:
 
@@ -24,7 +28,9 @@ npm run local:update
 npm run local:start
 ```
 
-`local:setup` inicia o Supabase, aplica todas as migrations e o seed base, cria `.env.local`, as contas da equipe e os dados demonstrativos. Na primeira execução, aceite no firewall apenas as portas indicadas na seção de rede. O comando é idempotente: em uma nova execução ele não apaga o banco. Para escolher manualmente o IP, use:
+`local:setup` starts an empty development stack, applies officially tracked
+migrations and creates `.env.local`, without creating staff/menu records.
+It does not delete existing data. Choose the IP explicitly when needed:
 
 As migrações são aplicadas e registradas pela CLI oficial; o setup não executa reset nem aceita `--reset`. Atualizações usam `local:update`; consulte primeiro `local:update -- --dry-run` e `db:verify-history`. Nunca cole arquivos de migração no SQL Editor/psql. Havendo divergência, siga [migration-history.md](migration-history.md).
 
@@ -32,7 +38,10 @@ As migrações são aplicadas e registradas pela CLI oficial; o setup não execu
 npm run local:setup -- --ip 192.168.1.50
 ```
 
-Use `npm run local:setup -- --no-demo` para criar apenas as contas da equipe. O padrão é instalar a demonstração completa. Ao terminar, `npm run local:info` mostra endereços, contas e todos os links QR.
+`local:setup -- --no-demo` has the same empty behavior. Demonstrations require
+`npm run local:setup:demo` (explicit `--demo`), with marked records and a random
+password in ignored local configuration. `local:info` omits credentials and QR
+tokens; view the QR links in the admin screen.
 
 ## Rotina diária
 

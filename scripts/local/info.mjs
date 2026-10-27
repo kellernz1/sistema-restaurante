@@ -1,4 +1,6 @@
 import { isMain, loadEnvFile } from "./lib.mjs";
+import {providerMetadata} from "./restaurant-provider.mjs";
+import {ROOT} from "./lib.mjs";
 
 const accounts = [
   ["Administrador", "admin@restaurante.local", "/admin"],
@@ -18,14 +20,16 @@ export async function printLocalInfo() {
   console.log(`LAN IP: ${env.LOCAL_LAN_IP || new URL(appUrl).hostname}`);
   console.log(`App: ${appUrl}`);
   console.log(`Supabase API: ${apiUrl}`);
-  console.log("Studio (this computer only): http://127.0.0.1:54323");
+  console.log(providerMetadata(ROOT)?"Studio disabled in the restaurant profile.":"Development Studio: http://127.0.0.1:54323");
   console.log(`Public ordering: ${appUrl}/order`);
-  console.log(`WhatsApp simulator: ${appUrl}/dev/whatsapp`);
-  console.log("\nStaff accounts:");
-  for (const [role, email, route] of accounts) {
-    console.log(`- ${role}: ${email} -> ${appUrl}${route}`);
+  if(env.WHATSAPP_MOCK==="true")console.log(`WhatsApp simulator: ${appUrl}/dev/whatsapp`);
+  if(env.DEMO_PASSWORD){
+    console.log("\nDemonstration staff accounts:");
+    for (const [role, email, route] of accounts)console.log(`- ${role}: ${email} -> ${appUrl}${route}`);
+  }else{
+    console.log("Use the administrator created during provisioning; manage staff in Settings.");
   }
-  console.log(`Password: ${env.DEMO_PASSWORD || "Demo@12345"}`);
+  console.log("Credentials are omitted. Read the protected local environment; never share it.");
 
   const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
   if (!secret) {
@@ -38,9 +42,9 @@ export async function printLocalInfo() {
       headers: { apikey: secret },
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const tables = await response.json();
+    await response.json();
     console.log("\nTable QR URLs:");
-    for (const table of tables) console.log(`- Mesa ${table.table_number}: ${appUrl}/t/${table.qr_token}`);
+    console.log("Open the QR administration screen to view table links; tokens are not printed.");
   } catch (error) {
     console.warn(`\nTable QR URLs unavailable (${error instanceof Error ? error.message : "unknown error"}). Is Supabase running?`);
   }

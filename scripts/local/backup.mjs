@@ -91,7 +91,7 @@ export async function createBackup({ database = "postgres", directory = BACKUP_D
   fs.writeFileSync(lock, JSON.stringify({pid:process.pid,file}), {flag:"wx"});
   if (record) patchOperationsState({last_attempt:created_at,result:"running",reason});
   try {
-    const migration = (await command("docker",["exec",container,"psql","-X","-U","postgres","-d",database,"-Atc","select max(version) from supabase_migrations.schema_migrations"])).trim();
+    const migration = (await command("docker",["exec",container,"psql","-X","-U","supabase_admin","-d",database,"-Atc","select max(version) from supabase_migrations.schema_migrations"])).trim();
     assertVersion(migration);
     const historyWarning=!(await verifyHistory(database,container)).ok;
     await atomicDump(temporary,
@@ -108,6 +108,7 @@ export async function createBackup({ database = "postgres", directory = BACKUP_D
       catch { patchOperationsState({external:"failed",external_at:new Date().toISOString()}); }
     }
     if (record) await retention(directory,policy,container,file);
+    if(record){try{await command("docker",["exec","-i",container,"psql","-X","-U","supabase_admin","-d",database,"-v","ON_ERROR_STOP=1"],{input:`do $$begin if to_regprocedure('public.license_tick(timestamptz)')is not null then perform public.license_tick('${created_at}'::timestamptz);end if;end $$;`,timeout:10000});}catch{console.error("Backup remains valid; license clock observation unavailable.");}}
     console.log(`Valid backup: ${file}`);
     return file;
   } catch (error) {

@@ -1,6 +1,8 @@
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { publicKeyConfiguration } from "../../src/features/licensing/validation.ts";
+import {providerMetadata} from "./restaurant-provider.mjs";
 
 import {
   ensureDirectory,
@@ -15,7 +17,8 @@ import {
   writeEnvFile,
 } from "./lib.mjs";
 
-export function generateLocalEnv({ ip = readOption("--ip") } = {}) {
+export function generateLocalEnv({ ip = readOption("--ip"),demo=false } = {}) {
+  if(publicKeyConfiguration(loadEnvFile().LICENSE_PUBLIC_KEY)==="invalid")throw new Error("LICENSE_PUBLIC_KEY must contain exactly 64 hexadecimal characters. Fix its format before generating the environment.");
   const lanIp = resolveLanIp(ip);
   if (lanIp === "127.0.0.1") {
     console.warn("WARNING: only a loopback address was detected. Phones and tablets will not connect until you rerun local:env with --ip <LAN_IP>.");
@@ -38,8 +41,10 @@ export function generateLocalEnv({ ip = readOption("--ip") } = {}) {
   fs.writeFileSync(secretsFile, JSON.stringify({ whatsappWorkerSecret: workerSecret }, null, 2));
 
   const current = loadEnvFile();
-  const appUrl = `http://${lanIp}:3000`;
-  const apiUrl = `http://${lanIp}:54321`;
+  const provider=providerMetadata(ROOT);
+  if(provider&&current.DEMO_PASSWORD)throw new Error("Restaurant profile cannot retain demo credentials");
+  const appUrl = `http://${lanIp}:${provider?.appPort??3000}`;
+  const apiUrl = `http://${lanIp}:${new URL(local.API_URL).port||54321}`;
   const next = {
     ...current,
     NEXT_PUBLIC_SUPABASE_URL: apiUrl,
@@ -48,12 +53,12 @@ export function generateLocalEnv({ ip = readOption("--ip") } = {}) {
     NEXT_PUBLIC_APP_URL: appUrl,
     NEXT_TELEMETRY_DISABLED: "1",
     APP_MODE: "local",
-    WHATSAPP_MOCK: "true",
+    WHATSAPP_MOCK: provider?"false":"true",
     WHATSAPP_WORKER_SECRET: workerSecret,
     PUBLIC_TRUST_PROXY: "false",
     PUBLIC_TEST_URL: appUrl,
     LOCAL_LAN_IP: lanIp,
-    DEMO_PASSWORD: current.DEMO_PASSWORD || "Demo@12345",
+    ...(demo?{DEMO_PASSWORD:current.DEMO_PASSWORD||randomBytes(24).toString("base64url")}:{}),
   };
   delete next.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   delete next.SUPABASE_SERVICE_ROLE_KEY;

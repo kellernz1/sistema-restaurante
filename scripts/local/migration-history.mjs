@@ -39,7 +39,9 @@ export function isolatedDatabaseUrl(database) {
   if(!/^mesa_(history|clean|restore|source)_[a-f0-9]{24}$/.test(database))throw new Error("Official temporary migration requires an isolated database");
   const integration=process.env.INTEGRATION_RUN_DIR?integrationContext():null;
   const env=integration?{}:loadEnvFile();
-  const url=new URL(`postgresql://postgres@127.0.0.1:${integration?.dbPort??54322}/${database}`);
+  const config=fs.readFileSync(path.join(ROOT,"supabase/config.toml"),"utf8");
+  const configuredPort=config.match(/\[db\][\s\S]*?\bport\s*=\s*(\d+)/)?.[1];
+  const url=new URL(`postgresql://postgres@127.0.0.1:${integration?.dbPort??env.LOCAL_DB_PORT??configuredPort??54322}/${database}`);
   url.password=integration?process.env.INTEGRATION_DB_PASSWORD:(env.LOCAL_DB_PASSWORD||process.env.LOCAL_DB_PASSWORD||"postgres");
   url.searchParams.set("sslmode","disable");
   return url.toString();

@@ -63,7 +63,12 @@
 - WhatsApp notifications enqueue once per order/event, use templates outside the 24-hour window, and honor opt-out/human pause. Ambiguous outbound failures are never automatically resent; staff must review them. Deployments must schedule the authenticated worker as well as allow Next.js `after`.
 - `WHATSAPP_MOCK` and `/api/whatsapp/simulate` are allowed only in development or explicit `APP_MODE=local`; the simulator endpoint keeps bearer-secret protection. Raw WhatsApp tables are admin read-only; cashier/admin use narrow handoff RPCs. Number-only dine-in orders require a free table and always await confirmation; existing tables require a valid token or staff assistance.
 
+- Installation licensing uses Ed25519 signatures verified independently in PostgreSQL. Keep owner private keys and issuer registries outside the restaurant installation. Creation guards enforce entitlement at safe cash/business-day boundaries; settlement, refunds, reports and recovery remain available. Preserve monotonic license sequences, signed online renewal challenges and server-owned clock evidence. See `docs/licensing.md`.
+
 ## Local-First Operation
+
+- Restaurant installs use `local:provision` on a fresh checkout, with an owned self-hosted profile, exclusive provider/database/worker secrets, no Studio and exactly one explicitly entered administrator. `local:setup` / `--no-demo` are empty development only; demonstration data requires `--demo`. Never convert or clean an existing development instance implicitly. Preflight fails on missing evidence; host-task simulation in disposable tests is not Windows acceptance. See `docs/restaurant-provisioning.md`.
+- Child commands must honor their explicitly owned working directory. Provisioning backups must validate provider ownership/stage before selecting a database. Never let a temporary test fall back to development ROOT or its operations/backup state.
 
 - Operations use atomic custom PostgreSQL backups with checksummed manifests, local admin policy and supervised app/workers. Daily `local:start` never builds or migrates; `local:update` backs up before migration/build. See `docs/operations.md`. Never restore/reset development for tests; use protected randomly named candidates. Windows task installation/removal must be simulated with `--dry-run` during implementation, never installed automatically. Preserve dump owners/ACLs and refuse unverified migration provenance rather than guessing.
 

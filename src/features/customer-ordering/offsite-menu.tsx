@@ -21,7 +21,7 @@ import { useDeliveryQuote } from "./use-delivery-quote";
 import { DeliveryQuoteSummary } from "./delivery-quote-summary";
 
 import { brl, brlCentsFor, paymentLabels, type PaymentConfig } from "@/lib/money";
-type Menu = { payment_configuration: PaymentConfig; products: CatalogProduct[]; categories: CatalogCategory[]; settings: {
+type Menu = { ordering_notice?:string|null; payment_configuration: PaymentConfig; products: CatalogProduct[]; categories: CatalogCategory[]; settings: {
   default_phone_country: PhoneCountry; is_accepting_orders: boolean; pickup_enabled: boolean; delivery_enabled: boolean; delivery_fee: number;
   min_delivery_order: number; estimated_pickup_minutes: number; estimated_delivery_minutes: number;
   delivery_fee_mode: string; delivery_distance_step_km: number; delivery_distance_step_fee: number;
@@ -116,7 +116,7 @@ export function OffsiteMenu() {
     {error && <p className="table-notice table-notice-error" role="alert">{t(error)}</p>}{notice && <p className="table-notice table-notice-info" role="status">{t(notice)}</p>}
     <button className="ghost-button" disabled={loading || busy} onClick={() => void load()}>{t(loading ? t("Carregando...") : t("Atualizar cardápio"))}</button>
     {menu && <>
-      {!menu.settings.is_accepting_orders && <p className="table-notice table-notice-info">{t("Estamos fechados para novos pedidos.")}</p>}
+      {!menu.settings.is_accepting_orders && <p className="table-notice table-notice-info">{t(menu.ordering_notice??"Estamos fechados para novos pedidos.")}</p>}
       {!menu.settings.pickup_enabled && !menu.settings.delivery_enabled && <p>{t("Retirada e entrega estão indisponíveis.")}</p>}
       <nav className="order-steps" aria-label={t("Etapas do pedido")}>{[t("Tipo"), t("Cardápio"), t("Dados e pagamento")].map((label, index) => <span key={label} aria-current={step === index + 1 ? "step" : undefined}>{t(index + 1)}. {t(label)}</span>)}</nav>
       {step === 1 && <section className="order-panel fulfillment-panel"><h2>{t("Como deseja receber?")}</h2><p className="fulfillment-intro">{t("Escolha a melhor opção para você.")}</p><div className="fulfillment-options">{(["pickup", "delivery"] as const).filter((value) => menu.settings[`${value}_enabled`]).map((value) => {

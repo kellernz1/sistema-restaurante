@@ -15,6 +15,7 @@ export function publicJson(value: unknown, status = 200) {
 }
 
 export function publicError(error: unknown) {
+  if(["L0001","L0002"].includes((error as {code?:string})?.code??""))return publicJson({error:"Pedidos temporariamente indisponíveis. Fale com o atendimento."},503);
   return error instanceof PublicApiError
     ? publicJson({ error: error.message }, error.status)
     : publicJson({ error: "Não foi possível concluir. Confira os dados e tente novamente." }, 503);

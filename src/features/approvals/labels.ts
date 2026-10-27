@@ -1,4 +1,5 @@
 export const auditLabels: Record<string, string> = {
+  license_imported:"Licença importada",license_renewed:"Licença renovada",license_renewal_failed:"Falha de renovação da licença",license_state_changed:"Estado da licença alterado",license_clock_suspect:"Suspeita de relógio",
   refund: "Devolução registrada", discount: "Desconto", cancel_item: "Cancelamento de item", cancel_order: "Cancelamento de pedido",
   approval_granted: "Aprovação concedida", pin_failed: "Falha de PIN", pin_locked: "PIN bloqueado",
   pin_blocked_attempt: "Tentativa com PIN bloqueado", pin_rate_limited: "Limite de tentativas",

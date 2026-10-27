@@ -1,4 +1,5 @@
 import { tableOrderSchema } from "@/features/customer-ordering/validation";
+import {licensingError}from "@/lib/licensing";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { normalizePhone } from "@/lib/phone";
 import { PublicApiError, publicLimit, publicJson, publicError, readPublicBody, resolvePublicTable, type PublicTableContext } from "@/lib/public-table-api";
@@ -25,6 +26,7 @@ export async function POST(request: Request, context: PublicTableContext) {
       if(result.error)throw result.error;
       return publicJson(result.data,201);
     } catch(error) {
+      if(licensingError(error))throw licensingError(error);
       const failure=error as {message?:string;code?:string};
       const messages:Record<string,string>={
         "Pending table limit reached":"Esta mesa já atingiu o limite de pedidos aguardando confirmação. Aguarde o atendimento.",

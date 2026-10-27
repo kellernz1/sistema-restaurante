@@ -511,6 +511,48 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"license_continuations": {
+                  Row: {
+                    "backend_id": number,"table_id": string,"transaction_id": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "backend_id": number,"table_id": string,"transaction_id": number
+                  }
+                  Update: {
+                    "backend_id"?: number,"table_id"?: string,"transaction_id"?: number
+                  }
+                  Relationships: [
+
+                  ]
+                },"license_current": {
+                  Row: {
+                    "claims": NonNullable<Json>,"id": boolean,"imported_at": string,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "claims": NonNullable<Json>,"id"?: boolean,"imported_at"?: string,"token": string
+                  }
+                  Update: {
+                    "claims"?: NonNullable<Json>,"id"?: boolean,"imported_at"?: string,"token"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"license_installation": {
+                  Row: {
+                    "backup_seen_at": string | null,"boundary_day": string,"clock_ack_until": string | null,"clock_deadline": string | null,"clock_suspect": boolean,"id": boolean,"installation_id": string,"last_attempt_at": string | null,"last_online_at": string | null,"last_state": string,"max_seen_at": string,"max_sequence": number,"next_attempt_at": string | null,"public_key": string | null,"renewal_interval_days": number,"renewal_lease_until": string | null,"renewal_nonce": string | null,"renewal_url": string | null,"restricted": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "backup_seen_at"?: string | null,"boundary_day": string,"clock_ack_until"?: string | null,"clock_deadline"?: string | null,"clock_suspect"?: boolean,"id"?: boolean,"installation_id"?: string,"last_attempt_at"?: string | null,"last_online_at"?: string | null,"last_state"?: string,"max_seen_at"?: string,"max_sequence"?: number,"next_attempt_at"?: string | null,"public_key"?: string | null,"renewal_interval_days"?: number,"renewal_lease_until"?: string | null,"renewal_nonce"?: string | null,"renewal_url"?: string | null,"restricted"?: boolean
+                  }
+                  Update: {
+                    "backup_seen_at"?: string | null,"boundary_day"?: string,"clock_ack_until"?: string | null,"clock_deadline"?: string | null,"clock_suspect"?: boolean,"id"?: boolean,"installation_id"?: string,"last_attempt_at"?: string | null,"last_online_at"?: string | null,"last_state"?: string,"max_seen_at"?: string,"max_sequence"?: number,"next_attempt_at"?: string | null,"public_key"?: string | null,"renewal_interval_days"?: number,"renewal_lease_until"?: string | null,"renewal_nonce"?: string | null,"renewal_url"?: string | null,"restricted"?: boolean
+                  }
+                  Relationships: [
+
+                  ]
                 },"operation_authorizations": {
                   Row: {
                     "actor_id": string,"approver_id": string,"binding": string,"consumed_at": string | null,"expires_at": string,"id": string,"pin_version": number,"request_id": string
@@ -1249,6 +1291,9 @@ isOneToOne: false
 "approval_workbench":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"assert_order_license":
+{ Args: { "p_source": string,"p_table"?: string,"p_type": string }; Returns: undefined
+                           },
 "assert_print_document_idle":
 { Args: { "p_job_id"?: string,"p_kind": string,"p_order_id": string }; Returns: undefined
                            },
@@ -1304,6 +1349,9 @@ isOneToOne: false
 { Args: { "p_day": string,"p_session": string }; Returns: Json
                            },
 "cash_session_command":
+{ Args: { "p_action": string,"p_payload": Json,"p_request_id": string }; Returns: Json
+                           },
+"cash_session_command_before_license":
 { Args: { "p_action": string,"p_payload": Json,"p_request_id": string }; Returns: Json
                            },
 "cash_session_full_report":
@@ -1591,6 +1639,45 @@ isOneToOne: false
 "issue_operation_approval":
 { Args: { "p_approver": string,"p_binding": string,"p_pin": string,"p_quote": Json,"p_request_id": string }; Returns: Json
                            },
+"license_apply":
+{ Args: { "p_online"?: boolean,"p_token": string }; Returns: Json
+                           },
+"license_configure":
+{ Args: { "p_days"?: number,"p_url"?: string }; Returns: Json
+                           },
+"license_decode64":
+{ Args: { "p_value": string }; Returns: string
+                           },
+"license_import":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"license_public_status":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"license_refresh":
+{ Args: { "p_boundary"?: boolean }; Returns: Json
+                           },
+"license_renewal_claim":
+{ Args: { "p_force"?: boolean }; Returns: Json
+                           },
+"license_renewal_finish":
+{ Args: { "p_error"?: string,"p_nonce": string,"p_token"?: string }; Returns: Json
+                           },
+"license_set_public_key":
+{ Args: { "p_hex": string }; Returns: undefined
+                           },
+"license_snapshot":
+{ Args: { "p_boundary"?: boolean }; Returns: Json
+                           },
+"license_status":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"license_tick":
+{ Args: { "p_backup_at"?: string }; Returns: Json
+                           },
+"license_verify":
+{ Args: { "p_token": string }; Returns: Json
+                           },
 "mark_manual_kitchen_print":
 { Args: { "p_order_id": string }; Returns: undefined
                            },
@@ -1670,6 +1757,9 @@ isOneToOne: false
 { Args: { "p_driver": string,"p_instance": string,"p_version": string }; Returns: undefined
                            },
 "qr_review":
+{ Args: { "p_action": string,"p_id": string,"p_lines"?: Json,"p_reason"?: string,"p_request_id": string }; Returns: Json
+                           },
+"qr_review_before_license":
 { Args: { "p_action": string,"p_id": string,"p_lines"?: Json,"p_reason"?: string,"p_request_id": string }; Returns: Json
                            },
 "recompute_order_total":

@@ -48,6 +48,16 @@ test("public PY/BR identity and WhatsApp aliases share canonical contacts", { sk
       assert.equal(response.status, 200);
       const processed = await fetch(`${base}/api/whatsapp/process`, { method: "POST", headers: { authorization: `Bearer ${process.env.WHATSAPP_WORKER_SECRET}` } });
       assert.equal(processed.status, 200);
+      // The webhook's after() worker may hold the lease while /process returns.
+      // Wait for committed transport identity instead of racing that worker.
+      let committed = false;
+      for (let attempt = 0; attempt < 25; attempt++) {
+        const current = await db.from("whatsapp_conversations").select("provider_recipient").eq("phone", br).maybeSingle();
+        assert.ifError(current.error);
+        if (current.data?.provider_recipient === from.replace(/^\+/, "")) { committed = true; break; }
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      assert.ok(committed, "WhatsApp transport identity was not committed within the bounded deadline");
     }
     await webhook(legacy, `contact:${requestId}:1`);
     await webhook(legacy, `contact:${requestId}:1`);
