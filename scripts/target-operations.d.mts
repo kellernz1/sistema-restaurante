@@ -1,0 +1,30 @@
+import type {TargetContext,TargetDirectory} from "./target-safety.mjs";
+export * from "./local/safety-internal/backup.mjs";
+export * from "./local/safety-internal/restore.mjs";
+export * from "./local/safety-internal/migration-history.mjs";
+export * from "./local/safety-internal/isolated-database.mjs";
+export * from "./local/safety-internal/restaurant-provider.mjs";
+export function createBackup(context:TargetContext,options?:{directory?:TargetDirectory;record?:boolean;reason?:string}):Promise<string>;
+export function copyExternal(context:TargetContext,file:string,directory:TargetDirectory):Promise<void>;
+export function publishFile(context:TargetContext,temporary:string,destination:string):void;
+export function retention(context:TargetContext,directory:TargetDirectory,policy:{daily:number;weekly:number},current:string):Promise<void>;
+export function databaseSql(context:TargetContext,source:string):Promise<string>;
+export function sql(context:TargetContext,source:string):Promise<string>;
+export function providerSql(context:TargetContext,source:string):string;
+export function migrateIsolated(context:TargetContext,options?:{through?:string;includeAll?:boolean}):string;
+export function restoreToTemporary(context:TargetContext,file:string,options?:{legacy?:boolean;migrate?:boolean}):Promise<unknown>;
+export function createIsolatedDatabase(context:TargetContext):Promise<void>;
+export function dropIsolatedDatabase(context:TargetContext):Promise<void>;
+export function runSupabase(context:TargetContext,args:string[],options?:Record<string,unknown>):{status:number;stdout:string;stderr:string};
+export function ensureDirectory(context:TargetContext,directory:TargetDirectory):void;
+export function writeEnvFile(context:TargetContext,values:Record<string,string>,file?:string):void;
+export function startDetached(context:TargetContext,args:string[],name:string,env?:Record<string,string>):number;
+export function pipeFileToProcess(context:TargetContext,file:string,command:string,args:string[]):Promise<void>;
+export function pipeProcessToFile(context:TargetContext,command:string,args:string[],file:string):Promise<void>;
+export function command(context:TargetContext,binary:string,args:string[],options?:Record<string,unknown>):Promise<string>;
+export function rotateLog(context:TargetContext,file:string,maximum?:number,copies?:number):void;
+export function logLine(context:TargetContext,name:string,text:string):void;
+export class FilePrintDriver {
+ constructor(context:TargetContext,directory:TargetDirectory);
+ deliver(job:{id:string},document:unknown,bytes:Uint8Array,options?:{signal?:AbortSignal}):Promise<{status:string;error?:string}>;
+}

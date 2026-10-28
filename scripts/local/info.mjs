@@ -1,5 +1,5 @@
 import { isMain, loadEnvFile } from "./lib.mjs";
-import {providerMetadata} from "./restaurant-provider.mjs";
+import {providerMetadata} from "../target-operations.mjs";
 import {ROOT} from "./lib.mjs";
 
 const accounts = [

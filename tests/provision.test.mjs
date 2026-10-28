@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
 import {run,ROOT} from "../scripts/local/lib.mjs";
-import {generateProviderSecrets,composeSpec,secretFingerprints} from "../scripts/local/restaurant-provider.mjs";
+import {generateProviderSecrets,composeSpec,secretFingerprints} from "../scripts/target-operations.mjs";
 import {evaluatePreflight} from "../scripts/local/preflight.mjs";
 import {provisionSchema,configurationHash} from "../scripts/local/provision.mjs";
 

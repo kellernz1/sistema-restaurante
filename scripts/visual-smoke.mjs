@@ -1,3 +1,4 @@
+import {resolveTarget,requireTransport} from "./target-safety.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
@@ -8,12 +9,13 @@ import {textProblems} from "./check-text.mjs";
 import {money} from "../src/lib/money.ts";
 import {licenseErrors} from "../src/features/licensing/validation.ts";
 
+const target=resolveTarget();requireTransport(target);if(target.profile!=="disposable")throw Error("Visual tests require an owned disposable target");
 const env={...loadEnvFile(),...process.env};
 const base=env.PUBLIC_TEST_URL||env.NEXT_PUBLIC_APP_URL;
 if(!base)throw new Error("Set PUBLIC_TEST_URL or start the configured local stack.");
 const executable=env.VISUAL_BROWSER_PATH||["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe","C:/Program Files/Microsoft/Edge/Application/msedge.exe"].find(p=>fs.existsSync(p));
 if(!executable)throw new Error("Set VISUAL_BROWSER_PATH to an installed Chromium/Edge executable.");
-const output=path.resolve("artifacts/visual",new Date().toISOString().replaceAll(":","-"));fs.mkdirSync(output,{recursive:true});
+const output=path.resolve(path.dirname(process.env.TARGET_CONTEXT_FILE),"visual",new Date().toISOString().replaceAll(":","-"));fs.mkdirSync(output,{recursive:true});
 const jar=new Map();
 const auth=createServerClient(env.NEXT_PUBLIC_SUPABASE_URL,env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>jar.set(name,value))}});
 const login=await auth.auth.signInWithPassword({email:env.VISUAL_EMAIL||"admin@restaurante.local",password:env.VISUAL_PASSWORD||env.DEMO_PASSWORD||"Demo@12345"});if(login.error)throw login.error;

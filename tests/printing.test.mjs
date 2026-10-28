@@ -1,3 +1,4 @@
+import {createFilesystemTarget,directoryTarget} from "../scripts/target-safety.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs/promises";
@@ -59,7 +60,7 @@ test("discounted receipt keeps original payments and shows historical refunds at
 });
 test("file driver writes exclusive artifacts and never overwrites an uncertain previous output",async()=>{
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),"mesa-print-test-"));
- try{const driver=new FilePrintDriver(directory);const job={id:randomUUID()};const document={blocks:[],columns:48,paperMm:80};const bytes=Uint8Array.from([27,64,10]);
+ try{const driver=new FilePrintDriver(createFilesystemTarget(directory),directoryTarget(createFilesystemTarget(directory),directory));const job={id:randomUUID()};const document={blocks:[],columns:48,paperMm:80};const bytes=Uint8Array.from([27,64,10]);
   assert.equal((await driver.deliver(job,document,bytes)).status,"sent");assert.deepEqual(await fs.readFile(path.join(directory,job.id+".bin")),Buffer.from(bytes));
   assert.equal((await driver.deliver(job,document,bytes)).status,"uncertain");
  }finally{await fs.rm(directory,{recursive:true,force:true});}

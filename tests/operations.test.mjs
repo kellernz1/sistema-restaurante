@@ -1,12 +1,15 @@
+import {directoryTarget,createFilesystemTarget} from "../scripts/target-safety.mjs";
+
+
 import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { backupName, atomicDump, publishFile, checksum, retainedFiles, assertVersion, validateBackup, copyExternal } from "../scripts/local/backup.mjs";
+import { backupName, atomicDump, publishFile, checksum, retainedFiles, assertVersion, validateBackup, copyExternal } from "../scripts/target-operations.mjs";
 import { command, rotateLog } from "../scripts/local/operations-process.mjs";
 import { operationsPolicySchema, operationAlerts } from "../src/lib/operations.ts";
-import { assertTemporary } from "../scripts/local/restore.mjs";
+import { assertTemporary } from "../scripts/target-operations.mjs";
 import { taskPlan } from "../scripts/local/autostart.mjs";
 import { RestartBudget, backupReason } from "../scripts/local/restart-budget.mjs";
 
@@ -31,13 +34,13 @@ test("supervisor retries are bounded separately per service",()=>{
 test("atomic backup publication never exposes a partial file or overwrites a valid file", async () => {
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),"mesa-backup-")), file=path.join(directory,"valid.dump");
  try {
-  await assert.rejects(()=>atomicDump(file,temporary=>command(process.execPath,["-e","process.stdout.write('partial');process.exit(1)"],{output:temporary}),()=>{}));
+  await assert.rejects(()=>atomicDump(createFilesystemTarget(directory),file,temporary=>command(createFilesystemTarget(directory),process.execPath,["-e","process.stdout.write('partial');process.exit(1)"],{output:temporary}),()=>{}));
   assert.deepEqual(fs.readdirSync(directory),[]);
-  await assert.rejects(()=>atomicDump(file,temporary=>fs.writeFileSync(temporary,"invalid"),()=>{throw new Error("Bad structure");}));
+  await assert.rejects(()=>atomicDump(createFilesystemTarget(directory),file,temporary=>fs.writeFileSync(temporary,"invalid"),()=>{throw new Error("Bad structure");}));
   assert.deepEqual(fs.readdirSync(directory),[]);
-  await atomicDump(file,temporary=>fs.writeFileSync(temporary,"valid"),()=>{});
+  await atomicDump(createFilesystemTarget(directory),file,temporary=>fs.writeFileSync(temporary,"valid"),()=>{});
   const other=path.join(directory,"other.tmp");fs.writeFileSync(other,"overwrite");
-  assert.throws(()=>publishFile(other,file));assert.equal(fs.readFileSync(file,"utf8"),"valid");
+  assert.throws(()=>publishFile(createFilesystemTarget(directory),other,file));assert.equal(fs.readFileSync(file,"utf8"),"valid");
   const names=new Set(Array.from({length:100},()=>backupName(new Date("2026-10-25T12:00:00Z"))));assert.equal(names.size,100);
  } finally {fs.rmSync(directory,{recursive:true,force:true});}
 });
@@ -62,8 +65,8 @@ test("external copy checks bytes and never silently replaces existing copies",as
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),"mesa-external-")),external=path.join(directory,"external"),file=path.join(directory,"fixture.dump");
  try{
   fs.mkdirSync(external);fs.writeFileSync(file,"backup");fs.writeFileSync(`${file}.json`,"{}");
-  await copyExternal(file,external);assert.equal(await checksum(path.join(external,"fixture.dump")),await checksum(file));
-  await assert.rejects(()=>copyExternal(file,external));await assert.rejects(()=>copyExternal(file,path.join(directory,"unavailable")));
+  await copyExternal(createFilesystemTarget(directory),file,directoryTarget(createFilesystemTarget(directory),external,{external:true}));assert.equal(await checksum(path.join(external,"fixture.dump")),await checksum(file));
+  await assert.rejects(()=>copyExternal(createFilesystemTarget(directory),file,directoryTarget(createFilesystemTarget(directory),external,{external:true})));await assert.rejects(()=>copyExternal(createFilesystemTarget(directory),file,directoryTarget(createFilesystemTarget(directory),path.join(directory,"unavailable"),{external:true})));
  }finally{fs.rmSync(directory,{recursive:true,force:true});}
 });
 test("age, copy, disk and supervisor alerts are conservative",()=>{
@@ -87,6 +90,6 @@ test("Windows task plans are deterministic idempotent dry-run plans with explici
 });
 test("log rotation caps generations",()=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),"mesa-log-")),file=path.join(directory,"worker.log");
- try{for(let index=0;index<8;index++){fs.writeFileSync(file,"123456");rotateLog(file,5,3);}assert.equal(fs.readdirSync(directory).length,3);}
+ try{for(let index=0;index<8;index++){fs.writeFileSync(file,"123456");rotateLog(createFilesystemTarget(directory),file,5,3);}assert.equal(fs.readdirSync(directory).length,3);}
  finally{fs.rmSync(directory,{recursive:true,force:true});}
 });

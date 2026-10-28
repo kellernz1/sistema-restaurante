@@ -1,8 +1,10 @@
+import {resolveTarget,databaseTarget} from "../target-safety.mjs";
 import { sqlTestDatabase } from "./sql-test-target.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-import { findDbContainer, isMain, pipeFileToProcess, ROOT } from "./lib.mjs";
+import {findDbContainer,isMain,ROOT} from "./lib.mjs";
+import {pipeFileToProcess} from "../target-operations.mjs";
 
 import { runCounterConcurrencyTest } from "./counter-concurrency-test.mjs";
 import { runPrintConcurrencyTest } from "./print-concurrency-test.mjs";
@@ -44,10 +46,10 @@ export async function runSqlTests() {
   for (const file of testFiles) {
     const source = path.join(ROOT, "supabase", "tests", file);
     if (!fs.existsSync(source)) throw new Error(`Missing SQL test: ${file}`);
-    if(file==="licensing_test.sql"){await licensingSql(container,sqlTestDatabase(),fs.readFileSync(source,"utf8"));console.log("Licensing SQL passed.");continue;}
+    if(file==="licensing_test.sql"){await licensingSql(databaseTarget(resolveTarget(),sqlTestDatabase()),fs.readFileSync(source,"utf8"));console.log("Licensing SQL passed.");continue;}
     console.log(`Running SQL test ${file}...`);
     if (file === "counter_concurrency_test.sql") { await runCounterConcurrencyTest(); continue; }
-    await pipeFileToProcess(
+    await pipeFileToProcess(resolveTarget(),
       source,
       "docker",
       ["exec", "-i", container, "psql", "--username=postgres", `--dbname=${sqlTestDatabase()}`, "--set", "ON_ERROR_STOP=on"],

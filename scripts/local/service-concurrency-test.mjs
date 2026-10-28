@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {spawn,spawnSync} from "node:child_process";
+import {spawn,spawnSync} from "../target-process.mjs";
 import {randomUUID,randomInt} from "node:crypto";
 import {findDbContainer} from "./lib.mjs";
 import {sqlTestDatabase} from "./sql-test-target.mjs";

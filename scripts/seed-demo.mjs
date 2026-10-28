@@ -1,3 +1,4 @@
+import {guardEntry,resolveTarget,authorizeOperation,confirmDestructive} from "./target-safety.mjs";
 import {
   assertResult,
   demoClient,
@@ -6,6 +7,8 @@ import {
   writeManifest,
 } from "./demo-data.mjs";
 import { clearDemo } from "./clear-demo.mjs";
+await guardEntry(import.meta.url,"demo");
+
 
 const staff = [
   { email: DEMO_EMAILS[0], name: "[DEMO] Administrador", role: "admin" },
@@ -158,16 +161,18 @@ async function seedOperationalDemo(client) {
 }
 
 async function main() {
+ authorizeOperation(resolveTarget(),"demo");
   const { client, password } = demoClient();
+  await confirmDestructive(resolveTarget(),"clear-demo");
   await clearDemo();
   const userIds = await seedStaff(client, password);
   if (process.argv.includes("--staff-only")) {
-    writeManifest({ userIds, staffOnly: true, createdAt: new Date().toISOString() });
+    writeManifest(resolveTarget(),{ userIds, staffOnly: true, createdAt: new Date().toISOString() });
     console.log("Demo staff accounts created; operational demo data skipped.");
     return;
   }
   const manifest = await seedOperationalDemo(client);
-  writeManifest({ ...manifest, userIds, createdAt: new Date().toISOString() });
+  writeManifest(resolveTarget(),{ ...manifest, userIds, createdAt: new Date().toISOString() });
   console.log("Demo staff, customers, orders, requests, and WhatsApp conversations created.");
 }
 

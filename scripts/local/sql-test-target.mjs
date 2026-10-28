@@ -1,5 +1,6 @@
+import {resolveTarget,databaseTarget,authorizeOperation} from "../target-safety.mjs";
 export function sqlTestDatabase() {
-  const name=process.env.SQL_TEST_DATABASE || "postgres";
-  if(name!=="postgres"&&!/^mesa_clean_[a-f0-9]{24}$/.test(name))throw new Error("Unrecognized SQL test database");
-  return name;
+ const context=resolveTarget();authorizeOperation(context,"sql");
+ if(context.profile!=="disposable")throw Error("SQL tests require an owned disposable target");
+ return databaseTarget(context,process.env.SQL_TEST_DATABASE??context.database).database;
 }

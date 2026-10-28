@@ -1,30 +1,25 @@
+import {directoryTarget,assertOwnedModule,resolveTarget} from "../target-safety.mjs";
+
+
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { publicKeyConfiguration } from "../../src/features/licensing/validation.ts";
-import {providerMetadata} from "./restaurant-provider.mjs";
+import {providerMetadata} from "../target-operations.mjs";
 
-import {
-  ensureDirectory,
-  isMain,
-  LOCAL_STATE_DIR,
-  loadEnvFile,
-  parseEnv,
-  readOption,
-  resolveLanIp,
-  ROOT,
-  runSupabase,
-  writeEnvFile,
-} from "./lib.mjs";
+import {isMain,LOCAL_STATE_DIR,loadEnvFile,parseEnv,readOption,resolveLanIp,ROOT} from "./lib.mjs";
+import {ensureDirectory,writeEnvFile} from "../target-operations.mjs";
+import {runSupabase} from "../target-operations.mjs";
 
 export function generateLocalEnv({ ip = readOption("--ip"),demo=false } = {}) {
+ assertOwnedModule(resolveTarget(),import.meta.url);
   if(publicKeyConfiguration(loadEnvFile().LICENSE_PUBLIC_KEY)==="invalid")throw new Error("LICENSE_PUBLIC_KEY must contain exactly 64 hexadecimal characters. Fix its format before generating the environment.");
   const lanIp = resolveLanIp(ip);
   if (lanIp === "127.0.0.1") {
     console.warn("WARNING: only a loopback address was detected. Phones and tablets will not connect until you rerun local:env with --ip <LAN_IP>.");
   }
 
-  const status = runSupabase(["status", "-o", "env"], { capture: true });
+  const status = runSupabase(resolveTarget(),["status", "-o", "env"], { capture: true });
   const local = parseEnv(status.stdout);
   const publishable = local.PUBLISHABLE_KEY ?? local.ANON_KEY;
   const secret = local.SECRET_KEY ?? local.SERVICE_ROLE_KEY;
@@ -32,7 +27,7 @@ export function generateLocalEnv({ ip = readOption("--ip"),demo=false } = {}) {
     throw new Error("Supabase status did not return publishable/secret keys. Update the CLI or inspect `npx supabase status -o env`.");
   }
 
-  ensureDirectory(LOCAL_STATE_DIR);
+  ensureDirectory(resolveTarget(),directoryTarget(resolveTarget(),LOCAL_STATE_DIR));
   const secretsFile = path.join(LOCAL_STATE_DIR, "runtime.json");
   const existingSecrets = fs.existsSync(secretsFile)
     ? JSON.parse(fs.readFileSync(secretsFile, "utf8"))
@@ -62,7 +57,7 @@ export function generateLocalEnv({ ip = readOption("--ip"),demo=false } = {}) {
   };
   delete next.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   delete next.SUPABASE_SERVICE_ROLE_KEY;
-  writeEnvFile(next);
+  writeEnvFile(resolveTarget(),next);
   console.log(`Generated ${path.relative(ROOT, path.join(ROOT, ".env.local"))} for ${lanIp}.`);
   console.log(`App: ${appUrl}`);
   console.log(`Supabase API: ${apiUrl}`);

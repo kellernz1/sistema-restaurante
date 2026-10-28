@@ -1,10 +1,12 @@
+import {resolveTarget} from "../target-safety.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-import { isMain, ROOT, runSupabase } from "./lib.mjs";
+import {isMain,ROOT} from "./lib.mjs";
+import {runSupabase} from "../target-operations.mjs";
 
 export function generateDatabaseTypes() {
-  const result = runSupabase(
+  const result = runSupabase(resolveTarget(),
     ["gen", "types", "typescript", "--local", "--schema", "public"],
     { capture: true },
   );

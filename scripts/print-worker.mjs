@@ -1,16 +1,20 @@
+import {directoryTarget,guardEntry,resolveTarget} from "./target-safety.mjs";
+
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "./target-client.mjs";
 import { loadEnvFile, ROOT } from "./local/lib.mjs";
-import { FilePrintDriver } from "./printing-file-driver.mjs";
+import { FilePrintDriver } from "./target-operations.mjs";
 import { processOnePrint } from "./printing-process.mjs";
 import { printRpc,PRINT_WORKER_VERSION } from "./printing-deadline.mjs";
+await guardEntry(import.meta.url,"runtime");
+
 
 const env = { ...loadEnvFile(), ...process.env };
 if (env.APP_MODE !== "local" && env.NODE_ENV !== "development") throw new Error("Test-file printing requires local/development mode");
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const owner = randomUUID();
-const driver = new FilePrintDriver(path.join(ROOT, ".local-secrets", "print-output"));
+const driver = new FilePrintDriver(resolveTarget(),directoryTarget(resolveTarget(),path.join(ROOT, ".local-secrets", "print-output")));
 let stopping = false;
 let heartbeatBusy=false;
 async function heartbeat(){

@@ -1,6 +1,9 @@
+import {guardEntry} from "../target-safety.mjs";
 import fs from "node:fs";
-import {createClient} from "@supabase/supabase-js";
+import {createClient} from "../target-client.mjs";
 import {findDbContainer,isProcessRunning,loadEnvFile,run} from "./lib.mjs";
+await guardEntry(import.meta.url,"runtime");
+
 
 if(!process.argv.includes("--confirm-local-db-restart"))throw new Error("Pass --confirm-local-db-restart after stopping tests and ensuring the print queue is idle");
 const env=loadEnvFile();if(env.APP_MODE!=="local")throw new Error("Local mode required");

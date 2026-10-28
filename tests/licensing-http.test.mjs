@@ -1,3 +1,5 @@
+import {directoryTarget,resolveTarget,databaseTarget} from "../scripts/target-safety.mjs";
+
 import "./helpers/integration-guard.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -11,8 +13,8 @@ import {assertIntegrationEnvironment}from "./helpers/integration-guard.mjs";
 import {licenseFixtures}from "./helpers/license-fixture.mjs";
 import {createLicenseServer}from "../owner-tools/licensing/server.mjs";
 import {withRegistry}from "../owner-tools/licensing/core.mjs";
-import {createBackup}from "../scripts/local/backup.mjs";
-import {restoreToTemporary,temporaryDatabase,assertTemporary,sql}from "../scripts/local/restore.mjs";
+import {createBackup}from "../scripts/target-operations.mjs";
+import {restoreToTemporary,temporaryDatabase,assertTemporary,sql}from "../scripts/target-operations.mjs";
 import {command}from "../scripts/local/operations-process.mjs";
 import {licenseErrors}from "../src/features/licensing/validation.ts";
 const base=process.env.PUBLIC_TEST_URL,api=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -61,12 +63,12 @@ test("license HTTP import/renewal/restriction preserves settlement, refund, prin
   const operation={action:"cancel_refund",target:order.id,reason:"Existing restricted order refund"};const quote=await(await post("/api/staff/refunds",{command:"quote",operation})).json();
   assert.equal((await post("/api/staff/refunds",{command:"execute",request:randomUUID(),operation,binding:quote.binding,authorization:null,confirmed:true})).status,200);
   assert.equal((await get("/admin/reports")).status,200);assert.equal((await get(`/print/counter/${order.id}`)).status,200);
-  const backup=await createBackup({database:"postgres",container,directory:path.join(process.env.INTEGRATION_RUN_DIR,"restricted-backups"),record:false,reason:"restricted-license-acceptance"});
-  await restoreToTemporary(backup,{container,database:restored});
-  assert.equal(JSON.parse(await sql(container,restored,"select public.license_snapshot()" )).state,"restricted");
-  assert.ok(Number(await sql(container,restored,"select count(*)from public.orders"))>0);
+  const backup=await createBackup(databaseTarget(resolveTarget(),"postgres"),{directory:directoryTarget(databaseTarget(resolveTarget(),"postgres"),path.join(process.env.INTEGRATION_RUN_DIR,"restricted-backups")),record:false,reason:"restricted-license-acceptance"});
+  await restoreToTemporary(databaseTarget(resolveTarget(),restored),backup,{});
+  assert.equal(JSON.parse(await sql(databaseTarget(resolveTarget(),restored),"select public.license_snapshot()")).state,"restricted");
+  assert.ok(Number(await sql(databaseTarget(resolveTarget(),restored),"select count(*)from public.orders"))>0);
  }finally{
-  assertTemporary(restored);await command("docker",["exec",container,"dropdb","-U","postgres","--if-exists",restored]);
+  assertTemporary(restored);await command(resolveTarget(),"docker",["exec",container,"dropdb","-U","postgres","--if-exists",restored]);
   if(!closed){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
   const literal=value=>JSON.stringify(value).replaceAll("'","''"),fields=Object.keys(snapshot.installation).map(k=>`"${k}"`).join(",");
   await fixtureSql(`update public.license_installation set(${fields})=(select ${fields}from jsonb_populate_record(null::public.license_installation,'${literal(snapshot.installation)}'::jsonb));delete from public.license_current;insert into public.license_current select *from jsonb_populate_record(null::public.license_current,'${literal(snapshot.current)}'::jsonb);update public.restaurant_settings set counter_payment_timing='${snapshot.timing}'where id;`);

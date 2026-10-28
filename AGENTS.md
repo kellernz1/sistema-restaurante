@@ -67,6 +67,10 @@
 
 ## Local-First Operation
 
+- Script data writes require a branded, installation-bound target from `scripts/target-safety.mjs`. Import data helpers only through `scripts/target-operations.mjs`; private implementations and raw process/HTTP transports are restricted to the barrier. Never infer a known/sole container or default test database. Tests require a signed, unexpired disposable owner context and must reject development even with authorization flags. Run `check:targets` and target-safety tests when adding scripts. See `docs/target-safety.md`.
+- All `scripts/**/*.mjs` must pass ESLint `no-undef`. Long-running entry points must pass the disposable supervisor/process startup acceptance in `test:all`: stable live processes, successful activity and advancing heartbeats are required; importing a driver/helper alone is not runtime coverage. Never use an existing installation to validate worker startup.
+- Development maintenance requires `--allow-development --installation-id <actual database UUID>`. Background runtime/backup requires an explicitly granted installation-bound automation record. Production demo/reset/repair/migration/replacement requires enhanced typed authorization. Never grant these authorizations or mutate an existing installation as part of a test block; use disposable validation.
+
 - Restaurant installs use `local:provision` on a fresh checkout, with an owned self-hosted profile, exclusive provider/database/worker secrets, no Studio and exactly one explicitly entered administrator. `local:setup` / `--no-demo` are empty development only; demonstration data requires `--demo`. Never convert or clean an existing development instance implicitly. Preflight fails on missing evidence; host-task simulation in disposable tests is not Windows acceptance. See `docs/restaurant-provisioning.md`.
 - Child commands must honor their explicitly owned working directory. Provisioning backups must validate provider ownership/stage before selecting a database. Never let a temporary test fall back to development ROOT or its operations/backup state.
 

@@ -1,8 +1,10 @@
+import {resolveTarget} from "../target-safety.mjs";
 import { sqlTestDatabase } from "./sql-test-target.mjs";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn } from "../target-process.mjs";
 import path from "node:path";
-import { findDbContainer, pipeFileToProcess, ROOT, run } from "./lib.mjs";
+import {findDbContainer,ROOT,run} from "./lib.mjs";
+import {pipeFileToProcess} from "../target-operations.mjs";
 
 export async function runCounterConcurrencyTest() {
   const container = findDbContainer();
@@ -25,7 +27,7 @@ export async function runCounterConcurrencyTest() {
     for (const result of results) if (result.status === "rejected") throw result.reason;
     const tickets = results.map((result) => result.value);
     assert.deepEqual([...tickets].sort((a, b) => a - b), [1, 2]);
-    await pipeFileToProcess(path.join(ROOT, "supabase/tests/counter_concurrency_test.sql"), "docker", [...prefix, "-v", `first_ticket=${tickets[0]}`, "-v", `second_ticket=${tickets[1]}`]);
+    await pipeFileToProcess(resolveTarget(),path.join(ROOT, "supabase/tests/counter_concurrency_test.sql"), "docker", [...prefix, "-v", `first_ticket=${tickets[0]}`, "-v", `second_ticket=${tickets[1]}`]);
   } finally {
     run("docker", [...prefix, "-c", "delete from public.counter_daily_numbers where business_date='9997-12-31'"], { capture: true });
   }

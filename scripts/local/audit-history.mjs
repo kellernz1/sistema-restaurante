@@ -1,9 +1,14 @@
+import {allocateDatabase,guardEntry,resolveTarget,databaseTarget} from "../target-safety.mjs";
+
+
 import fs from "node:fs";
 import path from "node:path";
-import { randomBytes, createHash } from "node:crypto";
+import {createHash} from "node:crypto";
 import { ROOT, findDbContainer, isMain } from "./lib.mjs";
-import { localMigrations, readHistory, compareHistory, migrateIsolated } from "./migration-history.mjs";
-import { createIsolatedDatabase, dropIsolatedDatabase, databaseSql } from "./isolated-database.mjs";
+import { localMigrations, readHistory, compareHistory, migrateIsolated } from "../target-operations.mjs";
+import { createIsolatedDatabase, dropIsolatedDatabase, databaseSql } from "../target-operations.mjs";
+await guardEntry(import.meta.url,"sql");
+
 
 export function schemaDifferences(expected,actual) {
   const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==="object"?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
@@ -20,7 +25,7 @@ export function schemaDifferences(expected,actual) {
 }
 export async function snapshot(container,database) {
   const query=fs.readFileSync(path.join(ROOT,"scripts/local/schema-snapshot.sql"),"utf8");
-  const text=await databaseSql(container,database,`begin transaction read only; ${query} commit;`);
+  const text=await databaseSql(databaseTarget(resolveTarget(),database),`begin transaction read only; ${query} commit;`);
   const line=text.split(/\r?\n/).find(line=>line.startsWith("["));
   if(!line)throw new Error("Missing schema snapshot");
   return JSON.parse(line);
@@ -28,7 +33,7 @@ export async function snapshot(container,database) {
 export async function configuration(container,database) {
   const result={};
   for(const table of ["restaurant_settings","service_policy","cash_session_policy","print_settings","print_devices","print_destinations","print_processor_lease"]){
-    const value=await databaseSql(container,database,`begin transaction read only; select coalesce(jsonb_agg(to_jsonb(t)),'[]') from public.${table} t; commit;`);
+    const value=await databaseSql(databaseTarget(resolveTarget(),database),`begin transaction read only; select coalesce(jsonb_agg(to_jsonb(t)),'[]') from public.${table} t; commit;`);
     result[table]=JSON.parse(value.split(/\r?\n/).find(line=>line.startsWith("[")));
   }
   return result;
@@ -44,23 +49,23 @@ export function normalizeConfiguration(configuration) {
   }).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))]));
 }
 export async function dataFingerprint(container,database) {
-  const names=await databaseSql(container,database,"select json_agg(tablename order by tablename) from pg_tables where schemaname='public';");
+  const names=await databaseSql(databaseTarget(resolveTarget(),database),"select json_agg(tablename order by tablename) from pg_tables where schemaname='public';");
   const tables=JSON.parse(names.trim());
   const quote=name=>'"'+name.replaceAll('"','""')+'"';
   const queries=tables.map(table=>`select '${table.replaceAll("'","''")}' as name,count(*) as rows,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' order by md5(to_jsonb(t)::text)),'')) as hash from public.${quote(table)} t`);
-  const value=await databaseSql(container,database,`begin transaction read only;select jsonb_agg(to_jsonb(x) order by name) from (${queries.join(" union all ")}) x;commit;`);
+  const value=await databaseSql(databaseTarget(resolveTarget(),database),`begin transaction read only;select jsonb_agg(to_jsonb(x) order by name) from (${queries.join(" union all ")}) x;commit;`);
   return JSON.parse(value.split(/\r?\n/).find(line=>line.startsWith("[")));
 }
 export async function auditHistory() {
-  const container=findDbContainer(),database=`mesa_history_${randomBytes(12).toString("hex")}`;
-  const directory=path.join(ROOT,"artifacts","migration-history",new Date().toISOString().replace(/[:.]/g,"-"));fs.mkdirSync(directory,{recursive:true});
+  const container=findDbContainer(),database=allocateDatabase(resolveTarget(),"history").database;
+  const directory=path.join(resolveTarget().root,"artifacts","migration-history",new Date().toISOString().replace(/[:.]/g,"-"));fs.mkdirSync(directory,{recursive:true});
   const files=localMigrations(),recorded=await readHistory("postgres",container);
   const history=compareHistory(files,recorded);
   fs.writeFileSync(path.join(directory,"history.json"),JSON.stringify({files,recorded,...history},null,2));
   const liveBefore=await snapshot(container,"postgres");
-  await createIsolatedDatabase(container,database);
+  await createIsolatedDatabase(databaseTarget(resolveTarget(),database));
   try {
-    const log=migrateIsolated(database);
+    const log=migrateIsolated(databaseTarget(resolveTarget(),database));
     fs.writeFileSync(path.join(directory,"official-migrations.log"),log,"utf8");
     const officialHistory=await readHistory(database,container);
     if(!compareHistory(files,officialHistory).ok)throw new Error("Official clean history did not match local migrations");
@@ -76,21 +81,21 @@ export async function auditHistory() {
     console.log(`History: ${recorded.length}/${files.length}; missing ${history.missing.length}; orphaned ${history.orphaned.length}.`);
     console.log(`Schema differences: ${differences.length}. Report: ${directory}`);
     return {directory,report};
-  } finally {await dropIsolatedDatabase(container,database);}
+  } finally {await dropIsolatedDatabase(databaseTarget(resolveTarget(),database));}
 }
 export async function assertInstalledSchema(database="postgres",container=findDbContainer()) {
   const rows=await readHistory(database,container),latest=rows.at(-1)?.version;
   if(!latest){
-    const exists=(await databaseSql(container,database,"select to_regclass('public.orders') is not null;")).trim();
+    const exists=(await databaseSql(databaseTarget(resolveTarget(),database),"select to_regclass('public.orders') is not null;")).trim();
     if(exists==="t")throw new Error("Installed application has no migration provenance. Audit before applying anything.");
     return;
   }
-  const reference=`mesa_history_${randomBytes(12).toString("hex")}`;
+  const reference=allocateDatabase(resolveTarget(),"history").database;
   try {
-    await createIsolatedDatabase(container,reference);
-    migrateIsolated(reference,{through:latest});
+    await createIsolatedDatabase(databaseTarget(resolveTarget(),reference));
+    migrateIsolated(databaseTarget(resolveTarget(),reference),{through:latest});
     const differences=schemaDifferences(await snapshot(container,reference),await snapshot(container,database));
     if(differences.length)throw new Error(`Installed schema differs from its recorded migration prefix (${differences.length} differences). Run db:audit-history; no migration was applied.`);
-  } finally {await dropIsolatedDatabase(container,reference);}
+  } finally {await dropIsolatedDatabase(databaseTarget(resolveTarget(),reference));}
 }
 if(isMain(import.meta.url))await auditHistory();

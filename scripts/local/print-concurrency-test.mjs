@@ -1,6 +1,6 @@
 import { sqlTestDatabase } from "./sql-test-target.mjs";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn } from "../target-process.mjs";
 import { randomUUID } from "node:crypto";
 import { findDbContainer, run } from "./lib.mjs";
 

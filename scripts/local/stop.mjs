@@ -1,9 +1,14 @@
+import {guardEntry,resolveTarget} from "../target-safety.mjs";
+
 import fs from "node:fs";
 import path from "node:path";
 
-import { isProcessRunning, isWindows, LOCAL_STATE_DIR, run, runSupabase } from "./lib.mjs";
+import {isProcessRunning,isWindows,LOCAL_STATE_DIR,run} from "./lib.mjs";
+import {runSupabase} from "../target-operations.mjs";
 import { stopCustomerPreview } from "./stop-customer-preview.mjs";
 import { stopAdminPreview } from "./stop-admin-preview.mjs";
+await guardEntry(import.meta.url,"runtime");
+
 
 stopAdminPreview();
 stopCustomerPreview();
@@ -28,5 +33,5 @@ for (const [name, pid] of [["supervisor",state.supervisor],["app", state.app], [
 }
 
 if (fs.existsSync(stateFile)) fs.rmSync(stateFile);
-runSupabase(["stop"]);
+runSupabase(resolveTarget(),["stop"]);
 console.log("Supabase stopped. Local database data was preserved.");

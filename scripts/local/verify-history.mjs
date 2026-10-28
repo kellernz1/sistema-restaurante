@@ -1,4 +1,4 @@
-import { verifyHistory } from "./migration-history.mjs";
+import { verifyHistory } from "../target-operations.mjs";
 try {
   const result=await verifyHistory();
   console.log(JSON.stringify(result,null,2));

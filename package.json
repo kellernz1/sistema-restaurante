@@ -19,7 +19,7 @@
     "local:restore": "node scripts/local/restore.mjs",
     "local:autostart:install": "node scripts/local/autostart.mjs install",
     "local:autostart:remove": "node scripts/local/autostart.mjs remove",
-    "test:restore": "node scripts/local/restore-drill.mjs",
+    "test:restore": "node scripts/restore-test.mjs",
     "test:operations": "node --test tests/operations.test.mjs",
     "local:share:stop": "node scripts/local/stop-customer-preview.mjs",
     "local:admin-share:stop": "node scripts/local/stop-admin-preview.mjs",
@@ -42,12 +42,14 @@
     "lint": "eslint .",
     "test:whatsapp": "vitest run",
     "check:text": "node scripts/check-text.mjs",
-    "test:visual": "node scripts/visual-smoke.mjs",
+    "test:visual": "node scripts/visual-test.mjs",
     "test:integration": "node scripts/integration/run.mjs",
     "local:provision": "node scripts/local/provision.mjs",
     "local:preflight": "node scripts/local/preflight.mjs",
     "local:setup:demo": "node scripts/local/setup.mjs --demo",
-    "test:provision": "node scripts/local/test-provision.mjs"
+    "test:provision": "node scripts/local/test-provision.mjs",
+    "local:authorize-automation": "node scripts/authorize-target.mjs",
+    "check:targets": "node --test tests/target-imports.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

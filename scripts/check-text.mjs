@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import {execFileSync} from "node:child_process";
+import {execFileSync} from "./target-process.mjs";
 import {fileURLToPath} from "node:url";
 import ts from "typescript";
 

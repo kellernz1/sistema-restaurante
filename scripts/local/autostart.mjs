@@ -1,5 +1,6 @@
+import {resolveTarget} from "../target-safety.mjs";
 import path from "node:path";
-import { command } from "./operations-process.mjs";
+import {command} from "../target-operations.mjs";
 import { isMain, ROOT } from "./lib.mjs";
 
 export function taskPlan(action, root=ROOT, node=process.execPath) {
@@ -18,6 +19,6 @@ if(isMain(import.meta.url)) {
   if(process.argv.includes("--dry-run"))console.log("DRY RUN: no Windows configuration changed.");
   else {
     if(process.platform!=="win32")throw new Error("Windows required");
-    await command(plan.command,plan.args);
+    await command(resolveTarget(),plan.command,plan.args);
   }
 }

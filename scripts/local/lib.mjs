@@ -1,12 +1,15 @@
-import { spawn, spawnSync } from "node:child_process";
+import {validateTargetEnvironment,directoryTarget,resolveTarget,databaseTarget,authorizeOperation,assertExecution,targetPath,targetKeys,authorizeSql,assertDirectory,requireTransport} from "../target-safety.mjs";
+
+
+import { spawn, spawnSync } from "../target-process.mjs";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import {integrationContext}from "../integration/context.mjs";
-import {providerMetadata,providerCompose,readProviderSecrets,prepareProviderCli} from "./restaurant-provider.mjs";
+
+import {providerMetadata,providerCompose,readProviderSecrets,prepareProviderCli} from "../target-provider.mjs";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const LOCAL_STATE_DIR = path.join(ROOT, ".local-secrets");
@@ -23,6 +26,8 @@ export function executable(name) {
 }
 
 export function run(command, args, options = {}) {
+  if(command==="docker"&&args.some(a=>["psql","pg_dump","pg_restore","createdb","dropdb"].includes(a)))assertExecution(resolveTarget(),command,args,options);
+
   const npmLauncher = isWindows && /^(npm|npx)\.cmd$/i.test(path.basename(command));
   if (npmLauncher) {
     const name = path.basename(command, ".cmd");
@@ -47,13 +52,19 @@ export function run(command, args, options = {}) {
   return result;
 }
 
-export function runSupabase(args, options = {}) {
+export function runSupabase(context,args, options = {}) {
+  const target=context;requireTransport(target);validateTargetEnvironment(target,options.env);
+  if(!args.includes("--workdir"))args=[...args,"--workdir",target.root];
+  authorizeOperation(target,args[0]==="start"?"boot":args[0]==="db"&&args[1]==="reset"?"reset":args[0]==="migration"&&args[1]==="repair"?"repair":args[0]==="migration"||args[0]==="db"?"migration":"runtime");
+  const work=args.indexOf("--workdir");if(work>=0)targetPath(target,args[work+1]);
+  const urlAt=args.indexOf("--db-url");if(urlAt>=0){const url=new URL(args[urlAt+1]);if(url.hostname!=="127.0.0.1"||Number(url.port)!==target.dbPort)throw Error("Mixed migration endpoint refused");databaseTarget(target,decodeURIComponent(url.pathname.slice(1)));}
+
   const workIndex=args.indexOf("--workdir");
   const root=workIndex>=0?path.resolve(args[workIndex+1]):ROOT;
   const provider=providerMetadata(root);
   if(provider){
     if(args[0]==="start"||args[0]==="stop"){
-      const result=providerCompose(root,args[0]==="start"?["up","-d"]:["stop"],{timeout:options.timeout});
+      const result=providerCompose(resolveTarget(),args[0]==="start"?["up","-d"]:["stop"],{timeout:options.timeout});
       if(!options.capture)console.log("Restaurant provider "+args[0]+" completed; secrets suppressed.");
       return {...result,stdout:"Restaurant provider ready\n",stderr:""};
     }
@@ -63,7 +74,7 @@ export function runSupabase(args, options = {}) {
       return {status:0,stdout:options.capture?Object.entries(values).map(([k,v])=>k+"="+v).join("\n"):"Restaurant provider configured; credentials suppressed.\n",stderr:""};
     }
     const transformed=args.filter((a,i)=>a!=="--local"&&a!=="--workdir"&&args[i-1]!=="--workdir");
-    transformed.push("--workdir",prepareProviderCli(root));
+    transformed.push("--workdir",prepareProviderCli(resolveTarget(),root));
     if(args.includes("--local"))transformed.push("--db-url",`postgresql://postgres@127.0.0.1:${provider.dbPort}/postgres?sslmode=disable`);
     const result=run(executable("npx"),["--yes",`supabase@${SUPABASE_CLI_VERSION}`,...transformed],{...options,capture:true,allowFailure:true,env:{...options.env,PGPASSWORD:secrets.POSTGRES_PASSWORD}});
     if(result.status!==0&&!options.allowFailure)throw new Error("Official provider CLI command failed; output suppressed to protect credentials");
@@ -73,7 +84,7 @@ export function runSupabase(args, options = {}) {
   return run(
     executable("npx"),
     ["--yes", `supabase@${SUPABASE_CLI_VERSION}`, ...args],
-    options,
+    {...options,env:{...options.env,...(targetKeys(target).dbPassword?{PGPASSWORD:targetKeys(target).dbPassword}:{})}},
   );
 }
 
@@ -101,10 +112,11 @@ export function loadEnvFile(file = path.join(ROOT, ".env.local")) {
   return fs.existsSync(file) ? parseEnv(fs.readFileSync(file, "utf8")) : {};
 }
 
-export function writeEnvFile(values, file = path.join(ROOT, ".env.local")) {
+export function writeEnvFile(context,values, file = path.join(context.root, ".env.local")) {
+  authorizeOperation(context,"runtime");targetPath(context,file);
   const lines = Object.entries(values).map(([key, value]) => `${key}=${value ?? ""}`);
   const temporary = `${file}.tmp`;
-  fs.writeFileSync(temporary, `${lines.join(os.EOL)}${os.EOL}`, "utf8");
+  targetPath(context,temporary);fs.writeFileSync(temporary, `${lines.join(os.EOL)}${os.EOL}`, {encoding:"utf8",flag:"wx",mode:0o600});
   fs.renameSync(temporary, file);
 }
 
@@ -131,7 +143,8 @@ export function readOption(name) {
   return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
-export function ensureDirectory(directory) {
+export function ensureDirectory(context,directory) {
+  authorizeOperation(context,"runtime");directory=assertDirectory(context,directory);
   fs.mkdirSync(directory, { recursive: true });
 }
 
@@ -146,26 +159,7 @@ export async function confirmWord(question, expected) {
   }
 }
 
-export function findDbContainer() {
-  const integration=process.env.INTEGRATION_RUN_DIR?integrationContext():null;
-  const result = run(
-    "docker",
-    ["ps", "--format", "{{.Names}}"],
-    { capture: true },
-  );
-  const names = result.stdout.split(/\r?\n/).filter((name) => name.startsWith("supabase_db_"));
-  if(integration){const owned=`supabase_db_${integration.project}`;if(!names.includes(owned))throw new Error("Owned integration database unavailable");return owned;}
-  const provider=providerMetadata(ROOT);
-  if(provider){const owned=`supabase_db_${provider.project}`;if(!names.includes(owned))throw new Error("Restaurant provider database unavailable");return owned;}
-  const configFile=path.join(ROOT,"supabase/config.toml");
-  const configured=fs.existsSync(configFile)?fs.readFileSync(configFile,"utf8").match(/^project_id\s*=\s*"([A-Za-z0-9_-]+)"/m)?.[1]:null;
-  if(configured){const owned=`supabase_db_${configured}`;if(!names.includes(owned))throw new Error("Configured local database unavailable");return owned;}
-  const exact = names.find((name) => name === "supabase_db_sistema-restaurante");
-  if (exact) return exact;
-  if (names.length === 1) return names[0];
-  if (names.length === 0) throw new Error("No running local Supabase database container was found.");
-  throw new Error(`Multiple Supabase database containers found: ${names.join(", ")}`);
-}
+export function findDbContainer() { return resolveTarget().container; }
 
 export function isProcessRunning(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
@@ -177,12 +171,13 @@ export function isProcessRunning(pid) {
   }
 }
 
-export function startDetached(scriptArgs, logName, env = {}) {
-  ensureDirectory(LOG_DIR);
-  const output = fs.openSync(path.join(LOG_DIR, `${logName}.log`), "a");
-  const errors = fs.openSync(path.join(LOG_DIR, `${logName}.error.log`), "a");
+export function startDetached(context,scriptArgs, logName, env = {}) {
+  authorizeOperation(context,"runtime");validateTargetEnvironment(context,env);if(!scriptArgs.length||!/[.]m?js$/.test(scriptArgs[0]))throw Error("Owned script path required");targetPath(context,path.resolve(context.root,scriptArgs[0]));if(!/^[a-zA-Z0-9_-]+$/.test(logName))throw Error("Invalid process log name");const directory=targetPath(context,path.join(context.root,"logs"));
+  ensureDirectory(context,directoryTarget(context,directory));
+  const output = fs.openSync(targetPath(context,path.join(directory, `${logName}.log`)), "a");
+  const errors = fs.openSync(targetPath(context,path.join(directory, `${logName}.error.log`)), "a");
   const child = spawn(process.execPath, scriptArgs, {
-    cwd: ROOT,
+    cwd: context.root,
     detached: true,
     windowsHide: true,
     env: { ...process.env, ...env, NEXT_TELEMETRY_DISABLED: "1" },
@@ -194,7 +189,8 @@ export function startDetached(scriptArgs, logName, env = {}) {
   return child.pid;
 }
 
-export async function pipeFileToProcess(file, command, args) {
+export async function pipeFileToProcess(context,file, command, args) {
+  authorizeOperation(context,"sql");authorizeSql(context,fs.readFileSync(file,"utf8"));assertExecution(context,command,args);
   await new Promise((resolve, reject) => {
     const input = fs.openSync(file, "r");
     const child = spawn(command, args, {
@@ -207,9 +203,10 @@ export async function pipeFileToProcess(file, command, args) {
   });
 }
 
-export async function pipeProcessToFile(command, args, file) {
+export async function pipeProcessToFile(context,command, args, file) {
+  authorizeOperation(context,"sql");targetPath(context,file);assertExecution(context,command,args);
   await new Promise((resolve, reject) => {
-    const output = fs.openSync(file, "w");
+    const output = fs.openSync(file, "wx",0o600);
     const child = spawn(command, args, {
       cwd: ROOT,
       stdio: ["ignore", output, "inherit"],

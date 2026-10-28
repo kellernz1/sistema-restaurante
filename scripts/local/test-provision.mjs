@@ -1,14 +1,16 @@
+import {createDisposableTarget,activateDisposableTarget,resolveTarget,directoryTarget,pendingBootTarget,verifyLiveTarget} from "../target-safety.mjs";
+
 import fs from "node:fs";
 import path from "node:path";
 import net from "node:net";
 import assert from "node:assert/strict";
 import {randomBytes} from "node:crypto";
-import {spawnSync} from "node:child_process";
-import {createClient} from "@supabase/supabase-js";
+import {spawnSync} from "../target-process.mjs";
+import {createClient} from "../target-client.mjs";
 import {ROOT} from "./lib.mjs";
 import {provision} from "./provision.mjs";
 import {preflight,hostPreflightChecks} from "./preflight.mjs";
-import {providerMetadata,providerCompose,providerSql,readProviderSecrets,generateProviderSecrets} from "./restaurant-provider.mjs";
+import {providerMetadata,providerCompose,providerSql,readProviderSecrets,generateProviderSecrets,createBackup,copyExternal} from "../target-operations.mjs";
 import {licenseFixtures} from "../../tests/helpers/license-fixture.mjs";
 
 async function ports(){for(let n=0;n<50;n++){const base=21000+Math.floor(Math.random()*2000)*10,servers=[];try{for(const port of [base,base+1,base+2]){const s=net.createServer();servers.push(s);await new Promise((resolve,reject)=>{s.once("error",reject);s.listen(port,"127.0.0.1",resolve);});}return base;}catch{/* Try an entirely separate block. */}finally{await Promise.all(servers.map(s=>new Promise(r=>s.close(r))));}}throw Error("No disposable port block");}
@@ -18,7 +20,8 @@ function developmentBoundary(){
  return JSON.stringify({backups:fs.existsSync(dir)?fs.readdirSync(dir).sort():[],state:fs.existsSync(state)?fs.readFileSync(state,"utf8"):null});
 }
 const beforeBoundary=developmentBoundary();
-fs.mkdirSync(root,{recursive:true});fs.mkdirSync(external,{recursive:true});
+const targetOwner=createDisposableTarget({root,runDirectory:directory,project:"mesa-rest-"+randomBytes(12).toString("hex"),apiPort:base,dbPort:base+1,appPort:base+2});activateDisposableTarget(targetOwner.context);
+fs.mkdirSync(external,{recursive:true});
 for(const item of ["src","scripts","supabase","infra","public","package.json","package-lock.json","next.config.ts","tsconfig.json","postcss.config.mjs"]){const from=path.join(ROOT,item);if(fs.existsSync(from))fs.cpSync(from,path.join(root,item),{recursive:true,filter:p=>!/[\\/]supabase[\\/]\.(temp|branches)([\\/]|$)/.test(p)});}
 fs.symlinkSync(path.join(ROOT,"node_modules"),path.join(root,"node_modules"),process.platform==="win32"?"junction":"dir");
 const nextConfig=path.join(root,"next.config.ts");
@@ -28,7 +31,13 @@ let success=false;
 try{
  console.log("Provisioning a separate owned restaurant provider; no development or Windows writes.");
  const installed=await provision(root,cfg);const meta=providerMetadata(root),secrets=readProviderSecrets(root);
- assert.equal(Number(providerSql(root,"select count(*)from public.products")),0);assert.equal(Number(providerSql(root,"select count(*)from auth.users")),1);
+ const boot=pendingBootTarget(resolveTarget());assert.equal(boot.ready,false);await verifyLiveTarget(boot);assert.equal(boot.ready,true);
+ const observedLicense=providerSql(resolveTarget(),"select to_jsonb(i) from public.license_installation i where id");
+ const proofBackup=await createBackup(resolveTarget(),{record:true,reason:"test-recording-must-be-disabled"});
+ assert.equal(providerSql(resolveTarget(),"select to_jsonb(i) from public.license_installation i where id"),observedLicense,"Disposable backup must not observe the license clock");
+ assert.equal(fs.existsSync(path.join(root,".local-secrets/operations/state.json")),false,"Disposable backup must not write operational state");
+ await copyExternal(resolveTarget(),proofBackup,directoryTarget(resolveTarget(),external,{external:true}));
+ assert.equal(Number(providerSql(resolveTarget(),"select count(*)from public.products")),0);assert.equal(Number(providerSql(resolveTarget(),"select count(*)from auth.users")),1);
  const other=generateProviderSecrets();for(const name of Object.keys(secrets))assert.ok(secrets[name]!==other[name],"Installation secrets must differ; values omitted");
  const signed=await createClient(meta.apiUrl,secrets.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}}).auth.signInWithPassword({email:cfg.adminEmail,password:cfg.adminPassword});assert.ok(!signed.error&&signed.data.session,"Initial administrator login failed; values omitted");
  const service=createClient(meta.apiUrl,secrets.SUPABASE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}}),auth=createClient(meta.apiUrl,secrets.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -43,7 +52,7 @@ try{
  try{
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error("Owned provider Realtime subscription timeout")),20000);channel.subscribe(status=>{if(status==="SUBSCRIBED"){clearTimeout(timer);resolve();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){clearTimeout(timer);reject(Error("Owned provider Realtime subscription failed"));}});});
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error("Owned provider replication readiness timeout")),30000);ready.then(()=>{clearTimeout(timer);resolve();});});
-  providerSql(root,"update public.profiles set full_name='Acceptance realtime' where id='"+signed.data.user.id+"'");
+  providerSql(resolveTarget(),"update public.profiles set full_name='Acceptance realtime' where id='"+signed.data.user.id+"'");
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{fs.writeFileSync(path.join(directory,"realtime.json"),JSON.stringify(systems));reject(Error("Owned provider Realtime event timeout"));},60000);event.then(()=>{clearTimeout(timer);resolve();});});
  }finally{await auth.removeChannel(channel);auth.realtime.disconnect();}
  const hostChecks=async(r,m)=>({...await hostPreflightChecks(r,m),autostart:true});
@@ -52,16 +61,16 @@ try{
  fs.appendFileSync(path.join(root,".env.local"),"DEMO_PASSWORD=fixture-only\n","utf8");
  assert.equal((await preflight(root,{hostChecks})).checks.find(c=>c.name==="no_demo").status,"fail");fs.writeFileSync(path.join(root,".env.local"),original,"utf8");
  const again=await provision(root,cfg,{skipBuild:true});assert.equal(again.already_provisioned,true);assert.equal(again.installation_id,installed.installation_id);
- providerCompose(root,["stop"]);providerCompose(root,["up","-d"]);
+ providerCompose(resolveTarget(),["stop"]);providerCompose(resolveTarget(),["up","-d"]);
  const {waitProvider}=await import("./restaurant-provider.mjs");await waitProvider(root);
  const after=await service.auth.admin.listUsers();assert.ok(!after.error&&after.data.users.length===1,"Provider credentials must survive restart");
  // Prove unrelated credentials cannot authenticate, without exposing either credential.
  const rejected=await fetch(meta.apiUrl+"/rest/v1/profiles?select=id",{headers:{apikey:other.SUPABASE_SECRET_KEY}});assert.ok([401,403].includes(rejected.status));
  const dbProbe=spawnSync("docker",["exec",`supabase_db_${meta.project}`,"sh","-c",'PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -U postgres -d postgres -Atc "select 1"'],{encoding:"utf8",windowsHide:true});assert.equal(dbProbe.status,0,"Exclusive PostgreSQL password must authenticate");
  const dbRejected=spawnSync("docker",["exec","-i",`supabase_db_${meta.project}`,"sh","-c",'read -r PGPASSWORD;export PGPASSWORD;psql -h 127.0.0.1 -U postgres -d postgres -Atc "select 1"'],{input:other.POSTGRES_PASSWORD+"\n",encoding:"utf8",windowsHide:true});assert.notEqual(dbRejected.status,0,"Unrelated database password must be rejected");
- providerSql(root,"insert into public.categories(name)values('Acceptance');insert into public.products(name,price,category_id)select 'Acceptance',10000,id from public.categories limit 1");
+ providerSql(resolveTarget(),"insert into public.categories(name)values('Acceptance');insert into public.products(name,price,category_id)select 'Acceptance',10000,id from public.categories limit 1");
  await assert.rejects(()=>provision(root,cfg,{skipBuild:true}),/Existing restaurant data refused/);
- const preserved=await provision(root,cfg,{skipBuild:true,confirmExisting:installed.installation_id});assert.equal(preserved.already_provisioned,true);assert.equal(Number(providerSql(root,"select count(*)from public.products")),1);
+ const preserved=await provision(root,cfg,{skipBuild:true,confirmExisting:installed.installation_id});assert.equal(preserved.already_provisioned,true);assert.equal(Number(providerSql(resolveTarget(),"select count(*)from public.products")),1);
  let exposed=0;for(const name of ["db","auth","rest","realtime","kong"]){const logs=spawnSync("docker",["logs",`supabase_${name}_${meta.project}`],{encoding:"utf8",windowsHide:true,maxBuffer:20*1024*1024});const all=(logs.stdout??"")+(logs.stderr??"");exposed+=Object.values(secrets).filter(v=>v.length>12&&all.includes(v)).length;assert.equal(all.includes(cfg.adminPassword),false,"Password must not be logged");}assert.equal(exposed,0,"Provider secrets must not be logged");
  const evidence={passed:true,empty_menu:true,unique_credentials:true,first_admin_login:true,realtime_event:true,anonymous_rls:true,preflight_approved_with_simulated_autostart:true,demo_rejected:true,idempotent:true,existing_data_refused:true,restart_persists_credentials:true,postgres_unique_password:true,secrets_not_logged:true,windows_modified:false};
  assert.equal(developmentBoundary(),beforeBoundary,"Development backup/state boundary changed");evidence.development_backup_state_unchanged=true;
@@ -75,6 +84,6 @@ try{
 }
 finally{
  if(!path.resolve(root).startsWith(path.resolve(ROOT,"artifacts/provision-tests")+path.sep))throw Error("Unsafe provider cleanup refused");
- if(providerMetadata(root))providerCompose(root,["down","--volumes"]);
+ if(providerMetadata(root))providerCompose(resolveTarget(),["down","--volumes"]);
  console.log("Owned restaurant provider removed; development untouched. Result: "+(success?"passed":"failed")+". Evidence: "+directory);
 }

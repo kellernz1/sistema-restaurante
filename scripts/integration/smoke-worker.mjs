@@ -1,9 +1,9 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "../target-process.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "../target-client.mjs";
 
 import { assertResult } from "../demo-data.mjs";
 import { ROOT } from "../local/lib.mjs";

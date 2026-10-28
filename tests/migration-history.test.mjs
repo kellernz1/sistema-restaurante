@@ -3,9 +3,9 @@ import test from "node:test";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { compareHistory,localMigrations,isolatedDatabaseUrl } from "../scripts/local/migration-history.mjs";
+import { compareHistory,localMigrations,isolatedDatabaseUrl } from "../scripts/target-operations.mjs";
 import { schemaDifferences,normalizeConfiguration } from "../scripts/local/audit-history.mjs";
-import { assertIsolated } from "../scripts/local/isolated-database.mjs";
+import { assertIsolated } from "../scripts/target-operations.mjs";
 
 test("history detects missing, orphaned and renamed entries",()=>{
  const files=[{version:"001",name:"first",file:"001_first.sql"},{version:"002",name:"second",file:"002_second.sql"}];
@@ -20,7 +20,7 @@ test("migration discovery rejects duplicate versions and invalid SQL filenames",
 });
 test("temporary migration and cleanup guards never admit the development database",()=>{
  for(const name of ["postgres","template1","_supabase","mesa_history_wrong"]){assert.throws(()=>isolatedDatabaseUrl(name));assert.throws(()=>assertIsolated(name));}
- const name="mesa_history_"+"a".repeat(24);assert.doesNotThrow(()=>assertIsolated(name));const url=new URL(isolatedDatabaseUrl(name));assert.equal(url.pathname,"/"+name);assert.equal(url.hostname,"127.0.0.1");
+ const name="mesa_history_"+"a".repeat(24);assert.doesNotThrow(()=>assertIsolated(name));assert.throws(()=>isolatedDatabaseUrl(name),/Target safety refused/);
 });
 test("schema comparison ignores row and object-key order but preserves meaningful array order and multiplicity",()=>{
  const entry={category:"columns",key:"orders.total",value:{type:"bigint",not_null:true}};

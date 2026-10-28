@@ -1,3 +1,4 @@
+import {guardEntry,resolveTarget,authorizeOperation} from "./target-safety.mjs";
 import fs from "node:fs";
 
 import {
@@ -9,8 +10,11 @@ import {
   readManifest,
 } from "./demo-data.mjs";
 import { isMain } from "./local/lib.mjs";
+await guardEntry(import.meta.url,"clear-demo");
+
 
 export async function clearDemo({ keepStaff = false } = {}) {
+  authorizeOperation(resolveTarget(),"clear-demo");
   const { client } = demoClient();
   const manifest = readManifest();
   const markedOrders = assertResult(await client.from("orders").select("table_id").like("notes", "[DEMO]%"), "read marked demo tables");

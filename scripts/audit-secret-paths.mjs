@@ -1,4 +1,4 @@
-import {spawnSync} from "node:child_process";
+import {spawnSync} from "./target-process.mjs";
 import fs from "node:fs";
 
 // Never return matching text, variable values, blob IDs, diffs or commit messages.

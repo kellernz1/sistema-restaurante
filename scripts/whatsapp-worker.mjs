@@ -1,4 +1,7 @@
+import {guardEntry,resolveTarget,targetFetch} from "./target-safety.mjs";
 import { loadEnvFile } from "./local/lib.mjs";
+await guardEntry(import.meta.url,"runtime");
+
 
 const env = { ...loadEnvFile(), ...process.env };
 const appUrl = env.NEXT_PUBLIC_APP_URL;
@@ -15,7 +18,7 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 }
 
 async function processQueue() {
-  const response = await fetch(new URL("/api/whatsapp/process", appUrl), {
+  const response = await targetFetch(resolveTarget(),new URL("/api/whatsapp/process", appUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${secret}` },
     signal: AbortSignal.timeout(55_000),

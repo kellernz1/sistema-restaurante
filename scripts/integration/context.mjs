@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath}from "node:url";
+import {resolveTarget} from "../target-safety.mjs";
 
 export function integrationContext(env=process.env){
  const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
@@ -10,5 +11,6 @@ export function integrationContext(env=process.env){
  if(!marker.active||marker.nonce!==env.INTEGRATION_NONCE||marker.project!==`mesa-it-${path.basename(directory)}`)throw Error("Integration ownership mismatch or expired instance");
  if(!Number.isInteger(marker.dbPort)||marker.dbPort!==marker.apiPort+1||marker.dbPort===54322)throw Error("Unsafe integration database port");
  for(const [key,port]of [["PUBLIC_TEST_URL",marker.appPort],["NEXT_PUBLIC_APP_URL",marker.appPort],["NEXT_PUBLIC_SUPABASE_URL",marker.apiPort]])if(env[key]!==`http://127.0.0.1:${port}`||[3000,54321,54322].includes(port))throw Error(`Unsafe integration target: ${key}`);
+ const target=resolveTarget();if(target.profile!=="disposable"||target.project!==marker.project||target.root!==path.join(directory,"app"))throw Error("Integration target capability mismatch");
  return marker;
 }

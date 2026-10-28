@@ -1,5 +1,12 @@
 # Local operations — block 7
 
+Maintenance now uses an installation-bound target barrier. Before running the
+commands below, read [target-safety.md](target-safety.md): development writes need
+`--allow-development --installation-id ACTUAL_UUID`; daily supervision requires an
+explicit persisted runtime/backup grant. Production-sensitive operations also
+require typed enhanced authorization. Do not add flags or grants during tests.
+Tests create their own stack, including visual and restore acceptance.
+
 Automated HTTP/native integration acceptance provisions and destroys a separate
 full stack. Run `npm run test:all`; see [integration-testing.md](integration-testing.md)
 for isolation guards, prerequisites, evidence and provider/hardware boundaries.

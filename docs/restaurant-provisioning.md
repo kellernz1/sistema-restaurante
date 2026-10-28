@@ -1,5 +1,16 @@
 # Restaurant provisioning (block 10)
 
+The script boundary is documented in [target-safety.md](target-safety.md).
+Fresh provisioning uses its own new-project capability; it cannot adopt an
+existing development checkout. Before `local:start` on a completed installation,
+grant automation explicitly with its actual printed UUID:
+
+```powershell
+npm.cmd run local:authorize-automation -- --installation-id ACTUAL_UUID --operations backup,runtime
+```
+
+No such authorization was granted to the current development installation.
+
 Use a **fresh checkout on the restaurant notebook**, without `.env.local`,
 `.local-secrets`, development Docker volumes or demo records. This command is not
 a converter/cleaner for the existing development installation. No migration was
@@ -40,7 +51,7 @@ recovery procedure, not blindly copying the root-bound ownership marker.
 
 Provisioning verifies an initial full backup and external copy, then builds the
 app. Successful completion prints the installation UUID and license instructions.
-An interrupted command can resume with identical non-password answers; configuration
+An interrupted bootstrap fails closed if its owned context can no longer be verified. Do not delete or adopt its state automatically; inspect the isolated installation and arrange explicit recovery before retrying. Configuration
 is claimed by a durable hash, Auth account inspection and a transaction marker.
 It never deletes business data. A completed empty installation returns the same ID.
 If business data exists, the default is refusal. The explicit command below permits

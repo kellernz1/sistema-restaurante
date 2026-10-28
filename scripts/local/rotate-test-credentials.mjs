@@ -1,11 +1,17 @@
+import {resolveTarget,guardEntry} from "../target-safety.mjs";
+
+
 import fs from "node:fs";
 import path from "node:path";
 import {randomBytes,randomUUID} from "node:crypto";
 import {isIP} from "node:net";
-import {createClient} from "@supabase/supabase-js";
-import {createBackup,validateBackup} from "./backup.mjs";
-import {isMain,ROOT,LOCAL_STATE_DIR,loadEnvFile,isProcessRunning,run,runSupabase} from "./lib.mjs";
+import {createClient} from "../target-client.mjs";
+import {createBackup,validateBackup} from "../target-operations.mjs";
+import {isMain,ROOT,LOCAL_STATE_DIR,loadEnvFile,isProcessRunning,run} from "./lib.mjs";
+import {runSupabase} from "../target-operations.mjs";
 import {DEMO_EMAILS} from "../demo-data.mjs";
+if(process.argv.includes("--execute")) await guardEntry(import.meta.url,"rotation");
+
 
 export function replaceAssignments(source,changes){
  let result=source;
@@ -59,7 +65,7 @@ export async function rotateTestCredentials(){
  let journal=fs.existsSync(journalFile)?JSON.parse(fs.readFileSync(journalFile,"utf8")):null;
  if(journal&&journal.stage!=="complete"&&!resume)throw Error("Incomplete maintenance exists; use --resume without generating another password");
  if(resume&&(!journal||journal.stage==="complete"))throw Error("No incomplete maintenance to resume");
- runSupabase(["start"],{capture:true,timeout:300000});
+ runSupabase(resolveTarget(),["start"],{capture:true,timeout:300000});
  const env=loadEnvFile();
  assertLocalTarget(env.NEXT_PUBLIC_SUPABASE_URL);
  if(env.APP_MODE!=="local"||env.WHATSAPP_MOCK!=="true"||!env.DEMO_PASSWORD||!env.WHATSAPP_WORKER_SECRET)throw Error("Explicit local mock environment required");
@@ -76,7 +82,7 @@ export async function rotateTestCredentials(){
  }
  if(users.length!==DEMO_EMAILS.length)throw Error("Expected demo account set is incomplete");
  if(!resume){
-  const backup=await createBackup({reason:"before-authorized-test-credential-rotation"});await validateBackup(backup);
+  const backup=await createBackup(resolveTarget(),{reason:"before-authorized-test-credential-rotation"});await validateBackup(backup);
   journal={id:randomUUID(),stage:"prepared",backup,started_at:new Date().toISOString()};
   atomic(journalFile,JSON.stringify(journal,null,2));
  }else await validateBackup(journal.backup);

@@ -1,11 +1,12 @@
+import {resolveTarget} from "../target-safety.mjs";
 import fs from "node:fs";
 import path from "node:path";
-import {spawnSync} from "node:child_process";
+import {spawnSync} from "../target-process.mjs";
 import {createHash} from "node:crypto";
 import {ROOT,isMain,loadEnvFile} from "./lib.mjs";
-import {providerMetadata,readProviderSecrets,secretFingerprints,providerSql,composeSpec} from "./restaurant-provider.mjs";
-import {compareHistory,localMigrations} from "./migration-history.mjs";
-import {validateBackup} from "./backup.mjs";
+import {providerMetadata,readProviderSecrets,secretFingerprints,providerSql,composeSpec} from "../target-operations.mjs";
+import {compareHistory,localMigrations} from "../target-operations.mjs";
+import {validateBackup} from "../target-operations.mjs";
 import {operationsPolicySchema} from "../../src/lib/operations.ts";
 
 export function evaluatePreflight(evidence){
@@ -44,14 +45,18 @@ export async function preflight(root=ROOT,{hostChecks=hostPreflightChecks}={}){
  const secrets=readProviderSecrets(root),expected=meta.fingerprints,actual=secretFingerprints(secrets);
  const complete=readJson(path.join(root,".local-secrets/provision.json"),{}).stage==="complete";
  try{
-  db=JSON.parse(providerSql(root,"begin transaction read only;select json_build_object('demo',(select count(*) from public.profiles where full_name like '[DEMO]%' or id in(select id from auth.users where email like '%@restaurante.local')),'license',public.license_snapshot(),'guards',(select count(*) from pg_trigger where tgname in ('orders_license','order_items_license','qr_requests_license')),'devices',(select coalesce(json_agg(to_jsonb(d)),'[]')from public.print_devices d));commit;"));
-  const rows=JSON.parse(providerSql(root,"select coalesce(json_agg(json_build_object('version',version,'name',name)),'[]')from supabase_migrations.schema_migrations"));history=compareHistory(localMigrations(path.join(root,"supabase/migrations")),rows).ok;
+  db=JSON.parse(providerSql(resolveTarget(),"begin transaction read only;select json_build_object('demo',(select count(*) from public.profiles where full_name like '[DEMO]%' or id in(select id from auth.users where email like '%@restaurante.local')),'license',public.license_snapshot(),'guards',(select count(*) from pg_trigger where tgname in ('orders_license','order_items_license','qr_requests_license')),'devices',(select coalesce(json_agg(to_jsonb(d)),'[]')from public.print_devices d));commit;"));
+  const rows=JSON.parse(providerSql(resolveTarget(),"select coalesce(json_agg(json_build_object('version',version,'name',name)),'[]')from supabase_migrations.schema_migrations"));history=compareHistory(localMigrations(path.join(root,"supabase/migrations")),rows).ok;
   const development=readJson(path.join(root,"infra/restaurant-provider/development-fingerprints.json"),{});
   unique=complete&&Object.keys(development).length===3&&Object.entries(development).every(([k,v])=>actual[k]!==v)&&Object.keys(expected).length>=10&&Object.entries(expected).every(([k,v])=>v===actual[k])&&secrets.POSTGRES_PASSWORD.length>=64&&secrets.JWT_SECRET.length>=64&&env.SUPABASE_SECRET_KEY===secrets.SUPABASE_SECRET_KEY&&env.WHATSAPP_WORKER_SECRET===secrets.WHATSAPP_WORKER_SECRET;
   const accepted=await fetch(meta.apiUrl+"/rest/v1/profiles?select=id&limit=1",{headers:{apikey:secrets.SUPABASE_SECRET_KEY},signal:AbortSignal.timeout(10000)});unique=unique&&accepted.ok;
  }catch{/* Unavailable evidence is a failure, never inferred from a marker alone. */}
  const host=await hostChecks(root,meta);
- const policy=readJson(path.join(root,".local-secrets/operations/policy.json"),{}),state=readJson(path.join(root,".local-secrets/operations/state.json"),{});
+ const policy=readJson(path.join(root,".local-secrets/operations/policy.json"),{});let state=readJson(path.join(root,".local-secrets/operations/state.json"),{});
+ if(resolveTarget().profile==="disposable"){
+  const directory=path.join(root,"backups"),names=fs.existsSync(directory)?fs.readdirSync(directory).filter(n=>n.endsWith(".dump")).sort():[];
+  if(names.length)state={file:path.join(directory,names.at(-1)),result:"valid",external:"valid"};
+ }
  try{
   const manifest=await validateBackup(state.file,{container:`supabase_db_${meta.project}`});
   const age=Date.now()-Date.parse(manifest.created_at),external=path.join(policy.external_directory,path.basename(state.file));

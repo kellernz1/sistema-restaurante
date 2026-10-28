@@ -1,5 +1,6 @@
+import {resolveTarget} from "../target-safety.mjs";
 import {isMain} from "./lib.mjs";
-import {command} from "./operations-process.mjs";
+import {command} from "../target-operations.mjs";
 
 export function firewallPlan(action="install"){
  if(!["install","remove"].includes(action))throw Error("Use install or remove");
@@ -26,7 +27,7 @@ export async function main(){
  console.log(JSON.stringify(plan,null,2));
  if(process.argv.includes("--dry-run")||!process.argv.includes("--apply")){console.log("DRY RUN: no firewall or Windows configuration changed.");return;}
  if(process.platform!=="win32")throw Error("Windows required");
- await command(plan.command,plan.args);
+ await command(resolveTarget(),plan.command,plan.args);
  console.log("Owned firewall rules updated. Verify loopback access and rejection from a separate LAN device before acceptance.");
 }
 if(isMain(import.meta.url))main().catch(()=>{console.error("Firewall command failed; inspect owned rules locally. No global firewall policy was changed by this command.");process.exitCode=1;});

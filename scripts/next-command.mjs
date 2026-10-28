@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn } from "./target-process.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
