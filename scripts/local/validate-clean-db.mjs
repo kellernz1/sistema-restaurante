@@ -13,11 +13,13 @@ import { migrateIsolated, localMigrations, verifyHistory } from "../target-opera
 import { assertInstalledSchema } from "./audit-history.mjs";
 import assert from "node:assert/strict";
 import {seedTestLicense}from "../../tests/helpers/license-fixture.mjs";
+import {validatePerformanceVisibility} from "./db-performance.mjs";
 await guardEntry(import.meta.url,"sql");
 
 
 const database=allocateDatabase(resolveTarget(),"clean").database,container=findDbContainer(),recovery=temporaryDatabase("restore");
 try {
+  await validatePerformanceVisibility(resolveTarget());
   await createIsolatedDatabase(databaseTarget(resolveTarget(),database));
   console.log(`Created isolated database ${database}; development is untouched.`);
   const files=localMigrations();

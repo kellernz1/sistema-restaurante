@@ -168,3 +168,23 @@ Daily-report reconciliation now subtracts returns on their own business date,
 using authenticated administrator RLS rather than granting service-role access.
 New guard tests reject ordinary targets, wrong nonces, mixed URLs and expired runs.
 No application migration, RLS relaxation, commit or push was needed.
+
+## Historical-query regression checks
+
+Clean validation now creates an additional owned database at migration
+`202610260010`, seeds synthetic role/queue records, snapshots exact visible row
+sets and applies the performance migrations through the official CLI. SQL rejects
+any before/after difference across nine identities, ACLs or policy applicability.
+The fixture includes disabled waiter mode, inactive staff and 1,100 active orders
+to exercise kitchen keyset pagination beyond the API default. A deliberately
+corrupted snapshot must fail before rollback. This runs in normal `test:all`.
+
+`npm run test:performance-db` additionally measures 36,500 and 100,000 historical
+orders under authenticated RLS. To include it and the installed-Edge matrix in
+the aggregate, set `INTEGRATION_PERFORMANCE_DB=true` and
+`INTEGRATION_VISUAL=true` before `npm run test:all`. These options still allocate
+their own Supabase instance and copied build; never supply development URLs or
+authorization. Generated types and full EXPLAIN/BUFFERS JSON are retained in the
+ignored owned run directory. See `docs/performance-db.md` for workload limits and
+results. Large baseline measurements are intentionally opt-in because the old
+query can take tens of seconds per sample.

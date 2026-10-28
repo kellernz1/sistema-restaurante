@@ -1,34 +1,38 @@
 "use client";
 import {RefundActions} from "@/features/refunds/refund-actions";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "@/components/language-provider";
 import { createClient } from "@/utils/supabase/client";
 import { customerApi } from "@/features/customer-ordering/public-client";
 import { SensitiveActions } from "@/features/approvals/sensitive-actions";
 import { PaymentPanel } from "@/features/payments/payment-panel";
-import type { StoredRow } from "@/types/records";
+import { loadCounterQueue, type CounterQueueOrder } from "./counter-query";
 import { counterWaitTone } from "./domain";
 
 export function CounterQueue({ greenMinutes, yellowMinutes }: { greenMinutes: number; yellowMinutes: number }) {
   const t = useTranslation();
   const [db] = useState(createClient);
-  const [orders, setOrders] = useState<StoredRow<"orders">[]>([]);
+  const [orders, setOrders] = useState<CounterQueueOrder[]>([]);
+  const revision = useRef(0);
   const [now, setNow] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [paying, setPaying] = useState<string | null>(null);
   const refresh = useCallback(async () => {
-    const { data, error } = await db.from("orders").select("*").eq("is_counter", true).in("status", ["open", "ready"]).order("counter_ready_at", { nullsFirst: false }).order("created_at");
+    const version = ++revision.current;
+    const { data, error } = await loadCounterQueue(db);
+    if (version !== revision.current) return;
     if (error) setError(t("Não foi possível atualizar as senhas.")); else { setOrders(data ?? []); setError(""); }
   }, [db, t]);
   useEffect(() => {
+    const invalidate = () => { revision.current++; };
     const timer = setTimeout(() => void refresh(), 0);
     const polling = setInterval(() => void refresh(), 15000);
     const clock = setInterval(() => setNow(Date.now()), 1000);
     const channel = db.channel("counter-queue").on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => void refresh()).subscribe();
     const online = () => void refresh(); window.addEventListener("online", online);
-    return () => { clearTimeout(timer); clearInterval(polling); clearInterval(clock); window.removeEventListener("online", online); void db.removeChannel(channel); };
+    return () => { invalidate(); clearTimeout(timer); clearInterval(polling); clearInterval(clock); window.removeEventListener("online", online); void db.removeChannel(channel); };
   }, [db, refresh]);
   async function deliver(id: string) {
     if (busy) return;

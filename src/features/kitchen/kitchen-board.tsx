@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { OrderTypeBadge } from "@/components/order-type-badge";
 import { createClient } from "@/utils/supabase/client";
 
-import { kitchenQuery, type KitchenItem, type KitchenStatus } from "./kitchen-query";
+import { loadKitchenItems, type KitchenItem, type KitchenStatus } from "./kitchen-query";
 import { KitchenCancellations } from "@/features/approvals/kitchen-cancellations";
 import { uuid } from "@/lib/uuid";
 import { groupKitchenOrders } from "./group-orders";
@@ -65,7 +65,7 @@ export function KitchenBoard({ initialItems, initialError }: {
     const version = ++revision.current;
     setRefreshing(true);
     try {
-      const result = await kitchenQuery(supabase);
+      const result = await loadKitchenItems(supabase);
       if (!mounted.current || version !== revision.current) return;
       if (result.error) throw result.error;
       const nextItems = result.data.map((item) => ({

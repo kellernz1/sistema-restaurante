@@ -44,6 +44,7 @@
     "check:text": "node scripts/check-text.mjs",
     "test:visual": "node scripts/visual-test.mjs",
     "test:integration": "node scripts/integration/run.mjs",
+    "test:performance-db": "node scripts/performance-db.mjs",
     "local:provision": "node scripts/local/provision.mjs",
     "local:preflight": "node scripts/local/preflight.mjs",
     "local:setup:demo": "node scripts/local/setup.mjs --demo",

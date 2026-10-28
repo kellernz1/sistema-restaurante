@@ -11,6 +11,7 @@ import {createClient}from "../target-client.mjs";
 import {ROOT,parseEnv,run,isWindows,isProcessRunning} from "../local/lib.mjs";
 import {runSupabase} from "../target-operations.mjs";
 import {seedTestLicense}from "../../tests/helpers/license-fixture.mjs";
+import {runDatabasePerformance} from "../local/db-performance.mjs";
 
 // No development environment file, database URL, build output or operations directory is reused.
 const id=randomBytes(12).toString("hex"),project=`mesa-it-${id}`;
@@ -87,6 +88,12 @@ token_refresh = 10000
  const container=names.find(name=>name===`supabase_db_${project}`);
  if(!container)throw Error("Owned database container not found: "+names.filter(n=>n.startsWith("supabase_db_")).join(", "));
  checkedCli(["migration","up","--local"]);
+ if(process.env.INTEGRATION_PERFORMANCE_DB==="true"){
+  const generated=cli(["gen","types","typescript","--local","--schema","public"]);
+  if(generated.status!==0||!generated.stdout.includes("export type Database"))throw Error("Disposable type generation failed");
+  fs.writeFileSync(path.join(directory,"database.types.ts"),generated.stdout,"utf8");
+  fs.writeFileSync(path.join(app,"src/types/database.types.ts"),generated.stdout,"utf8");
+ }
  const status=parseEnv(checkedCli(["status","-o","env"]));
  if(interrupted||status.API_URL!==`http://127.0.0.1:${apiPort}`||new URL(status.DB_URL).port!==String(dbPort))throw Error("Temporary CLI target mismatch or interrupted setup");
  const env={INTEGRATION_RUN_DIR:directory,INTEGRATION_NONCE:marker.nonce,NEXT_PUBLIC_APP_URL:`http://127.0.0.1:${appPort}`,PUBLIC_TEST_URL:`http://127.0.0.1:${appPort}`,NEXT_PUBLIC_SUPABASE_URL:`http://127.0.0.1:${apiPort}`,NEXT_PUBLIC_SUPABASE_ANON_KEY:status.ANON_KEY,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:status.ANON_KEY,SUPABASE_SECRET_KEY:status.SERVICE_ROLE_KEY,SUPABASE_SERVICE_ROLE_KEY:status.SERVICE_ROLE_KEY,APP_MODE:"local",WHATSAPP_MOCK:"true",WHATSAPP_WORKER_SECRET:randomBytes(32).toString("hex"),WHATSAPP_APP_SECRET:randomBytes(32).toString("hex"),WHATSAPP_VERIFY_TOKEN:randomBytes(32).toString("hex"),WHATSAPP_PHONE_NUMBER_ID:"integration-local",CONTACT_HTTP_TEST:"true",DELIVERY_ROUTE_SMOKE:"true",DELIVERY_ROUTING_URL:`http://127.0.0.1:${base+4}`,DEMO_PASSWORD:"Integration@"+randomBytes(10).toString("hex")};
@@ -125,6 +132,7 @@ token_refresh = 10000
   console.log(fs.readFileSync(path.join(logs,"sql.log"),"utf8").slice(-1300));
  }
  // Only the copied app receives these settings; root .env.local is never read or edited.
+ if(process.env.INTEGRATION_PERFORMANCE_DB==="true")await runDatabasePerformance(resolveTarget());
  fs.writeFileSync(path.join(app,".env.local"),Object.entries(env).map(([k,v])=>`${k}=${v}`).join("\n"));
  console.log("Building the disposable app (separate .next and operations files)...");
  const next=path.join(ROOT,"node_modules","next","dist","bin","next");await ownedCommand(process.execPath,[path.join(path.dirname(process.execPath),"node_modules/npm/bin/npm-cli.js"),"run","build"],{cwd:app,env,log:"build"});

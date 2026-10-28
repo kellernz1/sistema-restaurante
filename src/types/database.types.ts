@@ -1237,6 +1237,9 @@ isOneToOne: false
                 }
           }
           Functions: {
+"kitchen_queue_page":
+{ Args: { "p_after_created"?: string,"p_after_id"?: string,"p_limit"?: number }; Returns: Json
+                           },
             "advance_hub_order":
 { Args: { "p_action": string,"p_order_id": string,"p_payment_method"?: string,"p_reason"?: string }; Returns: {
               "cancel_reason": string | null,
