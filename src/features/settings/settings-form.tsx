@@ -5,7 +5,7 @@ import { money, MAX_MONEY } from "@/lib/money";
 import { useTranslation } from "@/components/language-provider";
 
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Store, Truck, MapPin, MessageCircle, Printer } from "lucide-react";
 
 import type { StoredRow } from "@/types/records";
@@ -93,9 +93,16 @@ export function SettingsForm({ initial }: { initial: StoredRow<"restaurant_setti
   }
   function changeSection(next: SettingsSection) {
     setSection(next);
+    window.history.replaceState(window.history.state, "", `#settings-${next}`);
+    window.dispatchEvent(new Event("staff-navigation"));
     panelHeading.current?.focus({ preventScroll: true });
   }
   const selected = sections.find((entry) => entry.id === section)!;
+  useEffect(() => {
+    const read = () => { const id = window.location.hash.replace("#settings-", ""); if (sections.some(entry => entry.id === id)) setSection(id as SettingsSection); };
+    const timer = setTimeout(read, 0); window.addEventListener("hashchange", read); window.addEventListener("popstate", read); window.addEventListener("staff-navigation", read);
+    return () => { clearTimeout(timer); window.removeEventListener("hashchange", read); window.removeEventListener("popstate", read); window.removeEventListener("staff-navigation", read); };
+  }, []);
   return <section className="settings-workspace">
     <header className="settings-page-heading"><span className="eyebrow">{t("Administração")}</span><h1>{t("Configurações")}</h1><p>{t("Organize o atendimento do restaurante, as entregas e os canais de pedido.")}</p></header>
     {notice && <p className="table-notice table-notice-info" role="status">{t(notice)}</p>}

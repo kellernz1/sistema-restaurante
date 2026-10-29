@@ -1,9 +1,8 @@
 import { getTranslation } from "@/lib/i18n/server";
 import type { Metadata } from "next";
-import { ThemePicker } from "@/components/theme-picker";
+import { PublicPreferences } from "@/components/public-preferences";
 import { themeInitialization } from "@/lib/theme-initialization";
 import { LanguageProvider } from "@/components/language-provider";
-import { LanguagePicker } from "@/components/language-picker";
 import { getLocale } from "@/lib/i18n/server";
 
 
@@ -29,7 +28,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitialization }} />
         <LanguageProvider locale={locale}>
           {children}
-          <div className="interface-preferences"><LanguagePicker /><ThemePicker /></div>
+          <PublicPreferences />
         </LanguageProvider>
       </body>
     </html>

@@ -1,6 +1,6 @@
-# UI foundation — redesign phase 2
+# Mesa Certa UI kit — foundation and navigation
 
-## Scope and boundaries
+## Foundation scope and boundaries (phase 2)
 
 Implements DESIGN.md's semantic foundation, not the phase-3 cashier/navigation
 redesign. No route, database, financial RPC, price, permission, print document,
@@ -141,4 +141,27 @@ the owned instance was removed. All eight catalog locale/theme/viewport captures
 and selected approval/long-dialog and operational views were manually reviewed.
 Exact paths, timings and limits are recorded in the baseline report. No
 financial/server source changed after that aggregate.
-No commit/push or phase-3 implementation is included.
+That phase included no commit/push or phase-3 implementation. The current
+phase-3A navigation additions are documented below.
+
+## Phase 3A navigation additions
+
+`features/auth/WorkspaceNavigation` projects the pure role/mode destinations into
+one labeled responsive navigation. Desktop links and mobile disclosure share
+the same DOM; administration uses six subject groups. `StaffShell` owns the
+single header, native account disclosure, skip link and stable print-status
+projection. CashSessionBar stays a single feature owner in that header.
+The header's capture-phase guard also covers My cash and workspace switching
+while a counter discount/approval owner must remain mounted. It never stores a
+PIN or grant. The printing shortcut uses the existing `ui-link` / `arrow-link`
+classes on Next Link without importing the entire UI barrel into the header.
+
+Root `PublicPreferences` keeps the existing public pickers without mounting any
+staff auth. Staff pickers move into Account with their original IDs and storage.
+Use navigation.ts current-location logic and translated labels when adding a
+destination; do not add a second page-specific cashier/settings route menu.
+See navigation.md for modes, in-memory approval preservation and manual checks.
+Phase-3A acceptance passed in disposable visual run `dc147727e99aea432557471f`
+and final aggregate integration run `3fb1a71ebd464fea49703c1a`. Exact counts,
+CPU4x before/after measurements, screenshot review and an earlier intermittent
+Windows EPERM failure are recorded in `docs/redesign-baseline.md`.

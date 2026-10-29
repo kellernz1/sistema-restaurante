@@ -1,0 +1,56 @@
+@media screen {
+  /* Preserve body rules previously colocated with the removed cashier tabs. */
+  .cashier-home { display: grid; gap: 28px; }
+  .cashier-home > .counter-queue { margin-top: 0; }
+  .cashier-home .cashier-table-heading { margin: 0; font-size: clamp(24px,3vw,32px); letter-spacing: -.02em; }
+  /* One full-width header; no second sticky navigation or operational blur. */
+  html .staff-header.staff-operational-header { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: start; gap: 8px 16px; padding: 8px 24px; position: sticky; top: 0; background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; border-bottom: 1px solid var(--border-subtle); z-index: 50; }
+  .staff-operational-header .staff-brand { min-height: 44px; align-items: center; gap: 8px; }
+  .staff-operational-header .staff-brand strong { font: 700 16px/1.4 var(--font-system); }
+  .staff-operational-header :is(a,button,summary,select) { min-height: 44px; min-width: 44px; font: 600 14px/1.4 var(--font-system); touch-action: manipulation; }
+  .staff-operational-header :is(a,button,summary):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+  .workspace-navigation { min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .workspace-destinations,.workspace-spaces { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .workspace-destinations a,.workspace-spaces a { display: inline-flex; align-items: center; color: var(--text-primary); padding: 8px 12px; border-radius: var(--radius-control); overflow-wrap: anywhere; }
+  .workspace-destinations a:hover,.workspace-spaces a:hover { background: var(--surface-soft); }
+  .workspace-destinations a[aria-current],.workspace-spaces a[aria-current] { background: var(--surface-soft); text-decoration: underline; text-underline-offset: 5px; }
+  .workspace-toggle { display: none; background: var(--surface); color: var(--text-primary); border: 1px solid var(--border-control); border-radius: var(--radius-control); padding: 8px 12px; }
+  .workspace-administration .workspace-toggle { display: inline-flex; align-items: center; gap: 12px; }
+  .workspace-administration .workspace-destinations { display: none; }
+  .workspace-administration .workspace-destinations[data-expanded="true"] { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: 100%; padding: 16px; gap: 16px; border: 1px solid var(--border-subtle); border-radius: var(--radius-panel); }
+  .workspace-administration .workspace-destinations section { min-width: 0; display: grid; align-content: start; }
+  .workspace-administration .workspace-destinations h2 { margin: 0 0 4px; font: 600 14px/1.5 var(--font-system); color: var(--text-secondary); }
+  .workspace-administration .workspace-destinations a { padding-inline: 4px; }
+  .workspace-notice { grid-column: 1 / -1; margin: 0; padding: 8px; color: var(--warning-text); background: var(--warning-bg); }
+  .staff-account-menu { position: relative; }
+  .staff-account-menu summary { cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: var(--radius-control); padding: 8px 12px; list-style: none; }
+  .staff-account-menu summary::-webkit-details-marker { display: none; }
+  .staff-account-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(300px,calc(100vw - 32px)); padding: 16px; display: grid; gap: 12px; background: var(--surface-raised); color: var(--text-primary); border: 1px solid var(--border-control); border-radius: var(--radius-panel); box-shadow: var(--shadow-floating); }
+  html .staff-account-panel :is(.theme-picker,.language-picker) { position: static; display: flex; flex-wrap: wrap; border: 0; border-radius: 0; box-shadow: none; padding: 0; font-size: 14px; }
+  html .staff-account-panel :is(.theme-picker,.language-picker) label { display: inline; }
+  html .staff-account-panel select { max-width: 100%; padding: 4px; border: 1px solid var(--border-control); border-radius: var(--radius-control); font-size: 16px; }
+  .staff-operational-header .cash-session-bar { grid-column: 1 / 3; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; font-size: 14px; min-width: 0; }
+  .cash-session-bar .session-shortcut { display: inline-flex; align-items: center; gap: 8px; padding: 8px; border-radius: var(--radius-control); color: var(--action-text); }
+  .cash-session-bar small { font-size: 14px; }
+  .staff-print-health { align-self: center; display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 8px; color: var(--action-text); }
+  html .staff-print-health.staff-print-attention { color: var(--warning-text); }
+  .staff-skip { position: fixed; top: 8px; left: 8px; z-index: 100; transform: translateY(-200%); padding: 12px; color: var(--on-action); background: var(--action-fill); }
+  .staff-skip:focus { transform: none; }
+  .staff-content :is(#cashier-ready,#cashier-qr,#cashier-tables,#staff-printing) { scroll-margin-top: calc(var(--cashier-header-height,160px) + 16px); }
+  .staff-content { scroll-margin-top: calc(var(--cashier-header-height,160px) + 16px); }
+  @media(max-width:1100px) {
+    html .staff-header.staff-operational-header { padding: 8px 16px; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+    .staff-operational-header .staff-brand { grid-column: 1; grid-row: 1; }
+    .staff-account-menu { grid-column: 2; grid-row: 1; }
+    .workspace-navigation { grid-column: 1 / -1; grid-row: 2; }
+    .workspace-toggle { display: inline-flex; align-items: center; gap: 12px; }
+    .workspace-destinations { display: none; }
+    .workspace-destinations[data-expanded="true"] { display: flex; flex-wrap: wrap; width: 100%; max-height: 45dvh; overflow-y: auto; overscroll-behavior: contain; }
+    .staff-operational-header .cash-session-bar { grid-column: 1 / -1; }
+    .staff-print-health { grid-column: 1 / -1; justify-content: flex-start; }
+  }
+  @media(max-width:600px) {
+    html .staff-header.staff-operational-header { padding-inline: 12px; }
+    .workspace-administration .workspace-destinations[data-expanded="true"] { grid-template-columns: 1fr; }
+  }
+}

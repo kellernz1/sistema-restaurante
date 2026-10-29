@@ -131,3 +131,124 @@ Windows startup and multi-terminal soak remain outside this phase's acceptance.
 No development services, migrations, backup, secrets or Windows settings were
 changed; no commit/push. Navigation/counter redesign (phase 3) and printing
 separation (phase 6) are not implemented.
+
+## Phase 3A — navigation baseline
+
+Before any phase-3A product edit, fresh run `6b821d832d7bfe099488ec6b` passed and
+removed its owned instance. Same Edge/CPU4x fixture, five cold contexts and thirty
+warm feedback samples per view as phase 2; no existing installation or backup.
+
+| View | Decoded JS before | Encoded JS before | Cold visible median ms | Feedback proxy p95 ms |
+| --- | ---: | ---: | ---: | ---: |
+| Cashier | 1,046,338 | 302,269 | 815.3 | 10.2 |
+| Counter | 1,040,996 | 301,055 | 850.9 | 23.0 |
+| Kitchen | 895,585 | 259,663 | 932.6 | 24.6 |
+| Ready | 1,046,338 | 302,269 | 1,065.2 | 11.3 |
+
+Final after run `d5812b1e6d9e8e4666f0a2dc` passed/cleaned on the corrected source,
+including build, actual worker startup/activity and disposable history verification.
+The measurement now asserts the unchanged absolute byte ceilings and <=100ms
+local-feedback proxy; these byte caps are stricter than this baseline plus 3%.
+
+| View | Decoded JS after (delta) | Encoded JS after (delta) | Cold median / max ms | Feedback proxy p95 before -> after ms |
+| --- | ---: | ---: | ---: | ---: |
+| Cashier | 1,049,949 (+3,611) | 303,856 (+1,587) | 964.7 / 1,090.5 | 10.2 -> 10.1 |
+| Counter | 1,044,218 (+3,222) | 302,485 (+1,430) | 1,050.0 / 1,090.3 | 23.0 -> 29.9 |
+| Kitchen | 899,112 (+3,527) | 261,214 (+1,551) | 1,056.5 / 1,070.9 | 24.6 -> 23.8 |
+| Ready | 1,049,949 (+3,611) | 303,856 (+1,587) | 1,504.2 / 1,562.7 | 11.3 -> 10.3 |
+
+All ceilings pass without exception: maximum decoded growth 0.40%, encoded 0.60%.
+The cashier has only 51 decoded bytes of remaining absolute headroom. Phase 3B
+must remove/attribute existing client payload before adding more initial code;
+do not silently raise DESIGN.md's limit. Operational menus/account require no
+new lazy chunk; the rarely used administration groups load on opening them in
+the administrative space, outside operational route budgets.
+
+Five cold samples and thirty two-frame event samples are not field INP or proof
+of speed improvement. Cold medians rose approximately 124-439ms here. Other disposable acceptance
+jobs ran on the same host during after measurements, so CPU/network contention
+and noninterleaved builds limit causal comparisons. All observed cold maxima
+were below 2s, warm feedback below 100ms. Physical low-end devices/weak GPUs and
+bank/network acknowledgement are not certified by this test.
+
+Intermediate measurements: `29ae162d898f66909e0e0732` completed its runner but
+failed the manual absolute-budget check (cashier +993 bytes over ceiling, kitchen
++146). Lazy administration removed that initial payload; `9dd40a03f0c7c894b5989757`
+still exceeded cashier by 68 bytes. Reusing the session refresh pulse, factoring
+the displayed day and shortening repetitive header text resolved it.
+`8a134b3c818b1d710acf1014` passed bytes but precedes final supervisor/label fixes;
+its timing samples are superseded, not mixed into the table.
+`49fc715226935bbd041eabdf` also passed bytes but precedes the final administrative
+heading translation context; it is superseded by the final after run above.
+`d49529da035701d9dad43397` passed before the final header-wide draft guard and
+administration approval placement, and is also superseded. Importing the UI-kit
+barrel in the header exceeded the budget in `4f1532ef93b290b474fc43a5`.
+A leaf entry reduced this, but `ad68d4bfcfd59b771e6ac907` still exceeded cashier
+by 194 bytes. The final shortcut uses the kit's existing classes on Next Link,
+without the additional wrapper/barrel. No component contract or ceiling changed.
+
+Exploratory visual runs `51487be3d5073eb9c07fb5e8`, `9db5722df4d08caa966ec3f4`
+and `1f429957528ee30c5a34f214` are not successful final acceptance. Old smoke
+assertions still targeted removed cashier tabs/floating staff preferences; those
+were updated while retaining draft restoration and cart-layout checks. Real
+supervisor coverage found an unnecessary service-mode read denied by existing
+RLS (406). The supervisor now skips that unused read; loading/role transitions
+are an explicit hook dependency. No permission was broadened and console errors
+are not suppressed to pass. Expanded destination tests also cover translations
+whose identical PT/ES names previously relied on fallback (Mesas/WhatsApp).
+Further exploratory failures were in test assumptions: `6a0e3fdf25bd07a966c45d58`
+matched the wrong Spanish grammatical ending for the disabled-waiter message;
+the assertion now uses the existing translation. `dcb5a7e1adc48bd9a6f2e8b4`
+read destinations before mode hydration; the test waits for the expected IDs.
+`b27786ac55d4bca2cd8b3d3e` read a cached browser URL before history notification;
+it now waits for the settings hash. `40197a0e1327fd6027318df0` passed the visual
+matrix on an earlier copied app; only the final visual run is final-source evidence.
+
+Final explicit `npm run test:visual` passed in `dc147727e99aea432557471f`, with
+an exact matching copy of the changed product source (SHA-256 comparison before
+the run). Its build, 165 native/HTTP cases without skips, 11 smoke checks,
+processor startup/liveness and disposable history verification passed. Visual
+coverage: the existing 128 combinations, plus 48 role/mode cases, 168
+role/theme/locale/viewport cases, 24 public cases and 96 real server/API/RLS
+refusals; no failures. The owned stack was removed normally.
+
+Captures are under
+`artifacts/integration/dc147727e99aea432557471f/visual/2026-10-29T05-57-09.048Z/`.
+Manually reviewed final counter headers (PT desktop and ES phone), kitchen PT
+tablet, cashier ES dark 320px expanded menu, administration ES dark phone,
+supervisor PT desktop, waiter automatic-dark ES tablet/account, disabled waiter
+PT phone and public automatic-dark ES 320px. These cover all four target widths,
+both languages, light/dark/automatic, account focus, wrapping and role hierarchy.
+The complete matrix was automated; not every capture was individually inspected.
+No horizontal navigation overflow, console errors or under-44px header targets
+were found by the automated checks. Open administration navigation uses bounded
+internal scrolling; the original print panel remains intentionally prominent.
+
+The final sequential `npm run test:all` retry exited 0. Integration
+`3fb1a71ebd464fea49703c1a` passed/cleaned: 53 Vitest, 165 native/HTTP (zero
+skips), 11 smoke flows, 53 tracked migrations and SQL/concurrency suites,
+522 RLS comparisons, actual supervisor/app/three-worker activity and liveness,
+and green history. Five provision guard unit tests and full provision acceptance
+`447760e5c84caf6157b8c979` passed. The owned provider was removed; its evidence
+confirms unchanged development backup/state and no Windows modification.
+Final check:text (578 UTF-8 files, zero issues), lint (zero warnings),
+check:targets (two cases) and git diff whitespace checks passed.
+Absolute DESIGN.md ceilings and the 3% relative cap remain unchanged; no exception
+is approved. Historical phase-2 results above remain historical evidence.
+
+Aggregate `e4052de82c48e46e00a7c79a` passed before the last presentation-only
+shortcut payload reduction, including 53 Vitest tests, 165 native/HTTP cases
+(zero skips), 11 smoke flows, 53 tracked migrations, all SQL/concurrency suites,
+522 RLS comparisons and worker startup/liveness. Provision acceptance
+`ee086f6ee9091279e374112f` passed and confirmed unchanged development backup/state
+and no Windows modifications. A later exact-source aggregate
+`d0459b6c2e474e6a22f66e81` failed: Windows returned EPERM replacing the disposable
+supervisor's processes.json during liveness acceptance. Its clean SQL/RLS/build
+stages passed; the runner removed its instance. This is recorded as a failed run,
+not hidden or bypassed. Supervisor/file-transport changes are outside navigation
+scope. The sequential final retry above passed; EPERM did not recur. This does
+not prove its underlying Windows/file-lock cause is fixed. Investigate recurrent
+atomic-file replacement failures in a separate operations task, without weakening
+worker acceptance or the target barrier. Physical device/assistive-technology and
+multi-terminal soak acceptance remain pending. No phase-3B implementation,
+development mutation, commit or push was performed.

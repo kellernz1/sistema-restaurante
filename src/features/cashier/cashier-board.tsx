@@ -71,7 +71,7 @@ export function CashierBoard({ initialTables, initialError }: {
   }, [db, refresh, t]);
 
   const sorted = [...tables].sort((a, b) => Number(b.status === "closing") - Number(a.status === "closing") || a.table_number - b.table_number);
-  return <section className="cashier-dashboard">
+  return <section id="cashier-tables" tabIndex={-1} className="cashier-dashboard">
     <div className="table-dashboard-heading cashier-screen-only"><div><span className="eyebrow">{t("Painel do caixa")}</span>
       <h2 className="cashier-table-heading">{t("Contas das mesas")}</h2><p>{t("Mesas aguardando a conta aparecem primeiro. Selecione uma mesa para conferir a comanda.")}</p></div>
       <div className="cashier-actions"><Link className="primary-button" href="/cashier/orders/new">{t("Novo pedido")}</Link><button className="ghost-button" disabled={loading} onClick={() => void refresh()}>{t(loading ? t("Atualizando...") : t("Atualizar mesas"))}</button></div></div>

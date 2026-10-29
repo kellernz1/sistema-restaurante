@@ -8,6 +8,7 @@ import {loadEnvFile} from "./local/lib.mjs";
 import {textProblems} from "./check-text.mjs";
 import {money} from "../src/lib/money.ts";
 import {licenseErrors} from "../src/features/licensing/validation.ts";
+import { navigationVisual } from "./integration/navigation-visual.mjs";
 
 const target=resolveTarget();requireTransport(target);if(target.profile!=="disposable")throw Error("Visual tests require an owned disposable target");
 const env={...loadEnvFile(path.join(target.root,".env.local")),...process.env};
@@ -220,21 +221,23 @@ try{
       await modal.screenshot({path:path.join(output,name+"-bill-single.png")});
     }
     if(route.startsWith("/cashier")){
-      const expected=route.startsWith("/cashier/counter")?"/cashier/counter":route.startsWith("/cashier/sessions")?"/cashier/sessions":"/cashier";
-      assert.equal(await page.locator('.cashier-workspace-nav a[aria-current="page"]').getAttribute("href"),expected);
+      assert.equal(await page.locator(".cashier-workspace-nav").count(),0,"Cashier navigation must have a single owner");
+      if(route.startsWith("/cashier/counter"))assert.equal(await page.locator('.workspace-destinations a[data-destination="counter"]').getAttribute("aria-current"),"page");
+      if(route.startsWith("/cashier/sessions"))assert.equal(await page.locator('.session-shortcut').getAttribute("aria-current"),"page");
     }
     if(route==="/cashier/counter"){
       await page.locator(".counter-products button").first().click();
       await page.locator('.counter-cart input[maxlength="120"]').fill("Counter navigation");
-      await page.locator('.cashier-workspace-nav a[href="/cashier"]').click();await page.waitForURL(/\/cashier$/);
-      await page.locator('.cashier-workspace-nav a[href="/cashier/counter"]').click();await page.waitForURL(/\/cashier\/counter$/);
+      const visit=async id=>{const toggle=page.locator(".workspace-toggle");if(await toggle.isVisible()&&await toggle.getAttribute("aria-expanded")==="false")await toggle.click();await page.locator(`.workspace-destinations a[data-destination="${id}"]`).click();};
+      await visit("orders");await page.waitForURL(/\/orders$/);
+      await visit("counter");await page.waitForURL(/\/cashier\/counter$/);
       await page.locator(".counter-cart article").first().waitFor();
       assert.equal(await page.locator('.counter-cart input[maxlength="120"]').inputValue(),"Counter navigation","Switching views lost the draft name");
       assert.equal(await page.locator(".counter-cart article").count(),1,"Switching views lost or duplicated a draft item");
       const heading=await page.locator(".counter-heading").boundingBox(),catalog=await page.locator(".counter-catalog").boundingBox();
       assert.ok(heading&&catalog&&catalog.y>=heading.y+heading.height,"Counter search must not overlap its heading");
-      const nav=await page.locator(".cashier-workspace-nav").boundingBox(),header=await page.locator(".staff-header").boundingBox();
-      assert.ok(nav&&header&&nav.y>=header.y+header.height-1,"Cashier tabs must remain below the main header");
+      const nav=await page.locator(".workspace-navigation").boundingBox(),header=await page.locator(".staff-header").boundingBox();
+      assert.ok(nav&&header&&nav.y>=header.y&&nav.y+nav.height<=header.y+header.height+1,"Workspace navigation must stay in the single header");
       const label=value=>locale==="es"?translations[value]??value:value;
       await page.getByRole("button",{name:label("Adicionar desconto"),exact:true}).click();
       const discount=page.locator(".counter-discount");
@@ -249,11 +252,7 @@ try{
         const body=await page.locator(".counter-cart-body").boundingBox(),footer=await page.locator(".counter-total").boundingBox(),heading=await page.locator(".counter-cart-header").boundingBox();
         assert.ok(body&&footer&&heading&&body.y>=heading.y+heading.height-1&&body.y+body.height<=footer.y+1,"Cart header/footer must remain outside its scrolling body");
       }
-      const preferences=await page.locator(".interface-preferences").boundingBox();
-      for(const selector of [".counter-total > strong",".counter-total > button"]){
-        const control=await page.locator(selector).boundingBox();
-        assert.ok(control&&preferences&&(control.x+control.width<=preferences.x||preferences.x+preferences.width<=control.x||control.y+control.height<=preferences.y||preferences.y+preferences.height<=control.y),`Counter action overlaps preferences: ${JSON.stringify({selector,control,preferences})}`);
-      }
+      assert.equal(await page.locator(".interface-preferences").count(),0,"Staff preferences must live in Account, outside the counter footer");
       await page.locator(".counter-cart").screenshot({path:path.join(output,name+"-discount.png")});
       // Changing an item discards the grant; never click the actual order submission.
       await page.getByRole("button",{name:label("Aumentar quantidade"),exact:true}).first().click();
@@ -321,7 +320,7 @@ try{
     assert.ok(geometry.scroll<=geometry.width+1,`Horizontal overflow ${geometry.scroll}/${geometry.width}`);assert.equal(geometry.outside,0,"Cash title outside its card");assert.deepEqual(errors,[],"Browser console errors");
     console.log(`PASS ${name}`);
    }catch(error){failures.push({page:name,error:error.message});console.error(`FAIL ${name}: ${error.message}`);}
-   finally{await page.screenshot({path:path.join(output,name+".png"),fullPage:true});await page.close();}
+   finally{await page.screenshot({path:path.join(output,name+".png"),fullPage:true});const header=page.locator(".staff-operational-header");if(await header.count())await header.screenshot({path:path.join(output,name+"-header.png")});await page.close();}
   }await context.close();
  }
  // Existing waiter accounts must get a friendly screen when waiter service is disabled.
@@ -334,6 +333,7 @@ try{
   const name=`${locale}-${viewport.width}-waiter-disabled`;
   try{const response=await page.goto(base+"/waiter",{waitUntil:"networkidle"});assert.ok(response?.ok());const text=await page.locator("body").innerText();assert.match(text,locale==="es"?/camarero est\u00e1 desactivada/:/gar\u00e7om est\u00e1 desativado/);assert.deepEqual(textProblems(text),[]);assert.deepEqual(errors,[]);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1));console.log(`PASS ${name}`);}catch(error){failures.push({page:name,error:error.message});console.error(`FAIL ${name}: ${error.message}`);}finally{await page.screenshot({path:path.join(output,name+".png"),fullPage:true});await context.close();}
  }
+ await navigationVisual({browser,auth,jar,env,output,failures});
 }finally{await browser.close();await auth.auth.signOut({scope:"local"});}
 fs.writeFileSync(path.join(output,"results.json"),JSON.stringify({failures},null,2));
 console.log(`Screenshots: ${output}`);if(failures.length)process.exitCode=1;

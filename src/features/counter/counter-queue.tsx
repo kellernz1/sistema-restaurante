@@ -41,7 +41,7 @@ export function CounterQueue({ greenMinutes, yellowMinutes }: { greenMinutes: nu
     catch { setError(t("A senha precisa estar pronta e paga antes da entrega.")); }
     finally { setBusy(null); }
   }
-  return <section className="counter-queue"><header className="section-heading"><h2>{t("Prontos para chamar")}</h2><button type="button" className="back-link" onClick={() => void refresh()}>{t("Atualizar")}</button></header>
+  return <section id="cashier-ready" tabIndex={-1} className="counter-queue"><header className="section-heading"><h2>{t("Prontos para chamar")}</h2><button type="button" className="back-link" onClick={() => void refresh()}>{t("Atualizar")}</button></header>
     {error && <p role="alert">{error}</p>}
     {!orders.some((order) => order.status === "ready") && <p>{t("Nenhuma senha pronta aguardando retirada.")}</p>}
     {orders.filter((order) => order.status === "ready").map((order) => {

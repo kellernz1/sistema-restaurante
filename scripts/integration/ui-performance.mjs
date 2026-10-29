@@ -95,3 +95,10 @@ try {
 const destination = path.join(path.dirname(env.TARGET_CONTEXT_FILE), "ui-performance.json");
 fs.writeFileSync(destination, JSON.stringify({ methodology: "Edge CPU4x; 1366x768; light pt-BR; five cold contexts; 30 warm local feedback actions; no payment or handoff mutations", fixture: "50 added active counter orders, 20 ready, plus unchanged integration suite fixtures; catalog from seed", results }, null, 2), "utf8");
 console.log(JSON.stringify(results.map(({ name, jsDecodedMax, jsEncodedMax, coldMedianMs, interactionP95Ms }) => ({ name, jsDecodedMax, jsEncodedMax, coldMedianMs, interactionP95Ms })), null, 2));
+// Current absolute DESIGN.md ceilings are stricter than the phase-3A baseline +3%.
+for (const result of results) {
+  const decoded = result.name === "kitchen" ? 900000 : 1050000;
+  const encoded = result.name === "kitchen" ? 265000 : 310000;
+  assert.ok(result.jsDecodedMax <= decoded && result.jsEncodedMax <= encoded, `${result.name} exceeds the unchanged DESIGN.md JavaScript budget; inspect the saved measurement`);
+  assert.ok(result.interactionP95Ms <= 100, `${result.name} exceeds the local-feedback proxy budget`);
+}

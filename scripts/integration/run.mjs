@@ -115,7 +115,7 @@ token_refresh = 10000
  if(parseEnv(fs.readFileSync(path.join(app,".env.local"),"utf8")).DEMO_PASSWORD)throw Error("No-demo setup created a demonstration password");
  console.log("No-demo setup verified: zero Auth accounts, zero products, no demonstration password.");
  await sql(fs.readFileSync(path.join(ROOT,"supabase/seed.sql"),"utf8"));
- for(const [name,role]of [["admin","admin"],["caixa","cashier"],["cozinha","kitchen"],["garcom","waiter"],["garcom2","waiter"]]){
+ for(const [name,role]of [["admin","admin"],["caixa","cashier"],["cozinha","kitchen"],["garcom","waiter"],["garcom2","waiter"],["supervisor","supervisor"]]){
   const r=await service.auth.admin.createUser({email:`${name}@restaurante.local`,password:env.DEMO_PASSWORD,email_confirm:true,user_metadata:{full_name:`Integration ${name}`}});if(r.error)throw r.error;
   const p=await service.from("profiles").update({role}).eq("id",r.data.user.id);if(p.error)throw p.error;
  }

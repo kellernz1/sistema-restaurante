@@ -14,7 +14,7 @@ function subscribe(callback:()=>void){window.addEventListener("mesa-print-prefer
 let preference=false;
 function readPreference(){try{return localStorage.getItem("mesa-browser-print-v2")==="true";}catch{return preference;}}
 type Health={status:string;stalled_jobs:number;stall_seconds:number;workers:{instance:string;driver:string;version:string;last_seen:string;active:boolean}[]};
-export function PrintQueue({compact=false}:{compact?:boolean}) {
+export function PrintQueue({compact=false,onHealthChange}:{compact?:boolean;onHealthChange?:(status:string)=>void}) {
  const t=useTranslation();
  const [jobs,setJobs]=useState<PrintJob[]>([]),[issues,setIssues]=useState(0),[error,setError]=useState("");
  const [status,setStatus]=useState("all"),[archived,setArchived]=useState(false),[counts,setCounts]=useState<Record<string,number>>({});
@@ -29,19 +29,20 @@ export function PrintQueue({compact=false}:{compact?:boolean}) {
     const data=await customerApi<{jobs:PrintJob[];issues:number;health:Health;counts:Record<string,number>;role:string}>(`/api/staff/printing?status=${status}&archived=${archived}`,{signal:AbortSignal.timeout(10000)});
     if(!alive)return;
     setJobs(data.jobs);setIssues(data.issues);setHealth(data.health);setCounts(data.counts);setAdmin(data.role==="admin");setError("");
+    onHealthChange?.(data.issues>0||data.health.stalled_jobs>0?"Conferir alertas":"Sem alertas");
     if(enabled&&document.visibilityState==="visible")await processBrowserPrint();
-   }catch{if(alive)setError(t("Impressão desconectada. Reconectando..."));}
+   }catch{if(alive){setError(t("Impressão desconectada. Reconectando..."));onHealthChange?.("Desconectada");}}
    finally{if(alive)timer=setTimeout(tick,5000);}
   }
   void tick();return()=>{alive=false;clearTimeout(timer);};
- },[enabled,t,status,archived,revision]);
+ },[enabled,t,status,archived,revision,onHealthChange]);
  const labels:Record<string,string>={all:"Todos",pending:"Pendente",processing:"Processando",sent:"Enviado",failed:"Falhou",uncertain:"Incerto: conferir antes de reimprimir"};
  async function review(job:PrintJob,decision:"printed"|"discard"){
   if(!window.confirm(t(decision==="discard"?"Arquivar sem imprimir? O trabalho nunca será enviado.":"Confirme que o trabalho foi impresso e que o processador parou.")))return;
   try{await customerApi("/api/staff/printing",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"review",job_id:job.id,decision,request_id:uuid()}),signal:AbortSignal.timeout(10000)});setRevision(v=>v+1);}
   catch{setError(t("Aguarde o processador parar antes de conferir."));}
  }
- return <section className={`order-panel print-queue${compact?" print-queue-compact":""}`}>
+ return <section id="staff-printing" tabIndex={-1} className={`order-panel print-queue${compact?" print-queue-compact":""}`}>
   <h2>{t("Fila de impressão")}</h2>
   {(issues>0||error)&&<p className="form-error" role="alert">{error||t("Há impressões que precisam de conferência.")}</p>}
   {health&&health.stalled_jobs>0&&<p className="form-error" role="alert">{t("Há trabalhos pendentes sem processador ativo. Verifique o computador da impressora.")}</p>}
