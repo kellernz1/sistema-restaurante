@@ -1,0 +1,64 @@
+MESA CERTA — RESUMO PARA A EQUIPE
+Sessão de 29/10/2026 — Fase 3A do redesign
+
+OBJETIVO CONCLUÍDO
+Navegação por papel e cabeçalho operacional, na branch redesign/ui.
+
+O QUE MUDOU
+- Navegação adaptada aos papéis e modos ativos: caixa, cozinha, supervisor, administrador e garçom.
+- Administrador alterna entre Operação e Administração; administração organizada em seis grupos.
+- Removidas as barras de navegação duplicadas.
+- Cabeçalho reúne Meu caixa, estado da sessão, horário de abertura, dia comercial e indicador da impressão.
+- Idioma, tema e saída ficam no menu Conta da equipe. O cliente público mantém controles independentes.
+- Prontos utiliza âncoras nas telas existentes, sem duplicar filas ou processadores.
+- Navegação protege o desconto/aprovação em andamento no balcão e mantém a recuperação do rascunho existente.
+
+O QUE FOI PRESERVADO
+Não foram alterados interiores das telas, regras financeiras, permissões, RLS, rotas protegidas ou funções do banco. A instalação de desenvolvimento e seus backups permaneceram intactos.
+
+TESTES E VALIDAÇÃO
+Passaram check:text, lint, build, test:visual e test:all. Testes executados em ambientes descartáveis, removidos ao final.
+- 53 testes Vitest e 165 testes nativos/HTTP, sem ignorados.
+- 11 fluxos de fumaça.
+- Cadeia limpa de 53 migrações e 522 comparações de RLS.
+- 48 combinações de papel/modo, 168 cenários visuais, 24 públicos e 96 verificações de recusa de acesso.
+- Capturas representativas revisadas em português e espanhol, nos temas claro, escuro e automático, e nos tamanhos de desktop, tablet e celular.
+
+CORREÇÕES DURANTE A VALIDAÇÃO
+- Atualização dos seletores antigos dos testes para a nova navegação.
+- Correção da sincronização de estados e âncoras nos testes e na navegação.
+- Remoção de consulta desnecessária do supervisor, sem ampliar permissões.
+- Redução do JavaScript do cabeçalho para respeitar o orçamento definido.
+- Proteção do desconto em andamento também ao clicar em Meu caixa.
+- Remoção de uma linha vazia excedente detectada na revisão do commit.
+
+DESEMPENHO
+Medição no Edge com CPU 4 vezes mais lenta. Caixa, balcão, cozinha e prontos ficaram dentro dos tetos de JavaScript.
+Resposta local p95, antes -> depois:
+- Caixa: 10,2 -> 10,1 ms.
+- Balcão: 23,0 -> 29,9 ms.
+- Cozinha: 24,6 -> 23,8 ms.
+- Prontos: 11,3 -> 10,3 ms.
+Esses valores são uma medida de feedback local, não confirmação financeira nem INP de usuários reais.
+A mediana de carregamento frio de Prontos aumentou de 1,07 para 1,50 segundo. A comparação tem limitações de carga da máquina e não comprova ganho de velocidade.
+ATENÇÃO: o caixa ficou com apenas 51 bytes de margem no teto de JavaScript. A próxima fase precisa considerar essa restrição.
+
+PENDÊNCIAS E LIMITES
+- Uma execução falhou com EPERM ao substituir processes.json do supervisor no Windows. A repetição sequencial passou; a causa intermitente não foi corrigida e deve ser investigada em tarefa operacional separada.
+- Faltam validação em aparelhos reais, leitores de tela e uso prolongado com vários terminais.
+- A Fase 3B (redesign interno do balcão) não foi iniciada e aguarda aprovação.
+- Prontos/cozinha e separação da impressão permanecem para suas fases previstas.
+
+DOCUMENTAÇÃO
+- docs/navigation.md
+- docs/ui-kit.md
+- docs/redesign-baseline.md
+
+COMMIT E ENCERRAMENTO
+Commit local: c1e672c
+Mensagem: feat(ui): add role-based staff navigation and operational header
+Não foi feito push para o GitHub.
+A árvore estava limpa após o commit. Este TXT foi criado depois, apenas para compartilhamento.
+Os serviços já estavam parados: sem workers identificados, contêineres ativos ou portas do projeto em escuta.
+O comando local:stop foi recusado pela barreira de alvo; a proteção não foi contornada. A confirmação de parada foi feita por leitura.
+Nenhum dado ou progresso foi perdido.
