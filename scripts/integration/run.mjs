@@ -14,6 +14,7 @@ import {seedTestLicense}from "../../tests/helpers/license-fixture.mjs";
 import {runDatabasePerformance} from "../local/db-performance.mjs";
 
 // No development environment file, database URL, build output or operations directory is reused.
+if(process.env.INTEGRATION_UI_PERFORMANCE_ONLY==="true"&&process.env.INTEGRATION_VALIDATE_SQL==="true")throw Error("Measurement-only mode cannot replace the complete test aggregate");
 const id=randomBytes(12).toString("hex"),project=`mesa-it-${id}`;
 const directory=path.join(ROOT,"artifacts","integration",id),app=path.join(directory,"app"),logs=path.join(directory,"logs");
 fs.mkdirSync(logs,{recursive:true});
@@ -48,6 +49,7 @@ try{
  fs.mkdirSync(app,{recursive:true});
  for(const entry of ["src","public","scripts","supabase","package.json","package-lock.json","next.config.ts","tsconfig.json","postcss.config.mjs"]){const source=path.join(ROOT,entry);if(fs.existsSync(source))fs.cpSync(source,path.join(app,entry),{recursive:true,filter:p=>!/[\\/]supabase[\\/]\.(temp|branches)([\\/]|$)/.test(p)});}
  fs.symlinkSync(path.join(ROOT,"node_modules"),path.join(app,"node_modules"),isWindows?"junction":"dir");
+ if(process.env.INTEGRATION_VISUAL==="true")fs.cpSync(path.join(ROOT,"dev/ui-catalog"),path.join(app,"src/app/dev/ui-kit"),{recursive:true});
  const config=path.join(app,"next.config.ts");fs.writeFileSync(config,fs.readFileSync(config,"utf8").replace("root: process.cwd()",`root: ${JSON.stringify(ROOT)}`));
  fs.writeFileSync(path.join(app,"supabase","config.toml"),`project_id = "${project}"
 [api]
@@ -98,6 +100,7 @@ token_refresh = 10000
  if(interrupted||status.API_URL!==`http://127.0.0.1:${apiPort}`||new URL(status.DB_URL).port!==String(dbPort))throw Error("Temporary CLI target mismatch or interrupted setup");
  const env={INTEGRATION_RUN_DIR:directory,INTEGRATION_NONCE:marker.nonce,NEXT_PUBLIC_APP_URL:`http://127.0.0.1:${appPort}`,PUBLIC_TEST_URL:`http://127.0.0.1:${appPort}`,NEXT_PUBLIC_SUPABASE_URL:`http://127.0.0.1:${apiPort}`,NEXT_PUBLIC_SUPABASE_ANON_KEY:status.ANON_KEY,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:status.ANON_KEY,SUPABASE_SECRET_KEY:status.SERVICE_ROLE_KEY,SUPABASE_SERVICE_ROLE_KEY:status.SERVICE_ROLE_KEY,APP_MODE:"local",WHATSAPP_MOCK:"true",WHATSAPP_WORKER_SECRET:randomBytes(32).toString("hex"),WHATSAPP_APP_SECRET:randomBytes(32).toString("hex"),WHATSAPP_VERIFY_TOKEN:randomBytes(32).toString("hex"),WHATSAPP_PHONE_NUMBER_ID:"integration-local",CONTACT_HTTP_TEST:"true",DELIVERY_ROUTE_SMOKE:"true",DELIVERY_ROUTING_URL:`http://127.0.0.1:${base+4}`,DEMO_PASSWORD:"Integration@"+randomBytes(10).toString("hex")};
  env.WEBHOOK_TEST_SECRET=env.WHATSAPP_APP_SECRET;env.WEBHOOK_TEST_TOKEN=env.WHATSAPP_VERIFY_TOKEN;env.LICENSE_PUBLIC_KEY="";
+ if(process.env.INTEGRATION_VISUAL==="true")env.INTEGRATION_UI_CATALOG="true";
  env.INTEGRATION_DB_PASSWORD=decodeURIComponent(new URL(status.DB_URL).password);
  if(!status.ANON_KEY||!status.SERVICE_ROLE_KEY)throw Error("Temporary API credentials unavailable");
  bindTarget(targetOwner.context,{apiKey:status.SERVICE_ROLE_KEY,publicKey:status.ANON_KEY,dbPassword:env.INTEGRATION_DB_PASSWORD});
@@ -154,12 +157,16 @@ token_refresh = 10000
  let healthy=false;for(let attempt=0;attempt<60;attempt++){try{healthy=(await fetch(env.PUBLIC_TEST_URL+"/api/health",{signal:AbortSignal.timeout(1000)})).ok;if(healthy)break;}catch{/* Wait for the private app. */}await new Promise(resolve=>setTimeout(resolve,500));}if(!healthy)throw Error("Temporary app health check failed");
  await ownedCommand(process.execPath,["scripts/local/verify-history.mjs"],{cwd:app,env,log:"history"});
  console.log("Disposable db:verify-history passed.");
+ if(process.env.INTEGRATION_UI_PERFORMANCE==="true")await ownedCommand(process.execPath,["scripts/integration/ui-performance.mjs"],{env,log:"ui-performance"});
+ if(!(process.env.INTEGRATION_UI_PERFORMANCE==="true"&&process.env.INTEGRATION_UI_PERFORMANCE_ONLY==="true")){
  console.log("Running all HTTP/native suites against the disposable instance...");
  marker.active=true;fs.writeFileSync(path.join(directory,"owner.json"),JSON.stringify(marker));
  await ownedCommand(process.execPath,["scripts/integration/smoke-worker.mjs"],{env,log:"tests"});
  if(process.env.INTEGRATION_RESTORE==="true")await ownedCommand(process.execPath,["scripts/local/restore-drill.mjs"],{cwd:app,env,log:"restore"});
  if(process.env.INTEGRATION_VISUAL==="true"){await ownedCommand(process.execPath,["scripts/visual-smoke.mjs"],{env,log:"visual"});console.log(fs.readFileSync(path.join(logs,"visual.log"),"utf8").slice(-1800));}
- console.log(fs.readFileSync(path.join(logs,"tests.log"),"utf8").slice(-3500));result="passed";
+ console.log(fs.readFileSync(path.join(logs,"tests.log"),"utf8").slice(-3500));
+ }
+ result="passed";
 }finally{
  marker.active=false;fs.writeFileSync(path.join(directory,"owner.json"),JSON.stringify(marker));
  await stopChildren();if(mock)await new Promise(resolve=>mock.close(resolve));

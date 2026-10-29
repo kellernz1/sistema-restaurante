@@ -10,7 +10,7 @@ import {money} from "../src/lib/money.ts";
 import {licenseErrors} from "../src/features/licensing/validation.ts";
 
 const target=resolveTarget();requireTransport(target);if(target.profile!=="disposable")throw Error("Visual tests require an owned disposable target");
-const env={...loadEnvFile(),...process.env};
+const env={...loadEnvFile(path.join(target.root,".env.local")),...process.env};
 const base=env.PUBLIC_TEST_URL||env.NEXT_PUBLIC_APP_URL;
 if(!base)throw new Error("Set PUBLIC_TEST_URL or start the configured local stack.");
 const executable=env.VISUAL_BROWSER_PATH||["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe","C:/Program Files/Microsoft/Edge/Application/msedge.exe"].find(p=>fs.existsSync(p));
@@ -25,10 +25,10 @@ const cancelled=await auth.from("orders").select("id,order_number").eq("status",
 const translations=JSON.parse(fs.readFileSync("src/lib/i18n/es.json","utf8"));
 const browser=await chromium.launch({executablePath:executable,headless:true});const failures=[];
 try{
- for(const locale of ["pt-BR","es"])for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
-  const context=await browser.newContext({viewport,colorScheme:env.VISUAL_THEME==="dark"?"dark":"light"});
+ for(const theme of ["light","dark"])for(const locale of ["pt-BR","es"])for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
+  const context=await browser.newContext({viewport,colorScheme:theme});
   await context.addCookies([...jar].map(([name,value])=>({name,value,url:base})).concat({name:"restaurant-locale",value:locale,url:base}));
-  for(const route of ["/cashier","/cashier/sessions","/cashier/counter","/orders","/kitchen","/admin","/admin/settings","/admin/settings/employees","/admin/settings/security","/admin/settings/license","/admin/audit","/supervisor","/admin/reports","/order",`/t/${table.data.qr_token}`]){
+  for(const route of ["/cashier","/cashier/sessions","/cashier/counter","/orders","/kitchen","/admin","/admin/settings","/admin/settings/employees","/admin/settings/security","/admin/settings/license","/admin/audit","/supervisor","/admin/reports","/order",`/t/${table.data.qr_token}`,...(env.INTEGRATION_UI_CATALOG==="true"?["/dev/ui-kit"]:[])]){
    const page=await context.newPage();const errors=[];let expectedLicenseFailures=0;
    page.on("pageerror",e=>errors.push(e.message));page.on("console",message=>{
      if(message.type()!=="error")return;
@@ -37,7 +37,7 @@ try{
      if(expectedLicenseFailures>0&&message.location().url===base+"/api/staff/license"&&/^Failed to load resource:.*status of 400 \(Bad Request\)$/.test(message.text())){expectedLicenseFailures--;return;}
      errors.push(`${message.text()} (${message.location().url})`);
    });
-   const name=`${locale}-${viewport.width}-${route.slice(1).replaceAll("/","-")}`;
+   const name=`${theme}-${locale}-${viewport.width}-${route.slice(1).replaceAll("/","-")}`;
    try{
     let visualLicense;
     if(route==="/admin/settings/license"){
@@ -52,6 +52,38 @@ try{
       });
     }
     const response=await page.goto(base+route,{waitUntil:"networkidle",timeout:30000});assert.ok(response?.ok(),`HTTP ${response?.status()}`);assert.equal(new URL(page.url()).pathname,route,"Unexpected redirect");
+    if(route==="/dev/ui-kit"){
+      const label=value=>locale==="es"?translations[value]??value:value;
+      const palettes=await page.evaluate(selected=>{
+        const root=document.documentElement,previous=root.dataset.theme;
+        const read=()=>["--canvas","--text-primary","--action-text","--success-text","--warning-text","--danger-text"].map(key=>getComputedStyle(root).getPropertyValue(key).trim());
+        const automatic=read();root.dataset.theme=selected;const explicit=read();root.dataset.theme=previous;
+        return{automatic,explicit};
+      },theme);
+      assert.deepEqual(palettes.explicit,palettes.automatic,"Explicit and automatic palettes disagree");
+      const fonts=await page.locator(".ui-catalog h1,.ui-catalog h2,.ui-catalog h3").evaluateAll(elements=>elements.map(e=>getComputedStyle(e).fontFamily));
+      assert.ok(fonts.every(font=>!/(Georgia|Times)/i.test(font)),"Legacy serif type leaked into the UI kit");
+      const statusSizes=await page.locator(".ui-status,.ui-segmented .segment-count").evaluateAll(elements=>elements.map(e=>parseFloat(getComputedStyle(e).fontSize)));
+      assert.ok(statusSizes.every(size=>size>=14),"UI status and count labels must be at least 14px");
+      const trigger=page.getByRole("button",{name:label("Abrir demonstração do modal"),exact:true});
+      // Synthetic label expansion belongs only to this development catalog.
+      await page.locator(".ui-catalog-row .ui-button").first().evaluate(e=>{e.textContent=(e.textContent+" ").repeat(2);});
+      assert.equal(await page.locator("#catalog-value").getAttribute("aria-invalid"),"true");
+      assert.equal(await page.locator("#catalog-value").getAttribute("aria-describedby"),"catalog-value-error");
+      const sizes=await page.locator(".ui-button,.ui-link,.ui-dismiss,.ui-segmented button").evaluateAll(elements=>elements.map(e=>{const r=e.getBoundingClientRect();return{w:r.width,h:r.height};}));
+      assert.ok(sizes.every(r=>r.w>=44&&r.h>=44),"UI-kit touch targets must be at least 44x44");
+      assert.equal(await page.locator("#catalog-name").evaluate(e=>parseFloat(getComputedStyle(e).fontSize)),16);
+      await trigger.click();const modal=page.locator(".ui-modal");await modal.waitFor();
+      assert.equal(await page.evaluate(()=>document.body.style.overflow),"hidden");
+      const header=await modal.locator(".ui-modal-header").boundingBox(),footer=await modal.locator(".ui-modal-footer").boundingBox();
+      assert.ok(header&&footer&&header.y>=0&&footer.y+footer.height<=viewport.height,"Modal chrome must fit the viewport");
+      await modal.locator(".ui-modal-body").evaluate(e=>e.scrollTop=e.scrollHeight);
+      assert.equal((await modal.locator(".ui-modal-header").boundingBox()).y,header.y,"Modal header scrolled with its body");
+      await modal.screenshot({path:path.join(output,name+"-modal.png")});
+      await modal.locator(".ui-modal-footer button").first().click();await page.keyboard.press("Escape");assert.equal(await modal.isVisible(),true,"Escape must not dismiss a busy modal");
+      await modal.locator(".ui-modal-footer button").first().click();await page.keyboard.press("Escape");assert.equal(await modal.isVisible(),false);
+      assert.equal(await trigger.evaluate(e=>e===document.activeElement),true,"Modal did not return focus");
+    }
     if(visualLicense){
       const label=value=>locale==="es"?translations[value]??value:value;
       for(const[state,remaining,warning]of [["active",30,null],["expiring",7,7],["expiring",3,3],["grace",-1,null],["restricted",-9,null]]){
@@ -116,6 +148,7 @@ try{
     if(route==="/supervisor"){
       const text=locale==="es"?translations["Descontos e cancelamentos"]:"Descontos e cancelamentos";
       const action=page.getByRole("button",{name:text,exact:true}).first();
+      assert.ok(await action.count(),"Approval modal acceptance requires an unpaid order fixture");
       if(await action.count()){
         let configured=false;
         const label=value=>locale==="es"?translations[value]??value:value;
@@ -128,6 +161,14 @@ try{
           return request.fulfill({json:{ok:false,code:"pin",attempts_remaining:4}});
         });
         await action.click();const modal=page.getByRole("dialog");await modal.waitFor();
+        const fieldStyle=await modal.locator("input").first().evaluate(e=>({font:parseFloat(getComputedStyle(e).fontSize),border:getComputedStyle(e).borderTopColor}));
+        assert.ok(fieldStyle.font>=16,"Approval input text must be at least 16px");
+        assert.equal(fieldStyle.border,theme==="dark"?"rgb(138, 138, 148)":"rgb(122, 122, 133)","Legacy security styles weakened the modal input boundary");
+        assert.equal(await page.evaluate(()=>document.body.style.overflow),"hidden");
+        await page.keyboard.press("Shift+Tab");assert.equal(await modal.evaluate(e=>e.contains(document.activeElement)),true,"Focus escaped approval dialog");
+        await page.keyboard.press("Tab");assert.equal(await modal.evaluate(e=>e.contains(document.activeElement)),true);
+        await page.keyboard.press("Escape");assert.equal(await modal.isVisible(),false);assert.equal(await action.evaluate(e=>e===document.activeElement),true);
+        await action.click();await modal.waitFor();
         await modal.screenshot({path:path.join(output,name+"-sensitive-action.png")});
         const bounds=await modal.boundingBox();assert.ok(bounds&&bounds.x>=0&&bounds.x+bounds.width<=viewport.width+1,"Sensitive action modal exceeds viewport");
         await modal.locator('input[type="number"]').fill("1000");await modal.locator("input[list]").fill("Visual setup check");

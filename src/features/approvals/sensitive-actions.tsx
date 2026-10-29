@@ -5,6 +5,7 @@ import { money } from "@/lib/money";
 import { uuid } from "@/lib/uuid";
 import { approvalFailureMessage } from "./pin-feedback";
 import type { SensitiveOperation } from "./validation";
+import { Modal } from "@/components/ui-modal";
 
 type Quote = { binding: string; requires_approval: boolean; operation: { amount: number } };
 type Configuration = { approvers: { id: string; name: string; role: string }[]; policy: { discount_reasons: string[] } };
@@ -66,8 +67,9 @@ export function SensitiveActions({ orderId, items = [], onChanged }: { orderId: 
       if ((e as Error & { status?: number }).status === 409) { sessionStorage.removeItem(storageKey); setHasPending(false); setQuote(null); setOperation(null); }
     } finally { setBusy(false); }
   }
-  return <><button type="button" className="ghost-button" onClick={() => void start()}>{t("Descontos e cancelamentos")}</button>{open && <div className="approval-overlay"><section className="card approval-dialog" role="dialog" aria-modal="true" aria-label={t("Descontos e cancelamentos")}>
-    <h2>{t("Descontos e cancelamentos")}</h2>
+  function close() { setOpen(false); setPin(""); setQuote(null); setOperation(null); }
+  return <><button type="button" className="ghost-button" onClick={() => void start()}>{t("Descontos e cancelamentos")}</button><Modal open={open} title={t("Descontos e cancelamentos")} closeLabel={t("Fechar confirmação")} busy={busy} onRequestClose={close}
+    footer={<><div className="approval-actions"><button type="button" disabled={busy} onClick={close}>{t("Cancelar")}</button><button type="button" className="primary-button" disabled={busy || (!hasPending && !!quote?.requires_approval && (configLoading || !config?.approvers.some(a => a.id === approver) || !/^\d{4,6}$/.test(pin)))} onClick={() => void submit()}>{t(hasPending ? "Consultar envio" : quote ? "Confirmar ação" : "Conferir operação")}</button></div><p>{t("Se houver falha de conexão, tente novamente para recuperar a mesma operação.")}</p></>}>
     {!quote ? <><label>{t("Ação")}<select value={action} onChange={e => setAction(e.target.value as typeof action)}><option value="discount">{t("Desconto no pedido")}</option><option value="cancel_order">{t("Cancelar pedido")}</option>{items.length > 0 && <option value="cancel_item">{t("Cancelar item")}</option>}</select></label>
       {action === "cancel_item" && <label>{t("Item")}<select value={target} onChange={e => setTarget(e.target.value)}><option value="">{t("Selecione")}</option>{items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}</select></label>}
       {action === "discount" && <><label>{t("Tipo de desconto")}<select value={mode} onChange={e => setMode(e.target.value as typeof mode)}><option value="amount">Gs.</option><option value="percent">%</option></select></label><label>{t("Valor")}<input type="number" min="0" step={mode === "percent" ? "0.01" : "1"} value={value} onChange={e => setValue(e.target.value)} /></label></>}
@@ -76,7 +78,6 @@ export function SensitiveActions({ orderId, items = [], onChanged }: { orderId: 
         <button type="button" className="ghost-button" disabled={busy || configLoading} onClick={() => void refreshApprovers()}>{t("Atualizar aprovadores")}</button>
         {!!config?.approvers.length && <><label>{t("Aprovador")}<select value={approver} onChange={e => { setApprover(e.target.value); setPin(""); setError(""); }}><option value="">{t("Selecione")}</option>{config.approvers.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label><label>{t("PIN de aprovação")}<input type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={pin} onChange={e => setPin(e.target.value)} /></label><p>{t("Digite o PIN numérico de aprovação do responsável selecionado, não a senha de login.")}</p></>}
       </>}</>}
-    {error && <p role="alert" className="approval-feedback">{t(error)}</p>}<div className="approval-actions"><button type="button" disabled={busy} onClick={() => { setOpen(false); setPin(""); setQuote(null); setOperation(null); }}>{t("Cancelar")}</button><button type="button" className="primary-button" disabled={busy || (!hasPending && !!quote?.requires_approval && (configLoading || !config?.approvers.some(a => a.id === approver) || !/^\d{4,6}$/.test(pin)))} onClick={() => void submit()}>{t(hasPending ? "Consultar envio" : quote ? "Confirmar ação" : "Conferir operação")}</button></div>
-    <p className="text-muted">{t("Se houver falha de conexão, tente novamente para recuperar a mesma operação.")}</p>
-  </section></div>}</>;
+    {error && <p role="alert" className="approval-feedback">{t(error)}</p>}
+  </Modal></>;
 }

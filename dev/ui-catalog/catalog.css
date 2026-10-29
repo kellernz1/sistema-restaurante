@@ -1,0 +1,6 @@
+@media screen {
+  .ui-catalog { width: min(960px, calc(100% - 32px)); margin: 24px auto 140px; display: grid; gap: 24px; font: 400 16px/1.5 var(--font-system); }
+  .ui-catalog .ui-panel { display: grid; gap: 24px; }
+  .ui-catalog h1 { font-size: 28px; font-weight: 700; }
+  .ui-catalog-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+}
