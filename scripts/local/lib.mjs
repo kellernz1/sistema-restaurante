@@ -166,8 +166,9 @@ export function isProcessRunning(pid) {
   try {
     process.kill(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // Access denied is not proof that a process exited.
+    return error.code !== "ESRCH";
   }
 }
 

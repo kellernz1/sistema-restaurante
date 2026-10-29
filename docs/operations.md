@@ -50,6 +50,99 @@ npm run local:autostart:remove -- --dry-run
 
 Dry-run prints the exact PowerShell task plan without executing it. The installation task is `MesaCertaLocal`, at current-user logon, limited privileges, explicit executable/working directory, idempotent replacement. Removal is also idempotent. After reviewing, the administrator may run either command without `--dry-run`. Do not install while another operator is testing. Actual scheduler behavior, Windows permissions, detached process survival, Docker logon timing and sleep/power policies require a reboot acceptance test. They were **not installed or changed** during this task.
 
+## Supervisor file resilience (2026-10-29)
+
+The supervisor keeps supervising app/workers when operational files are blocked.
+It never replays financial operations or uncertain printing. Its heartbeat file
+`.local-secrets/operations/supervisor.json` reports `normal` or `degraded` and
+failures. The existing cashier/admin warning ("A supervisão dos serviços precisa
+de atenção." and its Spanish translation) is reused. A writable heartbeat reports
+PID-write failure on the next status refresh. If heartbeat writing is also blocked,
+the last successful heartbeat stays intact and becomes stale after 60 seconds;
+the existing 30-second browser refresh adds latency. Unreadable status triggers
+the existing query-error warning, never a false healthy state. Inspect
+`local:status` and supervisor stderr too.
+
+New asynchronous, target-bound APIs `writeOperationalJson` / `patchOperationalState`
+serialize publications per file within a process. They do not replace the shared
+synchronous `src/lib/operations.ts` contract or provide cross-process transactions.
+Windows EPERM/EBUSY get an initial attempt plus waits of 25, 50, 100, 200 and 400ms
+(775ms scheduled waiting per operation, excluding OS time). Other errors remain
+failures. Rename retries use the SAME exclusive temporary; the old destination
+is never deleted to unblock it. Cleanup/close errors do not mask the primary
+error. Unremovable temporaries can remain for inspection; they are not valid
+state or backups. PID files publish on map changes or failure retry; heartbeat
+publishes once per five-second cycle. Persistent failures retry without killing
+the app/workers.
+
+Logs have serialized queues (256 KiB pending, 64 KiB records), 5 MiB files and
+three archived generations. Partial rotation resumes the unfinished step. A
+rotation failure prevents unbounded append; an ambiguous append error is NOT
+replayed. Overflow rejects a record with a degraded-state diagnostic, not unlimited
+memory growth. Later successful records clear that log's failure. Supervisor
+stderr reports original filesystem errors once per scope/code/syscall, capped
+at 256 groups of at most 4 KiB per run plus bounded cleanup details. Persistent
+repeats cannot flood its inherited capture. These are diagnostics, not SQL audit.
+
+Shutdown confirms disappearance after signal/taskkill, checks taskkill failure
+and tolerates already-exited processes. Denial retains PID/lock evidence and
+does not stop Supabase under surviving workers. No unconditional exit hook deletes
+the lock. Failed cooperative shutdown remains alive in degraded/stopping mode,
+without restarting stopped children; retry explicit stop after fixing the cause.
+Windows force-kill cannot run a Node signal handler: `local:stop` independently
+confirms termination. A denied PID probe means potentially alive, not dead.
+
+Install on a dedicated local NTFS path with operator ACLs, for example
+`C:\MesaCerta\restaurant`, outside OneDrive, Desktop, Documents and other sync
+roots. Check actual Known Folder redirection; the folder name alone proves
+nothing. This change does not move/reconfigure development. External backup
+synchronization remains separate from live app/data/state/logs.
+
+Identify the blocker before changing security settings. A security maintainer
+may evaluate narrowly scoped antivirus/indexer exclusions only for required DATA
+folders after a risk review. Never disable antivirus globally, exempt a whole
+drive/profile or indiscriminately exclude source/executable directories. Preserve
+ACLs, scanning, updates and protected external copies. No Windows exclusions,
+firewall rules or scheduled tasks are applied by this implementation.
+
+### Disposable verification and manual acceptance
+
+`test:all` owns its separate Supabase/app. Normal startup still requires stable
+PIDs and advancing heartbeats. The Windows resilience acceptance holds the owned
+heartbeat without delete sharing for 85 seconds: app/workers survive, old JSON
+stays intact, authenticated operations status warns and Edge displays the existing
+cashier alert. Release must restore normal heartbeat with the same PIDs. Evidence:
+ignored `artifacts/integration/<run>/supervisor-resilience.json` and
+`supervisor-degraded.png`. Unit tests use filesystem-only temporary contexts,
+deterministic errors and a real Windows handle.
+
+Manual checks must use a newly owned disposable installation: observe normal
+PIDs/status, run the owned lock test, inspect alert/stderr, release and confirm
+recovery. Check bounded log rotation and denied-stop evidence retention through
+test adapters, then successful termination. Never modify development, restaurant
+ACLs or antivirus settings to inject failures. Real antivirus/indexer behavior,
+Windows logon and power-loss acceptance remain separate operational checks.
+
+Validation on 2026-10-29: `check:text` (584 files, zero issues), lint and the
+production build passed. Final `test:all` exited 0: 53 Vitest, 177 native/HTTP
+cases (12 new resilience cases, zero skips), 11 smoke flows, all 53 tracked
+migrations and SQL/concurrency suites, and 522 RLS comparisons. Integration
+`a35f3d3382d60ae0132acf4f` passed/cleaned, with green disposable history and the
+real Windows handle/API/visible-alert/recovery proof; its screenshot was reviewed.
+Provision acceptance `2260bda7d63e267c3103edc5` passed, provider removed, with
+unchanged development backup/state and no Windows configuration changes.
+
+Earlier attempts are not counted as passes: sandbox path-inspection restrictions
+required an elevated temporary-only unit run; a 1ms reader stress run exhausted
+the prescribed retry budget with real EPERM. The ordered-publication test now
+uses the existing process observer's 250ms cadence. Sustained locking remains an
+explicit failure/degradation test, not an excuse for unlimited retries. The first
+aggregate stopped before provisioning because Docker was unavailable; the operator
+opened Docker Desktop before the successful run. No development fallback was used.
+No schema/business/permission/financial change, commit or push was made. Actual
+antivirus/indexer interference and hardware power-loss behavior were not certified;
+the Win32 test uses disposable files on this Windows host, not a separate Windows VM.
+
 ## Backup policy
 
 Administrators configure Settings → Backup and local services. Defaults: six hours, after each cash-session closure, 14 daily representatives plus eight weekly representatives, stale alert after 24 hours, minimum free space 2048 MiB. The supervisor polls committed closing events and catches up after downtime; it does not change the cash transaction. Closures within a minute may be covered together by a later snapshot. Automatic backup requires the supervisor and Docker; no backup can run while the notebook is off. Backup failures are alerted and retried no more often than once per minute. With the app down use CLI/logs; there is no email/SMS alert in this local block.

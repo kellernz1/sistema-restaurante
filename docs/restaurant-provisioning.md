@@ -16,6 +16,14 @@ Use a **fresh checkout on the restaurant notebook**, without `.env.local`,
 a converter/cleaner for the existing development installation. No migration was
 added in this block; the existing ordered application chain is used as-is.
 
+Before provisioning, verify and record the installation path: use a dedicated
+local NTFS directory (for example `C:\MesaCerta\restaurant`) with operator ACLs,
+outside OneDrive, redirected Desktop/Documents and other sync roots. Check actual
+Windows Known Folder redirection. Do not move an existing root-bound installation
+implicitly. Antivirus/indexer exclusions need a security review, limited to
+necessary data folders, never a whole drive/profile or executable/source tree.
+See [operations.md](operations.md#supervisor-file-resilience-2026-10-29).
+
 ```powershell
 npm.cmd ci
 npm.cmd run local:provision

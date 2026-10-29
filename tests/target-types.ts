@@ -1,4 +1,4 @@
-import {databaseSql,createBackup,copyExternal} from "../scripts/target-operations.mjs";
+import {databaseSql,createBackup,copyExternal,writeOperationalJson,createOperationalLogger} from "../scripts/target-operations.mjs";
 import type {TargetContext} from "../scripts/target-safety.mjs";
 export function targetTypeContract(context:TargetContext){
  void databaseSql(context,"select 1");
@@ -10,4 +10,8 @@ export function targetTypeContract(context:TargetContext){
  void createBackup(context,{database:"postgres"});
  // @ts-expect-error A free directory string is not an owned directory capability.
  void copyExternal(context,"backup.dump","C:/foreign-backups");
+ // @ts-expect-error Operational state publication requires the branded context too.
+ void writeOperationalJson("foreign", "state.json", {});
+ // @ts-expect-error A logger cannot obtain an unguarded filesystem context.
+ void createOperationalLogger({profile:"disposable"});
 }

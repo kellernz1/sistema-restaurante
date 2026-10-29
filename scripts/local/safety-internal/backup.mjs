@@ -6,7 +6,8 @@ import { createReadStream } from "node:fs";
 import { command } from "../operations-process.mjs";
 import { findDbContainer, isMain, ROOT, isProcessRunning } from "../lib.mjs";
 import {readOperationsPolicy} from "../../../src/lib/operations.ts";
-import {atomicJson,patchOperationsState} from "../../target-state.mjs";
+import {atomicJson} from "../../target-state.mjs";
+import {patchOperationalState} from "./operational-files.mjs";
 import { localMigrations, verifyHistory } from "./migration-history.mjs";
 
 export const BACKUP_DIR = path.join(ROOT, "backups");
@@ -109,8 +110,8 @@ async function backupImpl(context,{ directory = directoryTarget(context,context.
     fs.unlinkSync(lock);
   }
   fs.writeFileSync(lock, JSON.stringify({pid:process.pid,file}), {flag:"wx"});
-  if (record) patchOperationsState(resolveTarget(),{last_attempt:created_at,result:"running",reason},{purpose:"backup"});
   try {
+    if (record) await patchOperationalState(resolveTarget(),{last_attempt:created_at,result:"running",reason},{purpose:"backup"});
     const migration = (await command(context,"docker",["exec",container,"psql","-X","-U","supabase_admin","-d",database,"-Atc","select max(version) from supabase_migrations.schema_migrations"])).trim();
     assertVersion(migration);
     const historyWarning=!(await verifyHistory(database,container)).ok;
@@ -120,17 +121,17 @@ async function backupImpl(context,{ directory = directoryTarget(context,context.
     publishFile(context,temporary,file);
     atomicJson(resolveTarget(),`${file}.json`,manifest,{purpose:"backup"});
     const policy = record?readOperationsPolicy():{daily:14,weekly:8,external_directory:""};
-    if (record) patchOperationsState(resolveTarget(),{last_success:created_at,file,result:"valid",migration_warning:historyWarning,external:policy.external_directory?"pending":"disabled",external_directory:policy.external_directory},{purpose:"backup"});
+    if (record) await patchOperationalState(resolveTarget(),{last_success:created_at,file,result:"valid",migration_warning:historyWarning,external:policy.external_directory?"pending":"disabled",external_directory:policy.external_directory},{purpose:"backup"});
     if (record && policy.external_directory) {
-      try { await copyExternal(context,file,directoryTarget(context,policy.external_directory,{external:true})); patchOperationsState(resolveTarget(),{external:"valid",external_at:new Date().toISOString()},{purpose:"backup"}); }
-      catch { patchOperationsState(resolveTarget(),{external:"failed",external_at:new Date().toISOString()},{purpose:"backup"}); }
+      try { await copyExternal(context,file,directoryTarget(context,policy.external_directory,{external:true})); await patchOperationalState(resolveTarget(),{external:"valid",external_at:new Date().toISOString()},{purpose:"backup"}); }
+      catch { await patchOperationalState(resolveTarget(),{external:"failed",external_at:new Date().toISOString()},{purpose:"backup"}); }
     }
     if (record) await retention(context,directoryTarget(context,directory),policy,file);
     if(record){try{await command(context,"docker",["exec","-i",container,"psql","-X","-U","supabase_admin","-d",database,"-v","ON_ERROR_STOP=1"],{input:`do $$begin if to_regprocedure('public.license_tick(timestamptz)')is not null then perform public.license_tick('${created_at}'::timestamptz);end if;end $$;`,timeout:10000});}catch{console.error("Backup remains valid; license clock observation unavailable.");}}
     console.log(`Valid backup: ${file}`);
     return file;
   } catch (error) {
-    if (record) patchOperationsState(resolveTarget(),{result:"failed"},{purpose:"backup"});
+    if (record) await patchOperationalState(resolveTarget(),{result:"failed"},{purpose:"backup"});
     throw error;
   } finally { fs.rmSync(temporary,{force:true}); fs.rmSync(lock,{force:true}); }
 }

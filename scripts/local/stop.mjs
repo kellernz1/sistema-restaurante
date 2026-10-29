@@ -1,37 +1,27 @@
-import {guardEntry,resolveTarget} from "../target-safety.mjs";
-
-import fs from "node:fs";
+import { guardEntry, resolveTarget } from "../target-safety.mjs";
+import fs from "node:fs/promises";
 import path from "node:path";
-
-import {isProcessRunning,isWindows,LOCAL_STATE_DIR,run} from "./lib.mjs";
-import {runSupabase} from "../target-operations.mjs";
+import { LOCAL_STATE_DIR } from "./lib.mjs";
+import { runSupabase, stopOwnedProcesses, removeOperationalFile, releaseSupervisorLock } from "../target-operations.mjs";
 import { stopCustomerPreview } from "./stop-customer-preview.mjs";
 import { stopAdminPreview } from "./stop-admin-preview.mjs";
-await guardEntry(import.meta.url,"runtime");
-
-
-stopAdminPreview();
-stopCustomerPreview();
-
+import { stopRuntimeEvidence } from "./supervisor-state.mjs";
+await guardEntry(import.meta.url, "runtime");
+const target = resolveTarget();
+stopAdminPreview(); stopCustomerPreview();
 const stateFile = path.join(LOCAL_STATE_DIR, "processes.json");
-const state = fs.existsSync(stateFile)
-  ? JSON.parse(fs.readFileSync(stateFile, "utf8"))
-  : {};
-
-for (const [name, pid] of [["supervisor",state.supervisor],["app", state.app], ["WhatsApp worker", state.worker], ["print worker", state.printWorker],["license worker",state.licenseWorker]]) {
-  if (!isProcessRunning(pid)) continue;
-  if (isWindows) {
-    run("taskkill", ["/PID", String(pid), "/T", "/F"], { allowFailure: true });
-  } else {
-    try {
-      process.kill(-pid, "SIGTERM");
-    } catch {
-      process.kill(pid, "SIGTERM");
-    }
-  }
-  console.log(`Stopped ${name} (PID ${pid}).`);
-}
-
-if (fs.existsSync(stateFile)) fs.rmSync(stateFile);
-runSupabase(resolveTarget(),["stop"]);
-console.log("Supabase stopped. Local database data was preserved.");
+const read = async file => fs.readFile(file, "utf8").then(JSON.parse, error => { if (error.code === "ENOENT") return {}; throw error; });
+const heartbeat = await read(path.join(LOCAL_STATE_DIR, "operations/supervisor.json"));
+const recorded = await read(stateFile);
+const lockFile = path.join(LOCAL_STATE_DIR, "operations/supervisor.lock");
+const owner = await fs.readFile(lockFile, "utf8").then(Number, error => { if (error.code === "ENOENT") return undefined; throw error; });
+if (owner && recorded.supervisor && owner !== recorded.supervisor && owner !== heartbeat.supervisor) throw Error("Process evidence disagrees with the supervisor lock; stop refused");
+const state = { ...recorded, ...(heartbeat.supervisor === owner ? heartbeat.processes : {}), supervisor: owner ?? recorded.supervisor };
+// Do not stop children underneath a supervisor that may immediately restart them.
+await stopRuntimeEvidence(state, {
+  stop: pids => stopOwnedProcesses(target, pids),
+  release: () => releaseSupervisorLock(target, lockFile, state.supervisor),
+  remove: () => removeOperationalFile(target, stateFile),
+});
+runSupabase(target, ["stop"]);
+console.log("Confirmed local process exit. Supabase stopped; database data preserved.");

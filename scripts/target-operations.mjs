@@ -7,3 +7,5 @@ export * from "./local/safety-internal/isolated-database.mjs";
 export * from "./local/safety-internal/migration-history.mjs";
 export * from "./local/safety-internal/restaurant-provider.mjs";
 export {FilePrintDriver} from "./local/safety-internal/printing-file-driver.mjs";
+export {writeOperationalJson,patchOperationalState,removeOperationalFile,createOperationalLogger,retryOperationalFile,serializeOperationalFile,fileRetryDelays} from "./local/safety-internal/operational-files.mjs";
+export {stopOwnedProcesses,claimSupervisorLock,releaseSupervisorLock} from "./local/safety-internal/operational-processes.mjs";

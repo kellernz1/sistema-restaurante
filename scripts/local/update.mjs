@@ -9,7 +9,7 @@ import {waitFor} from "./operations-process.mjs";
 import {command} from "../target-operations.mjs";
 import { verifyHistory, localMigrations } from "../target-operations.mjs";
 import { assertInstalledSchema } from "./audit-history.mjs";
-import {patchOperationsState} from "../target-state.mjs";
+import {patchOperationalState} from "../target-operations.mjs";
 import { publicKeyConfiguration } from "../../src/features/licensing/validation.ts";
 await guardEntry(import.meta.url,"migration");
 
@@ -38,6 +38,6 @@ await validateBackup(backup);
 // Backup errors abort before any migration. Never reset the local database.
 runSupabase(resolveTarget(),["migration","up","--local"],{timeout:600000});
 if(!(await verifyHistory()).ok)throw new Error("Post-update migration history does not match files");
-patchOperationsState(resolveTarget(),{migration_warning:false});
+await patchOperationalState(resolveTarget(),{migration_warning:false});
 run(process.execPath,["scripts/next-command.mjs","build"],{env:loadEnvFile()});
 console.log("Update complete. Run local:start. Restore the rescue backup through local:restore if recovery is needed.");

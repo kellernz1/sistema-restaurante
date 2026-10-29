@@ -1,4 +1,4 @@
-import {databaseSql} from "../target-operations.mjs";
+import {databaseSql,stopOwnedProcesses} from "../target-operations.mjs";
 import {createDisposableTarget,activateDisposableTarget,bindTarget,resolveTarget} from "../target-safety.mjs";
 
 import fs from "node:fs";
@@ -148,7 +148,10 @@ token_refresh = 10000
  const supervisedState=JSON.parse(fs.readFileSync(path.join(app,".local-secrets","processes.json"),"utf8"));
  const supervisedPids=[supervisor.pid,...["app","worker","printWorker","licenseWorker"].map(name=>supervisedState[name])];
  console.log("Supervisor, app and all three workers passed startup/activity and 11-second liveness acceptance.");
+ await ownedCommand(process.execPath,["scripts/integration/supervisor-resilience.mjs"],{env,log:"supervisor-resilience"});
  // Avoid background queue consumers racing with the following controlled print/lease fixtures.
+ const confirmed=await stopOwnedProcesses(resolveTarget(),[supervisor.pid]);
+ if(confirmed.some(value=>!value.stopped))throw Error("Owned supervisor stop was not confirmed");
  await stopChildren();
  for(let attempt=0;attempt<40&&supervisedPids.some(isProcessRunning);attempt++)await new Promise(resolve=>setTimeout(resolve,250));
  if(supervisedPids.some(isProcessRunning))throw Error("Owned supervised processes did not stop before HTTP fixtures");

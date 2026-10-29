@@ -19,7 +19,7 @@ export type OperationsState = {
   external?: string; external_at?: string; reason?: string; cash_event?: string;
   external_directory?: string;
   migration_warning?: boolean;
-  supervisor?: { heartbeat: string; failures: string[]; processes: Record<string, number>; restarts: Record<string, number> };
+  supervisor?: { supervisor?: number; mode?: "normal" | "degraded"; heartbeat: string; failures: string[]; processes: Record<string, number>; restarts: Record<string, number> };
 };
 export function readJson<T>(file: string, fallback: T): T {
   try { return JSON.parse(fs.readFileSync(file, "utf8")) as T; }

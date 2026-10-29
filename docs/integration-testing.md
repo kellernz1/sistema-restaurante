@@ -1,5 +1,19 @@
 # Disposable integration acceptance
 
+Supervisor resilience acceptance (2026-10-29) runs after the unchanged stable-PID /
+advancing-heartbeat startup check. On Windows it holds only the owned heartbeat
+without delete sharing for 85 seconds, asserts app/workers survive, verifies the
+authenticated stale-heartbeat warning and its visible cashier banner in Edge,
+then requires normal recovery with the same PIDs. It writes ignored
+`supervisor-resilience.json` / `supervisor-degraded.png` evidence and never uses
+development files, ACL changes or antivirus exclusions. Other operating systems
+retain deterministic filesystem-fault coverage; the Win32-handle proof is Windows
+specific. Normal owned shutdown also checks the process-stop helper's result.
+The native suite includes operational-resilience tests with bounded injected
+EPERM/EBUSY, cleanup failures, ordered publications, log rotation/append/queue
+limits and denied-stop evidence retention. Filesystem-only tests use validated
+temporary contexts, without any database connection.
+
 All script data access now requires the signed target capability described in
 [target-safety.md](target-safety.md), in addition to the integration nonce/marker.
 No named/unique development container fallback or implicit SQL test database is

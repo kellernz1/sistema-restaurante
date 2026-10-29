@@ -11,7 +11,7 @@ import { snapshot, schemaDifferences, configuration, normalizeConfiguration, dat
 import { createBackup, validateBackup, copyExternal } from "../target-operations.mjs";
 import { verifyHistory } from "../target-operations.mjs";
 import { databaseSql } from "../target-operations.mjs";
-import {patchOperationsState} from "../target-state.mjs";
+import {patchOperationalState} from "../target-operations.mjs";
 await guardEntry(import.meta.url,"repair");
 
 
@@ -54,7 +54,7 @@ assert.equal(afterHistory.ok,true);assert.deepEqual(afterData,beforeData,"Public
 assert.deepEqual(schemaDifferences(clean,await snapshot(container,"postgres")),[],"Schema changed during repair");
 const allRows=JSON.parse((await databaseSql(databaseTarget(resolveTarget(),"postgres"),"select json_agg(to_jsonb(t) order by version) from supabase_migrations.schema_migrations t;")).trim());
 assert.deepEqual(allRows.filter(row=>oldRows.some(old=>old.version===row.version)),oldRows,"Previously recorded metadata changed");
-patchOperationsState(resolveTarget(),{migration_warning:false});
+await patchOperationalState(resolveTarget(),{migration_warning:false});
 const postBackup=await createBackup(resolveTarget(),{reason:"after-history-reconciliation"});await validateBackup(postBackup);
 fs.writeFileSync(path.join(directory,"reconciled.json"),JSON.stringify({backup:safetyCopy,post_backup:postBackup,registered:versions,afterHistory,public_data_unchanged:true,schema_unchanged:true,old_history_unchanged:true},null,2),"utf8");
 console.log(`Reconciled ${versions.length} history entries only; schema/public data unchanged. Backup verified: ${path.basename(backup)}`);
